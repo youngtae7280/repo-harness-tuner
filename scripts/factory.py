@@ -291,6 +291,154 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
     return path
 
 
+def build_agent_team_doc(payload: dict[str, Any]) -> str:
+    team = payload["team_factory"]
+    engine = payload["harness_engine"]
+    lines = [
+        "# Agent Team",
+        "",
+        f"Domain: {payload['domain']}",
+        f"Project type: {payload['project_type']}",
+        f"Phase: {payload['phase']}",
+        f"Harness readiness: {engine['readiness']['score']}/{engine['readiness']['max_score']}",
+        f"Human involvement: {engine['human_involvement']}/5",
+        "",
+        "## Team Goal",
+        payload["factory_goal"],
+        "",
+        "## Architecture",
+        f"- Team: {team['label']}",
+        f"- Pattern: {team['architecture_pattern']['label']} (`{team['architecture_pattern']['id']}`)",
+        f"- Visibility: {team['architecture_pattern']['visibility']}",
+        f"- Coordination: {team['architecture_pattern']['coordination']}",
+        "",
+        "## Roles",
+    ]
+    for role in team["roles"]:
+        lines.extend(
+            [
+                f"### {role['id']}",
+                f"- Purpose: {role['purpose']}",
+                f"- Visibility: {role['visibility']}",
+                "- Outputs:",
+                *[f"  - {item}" for item in role["outputs"]],
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Operating Rules",
+            "- The main Codex thread owns final decisions, writes, and closeout.",
+            "- Use visible chats for user-inspectable decisions, approval, product direction, release, or QA evidence.",
+            "- Use background/read-only workers for independent review, validation, source checks, and bounded audits.",
+            "- Keep persisted artifacts concise enough for future Codex sessions to reuse.",
+            "",
+            "## Evaluation",
+            "- Run `repo-harness-tuner eval` when the team materially changes.",
+            "- Record repeated misses with `repo-harness-tuner history` so the harness engine can tune this team over time.",
+        ]
+    )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
+    team = payload["team_factory"]
+    related_roles = ", ".join(role["id"] for role in team["roles"]) or "main Codex thread"
+    lines = [
+        f"# {skill['id']}",
+        "",
+        f"Status: {skill['status']}",
+        f"Domain: {payload['domain']}",
+        f"Team: {team['label']}",
+        "",
+        "## Purpose",
+        skill["purpose"],
+        "",
+        "## Trigger",
+        skill["trigger"],
+        "",
+        "## Related Roles",
+        related_roles,
+        "",
+        "## Workflow",
+        "1. Inspect the repo source of truth before adding process.",
+        "2. Keep scope bounded to the current task and domain.",
+        "3. Produce concise evidence that the main thread can merge.",
+        "4. Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
+        "",
+        "## Evidence",
+        "- concise findings or decision summary",
+        "- file references when relevant",
+        "- validation command, skipped-check reason, or manual evidence",
+        "",
+        "## Tuning",
+        "Use `repo-harness-tuner diagnose`, `history`, and `eval --score` to decide whether this skill should be kept, revised, or retired.",
+    ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def build_orchestration_doc(payload: dict[str, Any]) -> str:
+    team = payload["team_factory"]
+    lines = [
+        "# Team Orchestration",
+        "",
+        f"Domain: {payload['domain']}",
+        f"Pattern: {team['architecture_pattern']['label']} (`{team['architecture_pattern']['id']}`)",
+        "",
+        "## Default Flow",
+        "1. Main thread analyzes the request, repo state, and human-involvement level.",
+        "2. Main thread chooses whether a single-agent path is enough.",
+        "3. If worker help is useful, assign bounded scopes using `patterns --prompt <pattern-id>` or the role purposes in `Docs/AI/agent-team.md`.",
+        "4. Background workers return concise findings only; visible chats are used for decisions the user should inspect.",
+        "5. Main thread merges findings, applies approved changes, runs validation, and records history when useful.",
+        "",
+        "## Visibility Policy",
+        *[f"- {item}" for item in team["orchestration"]],
+        "",
+        "## Role Order",
+    ]
+    for role in sorted(team["roles"], key=lambda item: int(item["order"])):
+        lines.append(f"- {role['order']}. `{role['id']}`: {role['purpose']}")
+    lines.extend(
+        [
+            "",
+            "## Stop Conditions",
+            "- Human involvement 5 without explicit approval.",
+            "- Destructive filesystem or data operations.",
+            "- Dependency, release, CI, secret, credential, migration, or privacy-sensitive changes.",
+            "- Product, roadmap, UX, narrative, or scope choices not answered by a repo source of truth.",
+            "",
+            "## Durable Artifacts",
+            "- Persist only decisions, evidence, or role/skill guidance that future Codex sessions should reuse.",
+            "- Prefer updating `Docs/AI/agent-team.md`, `Docs/AI/skills/*.md`, or `Docs/AI/harness-history.jsonl` over adding broad reports.",
+        ]
+    )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_file_once(root: Path, rel: str, content: str, force: bool) -> dict[str, str]:
+    path = root / rel
+    existed = path.exists()
+    if existed and not force:
+        return {"path": rel, "status": "skipped-existing"}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return {"path": rel, "status": "overwrite" if existed else "create"}
+
+
+def write_factory_artifacts(root: Path, payload: dict[str, Any], force: bool = False) -> list[dict[str, str]]:
+    team = payload["team_factory"]
+    results = [
+        write_file_once(root, "Docs/AI/agent-team.md", build_agent_team_doc(payload), force),
+        write_file_once(root, "Docs/AI/team-orchestration.md", build_orchestration_doc(payload), force),
+    ]
+    for skill in team["skills"]:
+        if skill["target_file"] == "Docs/AI/team-orchestration.md":
+            continue
+        results.append(write_file_once(root, skill["target_file"], build_skill_doc(payload, skill), force))
+    return results
+
+
 def print_factory_plan(payload: dict[str, Any]) -> None:
     team = payload["team_factory"]
     engine = payload["harness_engine"]
@@ -325,13 +473,15 @@ def main() -> int:
     parser.add_argument("--repo-type", default="unknown")
     parser.add_argument("--team-size", type=int, default=3)
     parser.add_argument("--write-plan", action="store_true")
+    parser.add_argument("--write-artifacts", action="store_true", help="Write Docs/AI/agent-team.md, Docs/AI/skills/*.md, and Docs/AI/team-orchestration.md.")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
     parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.repo)
     payload = build_factory_plan(root, args.domain, args.phase, args.module, args.human_involvement, args.repo_type, args.team_size)
-    if args.write_plan:
+    if args.write_plan or args.write_artifacts:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
             payload["write_blocked"] = guard
@@ -342,7 +492,10 @@ def main() -> int:
                 print("")
                 print(write_policy.format_guard(guard))
             return 2
+    if args.write_plan:
         payload["plan_path"] = str(write_factory_plan(root.resolve(), payload))
+    if args.write_artifacts:
+        payload["artifact_results"] = write_factory_artifacts(root.resolve(), payload, args.force)
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:
@@ -350,6 +503,11 @@ def main() -> int:
         if args.write_plan:
             print("")
             print(f"Factory plan written: {payload['plan_path']}")
+        if args.write_artifacts:
+            print("")
+            print("Factory artifacts:")
+            for result in payload["artifact_results"]:
+                print(f"- {result['status']}: {result['path']}")
     return 0
 
 

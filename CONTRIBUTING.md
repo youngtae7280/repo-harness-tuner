@@ -10,6 +10,7 @@ Use Python 3.9+ from the plugin root.
 python scripts\console.py patterns
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development
 python scripts\console.py factory --repo C:\path\to\repo --domain "project domain" --phase active-development
+python scripts\console.py factory --repo C:\path\to\repo --domain "project domain" --write-artifacts
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development
 ```
 

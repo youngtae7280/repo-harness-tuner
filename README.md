@@ -8,10 +8,10 @@ Local Codex plugin for continuously improving repo-local Codex working rules and
 It runs a repeatable loop:
 
 ```text
-Analyze -> Diagnose -> Design -> Tune -> Restructure -> Evaluate
+Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 ```
 
-It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guidance, target files, human-involvement policy, and visible/background worker policy as the project evolves.
+It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guidance, target files, human-involvement policy, visible/background worker policy, and repo-local team/skill artifacts as the project evolves.
 
 ## What It Provides
 
@@ -22,7 +22,7 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
 - Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
-- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan.
+- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan and optional repo-local team/skill artifacts.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
@@ -70,6 +70,7 @@ python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project --
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --phase active-development
 python scripts\console.py factory --repo C:\path\to\repo --domain "deep research" --team-size 3 --write-plan
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
 python scripts\console.py patterns
 python scripts\console.py patterns --prompt background-review --repo C:\path\to\repo --phase active-development --scope "validation drift"
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
@@ -193,6 +194,22 @@ This writes:
 ```text
 Docs/AI/factory-plan.md
 ```
+
+Use `--write-artifacts` when you want the factory to create the repo-local team/skill docs:
+
+```powershell
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
+```
+
+This writes missing files only:
+
+```text
+Docs/AI/agent-team.md
+Docs/AI/team-orchestration.md
+Docs/AI/skills/*.md
+```
+
+Use `--force` only when you intentionally want to overwrite existing factory artifact files.
 
 Use `--write-plan` only when you want a durable design plan in the target repository:
 

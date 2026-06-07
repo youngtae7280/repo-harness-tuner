@@ -21,7 +21,7 @@ Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 - Unity, Godot, Vite/Node, Node, Python, docs-only, unknown 프로젝트 프리셋을 적용합니다.
 - `diagnose`로 하네스 준비도, 검증 drift, 과한 프로세스 규칙, 사람 개입 enforcement gap을 진단합니다.
 - `design`으로 다음에 손댈 파일, 워커 구조, 평가 단계, 다음 리뷰 시점을 설계합니다.
-- `factory`로 도메인 설명과 저장소 진단을 합쳐 Codex agent team/skill 계획을 만듭니다.
+- `factory`로 도메인 설명과 저장소 진단을 합쳐 Codex agent team/skill 계획과 repo-local 문서를 만듭니다.
 - `bootstrap`/`apply`로 새 프로젝트의 최소 하네스를 dry-run 우선으로 생성합니다.
 - `tune --dry-run --diff`로 기존 하네스에 review 가능한 unified diff를 만듭니다.
 - `history`로 `Docs/AI/harness-history.jsonl`에 진단 스냅샷을 남기고, 이후 `diagnose`/`tune`이 그 반복 신호를 다시 반영합니다.
@@ -53,6 +53,22 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "deep research
 ```text
 Docs/AI/factory-plan.md
 ```
+
+agent team/skill 문서까지 생성하려면:
+
+```powershell
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
+```
+
+이 명령은 기존 파일을 덮어쓰지 않고, 없는 파일만 생성합니다.
+
+```text
+Docs/AI/agent-team.md
+Docs/AI/team-orchestration.md
+Docs/AI/skills/*.md
+```
+
+기존 factory artifact를 의도적으로 덮어쓰려면 `--force`를 함께 사용합니다.
 
 새 프로젝트에서는 먼저 dry-run으로 봅니다.
 

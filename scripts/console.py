@@ -274,7 +274,7 @@ def cmd_factory(args: argparse.Namespace) -> int:
         args.repo_type,
         args.team_size,
     )
-    if args.write_plan:
+    if args.write_plan or args.write_artifacts:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
             payload["write_blocked"] = guard
@@ -285,7 +285,10 @@ def cmd_factory(args: argparse.Namespace) -> int:
                 print("")
                 print(write_policy.format_guard(guard))
             return 2
+    if args.write_plan:
         payload["plan_path"] = str(factory_module.write_factory_plan(Path(args.repo).resolve(), payload))
+    if args.write_artifacts:
+        payload["artifact_results"] = factory_module.write_factory_artifacts(Path(args.repo).resolve(), payload, args.force)
     if args.json:
         emit_json(payload)
     else:
@@ -293,6 +296,11 @@ def cmd_factory(args: argparse.Namespace) -> int:
         if args.write_plan:
             print("")
             print(f"Factory plan written: {payload['plan_path']}")
+        if args.write_artifacts:
+            print("")
+            print("Factory artifacts:")
+            for result in payload["artifact_results"]:
+                print(f"- {result['status']}: {result['path']}")
     return 0
 
 
@@ -480,6 +488,8 @@ def build_parser() -> argparse.ArgumentParser:
     factory.add_argument("--repo-type", default="unknown")
     factory.add_argument("--team-size", type=int, default=3)
     factory.add_argument("--write-plan", action="store_true", help="Write Docs/AI/factory-plan.md in the target repo.")
+    factory.add_argument("--write-artifacts", action="store_true", help="Write Docs/AI/agent-team.md, Docs/AI/skills/*.md, and Docs/AI/team-orchestration.md.")
+    factory.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
     factory.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     factory.add_argument("--json", action="store_true")
     factory.set_defaults(func=cmd_factory)
