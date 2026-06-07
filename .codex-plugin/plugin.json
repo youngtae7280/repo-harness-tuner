@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "0.1.0+codex.20260607083508",
+  "version": "0.1.0+codex.20260607084324",
   "description": "Generate Codex team/skill plans and continuously improve repo-local harnesses.",
   "author": {
     "name": "Local developer"
@@ -10,7 +10,7 @@
   "interface": {
     "displayName": "Repo Harness Tuner",
     "shortDescription": "Generate Codex team/skill plans and improve repo harnesses.",
-    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, and repo-local team/skill artifacts. The engine side runs analyze, diagnose, design, tune, restructure, and evaluate loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
+    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, and copyable Codex SKILL.md drafts. The engine side runs analyze, diagnose, design, tune, restructure, and evaluate loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
@@ -19,6 +19,7 @@
       "Harness design plan generation",
       "Codex team and skill factory planning",
       "Repo-local agent and skill artifact generation",
+      "Codex SKILL.md draft generation",
       "Codex worker pattern selection",
       "With-harness evaluation planning",
       "Evaluation result scoring",
@@ -39,6 +40,7 @@
       "Bootstrap this repo's Codex harness",
       "Design the next harness tuning step",
       "Generate a Codex team and skill factory plan",
+      "Generate Codex skill drafts for this repo",
       "Generate a harness tuning diff",
       "Create a harness evaluation plan",
       "Record a harness history snapshot",

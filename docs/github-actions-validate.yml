@@ -32,8 +32,10 @@ jobs:
           python scripts/console.py patterns --prompt background-review --repo "$tmp" --phase new-project --scope "validation drift"
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --write-artifacts
+          python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --write-codex-skills
           test -f "$tmp/Docs/AI/agent-team.md"
           test -f "$tmp/Docs/AI/team-orchestration.md"
+          test -f "$tmp/Docs/AI/codex-skills/source-map/SKILL.md"
           python scripts/console.py bootstrap --repo "$tmp" --phase new-project --write
           python skills/codex-harness-setup/scripts/check_harness.py "$tmp"
           python scripts/console.py diagnose --repo "$tmp" --phase new-project --json

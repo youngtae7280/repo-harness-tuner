@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -237,6 +238,7 @@ def build_factory_plan(
             "planned_outputs": [
                 "Docs/AI/agent-team.md",
                 "Docs/AI/skills/*.md",
+                "Docs/AI/codex-skills/*/SKILL.md",
                 "Docs/AI/team-orchestration.md",
                 "Docs/AI/harness-eval-plan.md",
             ],
@@ -377,6 +379,64 @@ def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def normalize_skill_name(value: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    return (normalized or "generated-skill")[:64].strip("-") or "generated-skill"
+
+
+def yaml_scalar(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def trigger_phrase(value: str) -> str:
+    text = value.strip()
+    lowered = text.lower()
+    if lowered.startswith("use when "):
+        return text[9:]
+    return text
+
+
+def build_codex_skill_md(payload: dict[str, Any], skill: dict[str, Any]) -> str:
+    skill_name = normalize_skill_name(str(skill["id"]))
+    team = payload["team_factory"]
+    related_roles = ", ".join(role["id"] for role in team["roles"]) or "main Codex thread"
+    description = (
+        f"{skill['purpose']} Use when Codex is working on {payload['domain']} and needs "
+        f"{trigger_phrase(str(skill.get('trigger', 'this workflow')))}, "
+        "with repo-local evidence, bounded scope, and handoff back to the main thread."
+    )
+    lines = [
+        "---",
+        f"name: {skill_name}",
+        f"description: {yaml_scalar(description)}",
+        "---",
+        "",
+        f"# {skill_name}",
+        "",
+        "## Purpose",
+        skill["purpose"],
+        "",
+        "## Use",
+        "- Inspect the repository source of truth before adding new process.",
+        "- Keep the work bounded to the current request and domain.",
+        "- Return concise evidence that the main Codex thread can merge.",
+        "- Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
+        "",
+        "## Related Roles",
+        related_roles,
+        "",
+        "## Expected Evidence",
+        "- concise findings or decision summary",
+        "- file references when relevant",
+        "- validation command, skipped-check reason, or manual evidence",
+        "",
+        "## Tuning",
+        "Revise or retire this skill when `repo-harness-tuner eval --score` or `repo-harness-tuner history` shows no improvement, repeated misses, or unnecessary overhead.",
+    ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def build_orchestration_doc(payload: dict[str, Any]) -> str:
     team = payload["team_factory"]
     lines = [
@@ -439,6 +499,20 @@ def write_factory_artifacts(root: Path, payload: dict[str, Any], force: bool = F
     return results
 
 
+def write_codex_skill_scaffolds(
+    root: Path,
+    payload: dict[str, Any],
+    output_rel: str = "Docs/AI/codex-skills",
+    force: bool = False,
+) -> list[dict[str, str]]:
+    results = []
+    for skill in payload["team_factory"]["skills"]:
+        skill_name = normalize_skill_name(str(skill["id"]))
+        rel = str(Path(output_rel) / skill_name / "SKILL.md").replace("\\", "/")
+        results.append(write_file_once(root, rel, build_codex_skill_md(payload, skill), force))
+    return results
+
+
 def print_factory_plan(payload: dict[str, Any]) -> None:
     team = payload["team_factory"]
     engine = payload["harness_engine"]
@@ -474,6 +548,8 @@ def main() -> int:
     parser.add_argument("--team-size", type=int, default=3)
     parser.add_argument("--write-plan", action="store_true")
     parser.add_argument("--write-artifacts", action="store_true", help="Write Docs/AI/agent-team.md, Docs/AI/skills/*.md, and Docs/AI/team-orchestration.md.")
+    parser.add_argument("--write-codex-skills", action="store_true", help="Write Codex SKILL.md draft folders under --codex-skill-output.")
+    parser.add_argument("--codex-skill-output", default="Docs/AI/codex-skills", help="Repo-relative output directory for generated Codex skill drafts.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
     parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
@@ -481,7 +557,7 @@ def main() -> int:
 
     root = Path(args.repo)
     payload = build_factory_plan(root, args.domain, args.phase, args.module, args.human_involvement, args.repo_type, args.team_size)
-    if args.write_plan or args.write_artifacts:
+    if args.write_plan or args.write_artifacts or args.write_codex_skills:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
             payload["write_blocked"] = guard
@@ -496,6 +572,8 @@ def main() -> int:
         payload["plan_path"] = str(write_factory_plan(root.resolve(), payload))
     if args.write_artifacts:
         payload["artifact_results"] = write_factory_artifacts(root.resolve(), payload, args.force)
+    if args.write_codex_skills:
+        payload["codex_skill_results"] = write_codex_skill_scaffolds(root.resolve(), payload, args.codex_skill_output, args.force)
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:
@@ -507,6 +585,11 @@ def main() -> int:
             print("")
             print("Factory artifacts:")
             for result in payload["artifact_results"]:
+                print(f"- {result['status']}: {result['path']}")
+        if args.write_codex_skills:
+            print("")
+            print("Codex skill drafts:")
+            for result in payload["codex_skill_results"]:
                 print(f"- {result['status']}: {result['path']}")
     return 0
 
