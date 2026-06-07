@@ -7,8 +7,8 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - GitHub: https://github.com/youngtae7280/repo-harness-tuner
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
-- Current milestone: https://github.com/youngtae7280/repo-harness-tuner/milestone/1
-- Next implementation target: `v0.3.0 - Fixture Golden Tests`
+- Current milestone: https://github.com/youngtae7280/repo-harness-tuner/milestone/2
+- Next implementation target: `v0.5.0 - Factory Output Quality`
 
 ## Clone On A New PC
 
@@ -105,7 +105,7 @@ The v0.3.0 fixture golden-test suite is implemented. Use this command before pus
 python scripts\console.py fixture-test
 ```
 
-The v0.3.0 milestone remains useful as historical context:
+The closed v0.3.0 milestone remains useful as historical context:
 
 - Issue #2: add fixture repository corpus.
 - Issue #3: implement fixture golden-test runner.
@@ -113,7 +113,16 @@ The v0.3.0 milestone remains useful as historical context:
 - Issue #5: document fixture authoring and release criteria.
 - Issue #6: release checklist.
 
-The next active implementation target after v0.3.0 is v0.5.0: improving factory output quality.
+The active implementation target is v0.5.0: improving factory output quality.
+
+Start with the GitHub `v0.5.0 - Factory Output Quality` milestone. The expected work is:
+
+1. Add repo evidence extraction for factory outputs.
+2. Make generated skill drafts more repo-specific and less generic.
+3. Detect stale/conflicting generated artifacts and recommend update paths.
+4. Improve `factory --write-artifacts` and `factory --write-codex-skills` update behavior.
+5. Add fixture assertions that prevent generic factory regressions.
+6. Update docs and release notes for the v0.5.0 factory workflow.
 
 ## Local-Only State
 
