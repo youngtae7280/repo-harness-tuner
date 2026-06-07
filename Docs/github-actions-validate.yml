@@ -28,6 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           tmp="$(mktemp -d)"
+          python scripts/scan_repo_harness.py --json | grep '"project_type": "codex-plugin"'
           python scripts/console.py patterns --json
           python scripts/console.py patterns --prompt background-review --repo "$tmp" --phase new-project --scope "validation drift"
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --json
@@ -40,6 +41,6 @@ jobs:
           test -f "$tmp/Docs/AI/codex-skills/source-map/SKILL.md"
           test -f "$install_root/source-map/SKILL.md"
           python scripts/console.py bootstrap --repo "$tmp" --phase new-project --write
-          python skills/codex-harness-setup/scripts/check_harness.py "$tmp"
+          python skills/codex-harness-setup/scripts/check_harness.py "$tmp" | grep 'Harness check passed'
           python scripts/console.py diagnose --repo "$tmp" --phase new-project --json
           python scripts/console.py tune --repo "$tmp" --phase new-project --dry-run --diff

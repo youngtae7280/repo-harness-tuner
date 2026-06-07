@@ -10,6 +10,9 @@ Initial GitHub release.
 - `factory --write-artifacts` for repo-local `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and `Docs/AI/skills/*.md` generation.
 - `factory --write-codex-skills` for copyable Codex `SKILL.md` draft generation under `Docs/AI/codex-skills`.
 - `factory --install-codex-skills --confirm-install` for installing generated Codex skill drafts into a selected skills directory.
+- Codex plugin project preset with plugin-specific diagnosis, factory roles, evaluation golden task, and validation guidance.
+- Repo-local self harness files under `AGENTS.md` and `Docs/AI/*` for this plugin.
+- Harness checker now inspects `Docs/AI`, `docs/AI`, and `docs/ai` paths so Linux and Windows path casing do not hide applied docs.
 - Product direction now explicitly combines a team/skill generation factory with the adaptive harness improvement engine.
 - History-informed diagnosis and tuning: repeated readiness regression, validation drift, process overhead, human-involvement gaps, and failure notes now feed back into `diagnose` and `tune`.
 - `eval --score` for semi-automatic scoring of recorded baseline vs with-harness assertion results.
@@ -18,7 +21,7 @@ Initial GitHub release.
 - GitHub Actions validation workflow for script compilation and CLI smoke tests.
 - Reviewable `tune --dry-run --diff` command that converts diagnosis into managed-section unified diffs.
 - Repo-local Codex harness diagnosis for `AGENTS.md`, `Docs/AI/*`, package scripts, and common agent instruction files.
-- Project-type presets for Unity, Godot, Vite/Node, Node, Python, docs-only, and unknown repositories.
+- Project-type presets for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, and unknown repositories.
 - Harness design output with target files, validation steps, worker architecture, and next review trigger.
 - Codex worker pattern catalog: `single-agent`, `background-review`, `visible-decision-thread`, `producer-reviewer`, `fanout-review`, `supervisor-cycle`, and `phase-handoff`.
 - Plan-only with-harness vs baseline evaluation command with golden tasks and assertions.

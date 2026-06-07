@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "0.1.0+codex.20260607090732",
+  "version": "0.1.0+codex.20260607111109",
   "description": "Generate Codex team/skill plans and continuously improve repo-local harnesses.",
   "author": {
     "name": "Local developer"
@@ -10,12 +10,13 @@
   "interface": {
     "displayName": "Repo Harness Tuner",
     "shortDescription": "Generate Codex team/skill plans and improve repo harnesses.",
-    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, copyable Codex SKILL.md drafts, and confirmed skill installs. The engine side runs analyze, diagnose, design, tune, restructure, and evaluate loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
+    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, copyable Codex SKILL.md drafts, confirmed skill installs, and Codex plugin team presets. The engine side runs analyze, diagnose, design, tune, restructure, and evaluate loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
       "Analyze-diagnose-design-tune-restructure-evaluate loop",
       "Project-type harness presets",
+      "Codex plugin project preset",
       "Harness design plan generation",
       "Codex team and skill factory planning",
       "Repo-local agent and skill artifact generation",

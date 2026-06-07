@@ -18,7 +18,7 @@ Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 ## 주요 기능
 
 - 현재 저장소의 `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, `package.json` scripts, 일반 문서를 스캔합니다.
-- Unity, Godot, Vite/Node, Node, Python, docs-only, unknown 프로젝트 프리셋을 적용합니다.
+- Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, unknown 프로젝트 프리셋을 적용합니다.
 - `diagnose`로 하네스 준비도, 검증 drift, 과한 프로세스 규칙, 사람 개입 enforcement gap을 진단합니다.
 - `design`으로 다음에 손댈 파일, 워커 구조, 평가 단계, 다음 리뷰 시점을 설계합니다.
 - `factory`로 도메인 설명과 저장소 진단을 합쳐 Codex agent team/skill 계획, repo-local 문서, Codex `SKILL.md` 초안, 확인된 skill 설치를 처리합니다.

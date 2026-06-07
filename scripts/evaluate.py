@@ -90,6 +90,19 @@ def golden_tasks(project_type: str, phase: str) -> list[dict[str, Any]]:
                 ],
             }
         )
+    elif project_type == "codex-plugin":
+        common.append(
+            {
+                "id": "plugin-contract-validation",
+                "prompt": "Tune the harness for a Codex plugin change that edits plugin.json, SKILL.md, or CLI factory behavior.",
+                "purpose": "Checks whether plugin metadata, skill validation, cachebuster, and CLI smoke evidence are represented.",
+                "assertions": [
+                    "Requires plugin manifest validation when plugin.json changes.",
+                    "Requires skill quick validation when bundled SKILL.md files change.",
+                    "Includes focused CLI smoke tests for factory or install behavior changes.",
+                ],
+            }
+        )
     if phase in {"pre-release", "high-risk"}:
         common.append(
             {

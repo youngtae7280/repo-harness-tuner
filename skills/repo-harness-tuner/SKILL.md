@@ -25,8 +25,9 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Scan the current repository for `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, package scripts, and common project docs.
 - Compare installed capabilities against what the current repo actually documents or needs.
 - Score harness readiness and recommend concrete tuning changes.
-- Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, docs-only, or unknown projects.
+- Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
+- Apply Codex plugin-specific presets for plugin.json, bundled skill validation, cachebuster, and CLI smoke-test workflows.
 - Generate a Codex team/skill factory plan with `factory`, including agent roles, planned skill files, orchestration rules, and planned outputs.
 - Generate repo-local factory artifacts with `factory --write-artifacts`: `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and `Docs/AI/skills/*.md`.
 - Generate copyable Codex skill draft folders with `factory --write-codex-skills`: `Docs/AI/codex-skills/<skill-id>/SKILL.md`.

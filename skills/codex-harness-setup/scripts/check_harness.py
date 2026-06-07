@@ -42,10 +42,28 @@ def harness_files(root: Path) -> list[Path]:
     agents = root / "AGENTS.md"
     if agents.exists():
         files.append(agents)
-    docs_ai = root / "docs" / "ai"
-    if docs_ai.exists():
-        files.extend(sorted(p for p in docs_ai.rglob("*.md") if p.is_file()))
+    seen = {agents.resolve()} if agents.exists() else set()
+    for docs_ai in [root / "Docs" / "AI", root / "docs" / "AI", root / "docs" / "ai"]:
+        if not docs_ai.exists():
+            continue
+        for path in sorted(p for p in docs_ai.rglob("*.md") if p.is_file()):
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            files.append(path)
     return files
+
+
+def find_validation_file(root: Path) -> Path | None:
+    for path in [
+        root / "Docs" / "AI" / "validation.md",
+        root / "docs" / "AI" / "validation.md",
+        root / "docs" / "ai" / "validation.md",
+    ]:
+        if path.exists():
+            return path
+    return None
 
 
 def line_col(text: str, index: int) -> tuple[int, int]:
@@ -103,8 +121,8 @@ def check_agents_length(root: Path) -> list[str]:
 
 
 def check_validation_commands(root: Path) -> list[str]:
-    validation = root / "docs" / "ai" / "validation.md"
-    if not validation.exists():
+    validation = find_validation_file(root)
+    if validation is None:
         return []
     text = validation.read_text(encoding="utf-8", errors="replace")
     # Avoid passing on prose like "npm exists"; require command-like lines or explicit uncertainty.

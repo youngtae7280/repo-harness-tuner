@@ -108,6 +108,21 @@ DOMAIN_PRESETS: dict[str, dict[str, Any]] = {
         ],
         "preferred_pattern": "visible-decision-thread",
     },
+    "codex-plugin": {
+        "keywords": ["codex", "plugin", "skill", "harness", "agent scaffold"],
+        "label": "Codex Plugin Team",
+        "roles": [
+            ("harness-designer", "Map project-specific agent behavior, human involvement, and worker policy."),
+            ("plugin-builder", "Update plugin manifests, CLI scripts, skills, and generated artifacts."),
+            ("validation-reviewer", "Check plugin validation, skill validation, cachebuster, and smoke evidence."),
+        ],
+        "skills": [
+            ("plugin-contract-review", "Review plugin.json, marketplace expectations, and cachebuster requirements."),
+            ("skill-trigger-design", "Design valid SKILL.md frontmatter, trigger wording, and bounded workflows."),
+            ("cli-smoke-validation", "Define focused CLI smoke tests for factory, install, tune, and eval flows."),
+        ],
+        "preferred_pattern": "producer-reviewer",
+    },
     "generic": {
         "keywords": [],
         "label": "General Project Team",
@@ -127,6 +142,8 @@ DOMAIN_PRESETS: dict[str, dict[str, Any]] = {
 
 
 def classify_domain(domain: str, project_type: str) -> str:
+    if project_type == "codex-plugin":
+        return "codex-plugin"
     text = f"{domain} {project_type}".lower()
     for key, preset in DOMAIN_PRESETS.items():
         if key == "generic":

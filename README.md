@@ -20,7 +20,7 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - Read-only scanners for installed skills and plugins as supporting evidence.
 - A repo harness scanner for `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, and package scripts.
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
-- Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, and docs-only projects.
+- Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, Codex plugin, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
 - A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan, optional repo-local team/skill artifacts, optional Codex `SKILL.md` draft folders, and confirmed skill installs.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
@@ -29,6 +29,7 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A safe `bootstrap`/`apply` flow that generates initial harness files in dry-run mode by default.
 - A `tune` command that turns diagnosis into reviewable unified diffs before writing files.
 - A `history` command that records diagnosis snapshots, summarizes harness evolution, and feeds recurring signals back into diagnosis.
+- Codex plugin-specific detection, factory roles, evaluation tasks, and validation guidance for plugin.json, bundled skills, and CLI smoke flows.
 - Phase-aware tuning cadence for new projects, prototypes, active development, pre-release, maintenance, and high-risk work.
 - Drift checks between package scripts and validation guidance.
 - Human-involvement and worker-visibility matrix generation.

@@ -124,6 +124,20 @@ PROJECT_PRESETS = {
         ],
         "baseline_files": ["AGENTS.md", "Docs/AI/harness-profile.md", "Docs/AI/validation.md"],
     },
+    "codex-plugin": {
+        "label": "Codex plugin project",
+        "primary_risks": [
+            "plugin manifest and marketplace metadata drift",
+            "skill frontmatter or trigger wording becoming invalid",
+            "CLI smoke coverage missing generated factory and install flows",
+        ],
+        "validation_emphasis": [
+            "validate plugin.json with plugin-creator",
+            "validate bundled skills with skill-creator",
+            "compile scripts and run focused CLI smoke tests before cachebuster updates",
+        ],
+        "baseline_files": ["AGENTS.md", "Docs/AI/harness-profile.md", "Docs/AI/validation.md"],
+    },
     "docs-only": {
         "label": "Docs-only project",
         "primary_risks": [
@@ -175,6 +189,8 @@ def human_involvement_from_ambiguity(value: int) -> int:
 def normalize_project_type(repo_scan: dict[str, Any], repo_type: str | None = None) -> str:
     value = (repo_type or "").strip().lower()
     if value and value != "unknown":
+        if "codex" in value and ("plugin" in value or "skill" in value):
+            return "codex-plugin"
         for key in PROJECT_PRESETS:
             if key != "unknown" and key in value:
                 return key
@@ -306,7 +322,7 @@ def score_repo(root: Path, repo_scan: dict[str, Any], phase: str) -> dict[str, A
         "Add Docs/AI/validation.md with focused and broad validation commands.",
     )
 
-    profile_path = find_file(root, ["Docs/AI/harness-profile.md", "docs/ai/harness-profile.md"])
+    profile_path = find_file(root, ["Docs/AI/harness-profile.md", "docs/AI/harness-profile.md", "docs/ai/harness-profile.md"])
     profile_text = read_text(profile_path) if profile_path else ""
     add(
         10,
@@ -325,7 +341,7 @@ def score_repo(root: Path, repo_scan: dict[str, Any], phase: str) -> dict[str, A
         "Add visible-chat vs background-worker policy for parallel work.",
     )
 
-    validation_path = find_file(root, ["Docs/AI/validation.md", "docs/ai/validation.md"])
+    validation_path = find_file(root, ["Docs/AI/validation.md", "docs/AI/validation.md", "docs/ai/validation.md"])
     validation_text = read_text(validation_path) if validation_path else ""
     package_scripts = repo_scan.get("package_scripts", {})
     if package_scripts:
@@ -389,7 +405,7 @@ def dedupe(items: list[str]) -> list[str]:
 
 def drift_check(root: Path, repo_scan: dict[str, Any]) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
-    validation_path = find_file(root, ["Docs/AI/validation.md", "docs/ai/validation.md"])
+    validation_path = find_file(root, ["Docs/AI/validation.md", "docs/AI/validation.md", "docs/ai/validation.md"])
     validation_text = read_text(validation_path) if validation_path else ""
     scripts = repo_scan.get("package_scripts", {})
     for name, command in scripts.items():
@@ -423,7 +439,7 @@ def overbroad_process_check(root: Path) -> list[dict[str, str]]:
     agents = root / "AGENTS.md"
     if agents.exists():
         candidates.append(agents)
-    for docs_root in [root / "Docs" / "AI", root / "docs" / "ai"]:
+    for docs_root in [root / "Docs" / "AI", root / "docs" / "AI", root / "docs" / "ai"]:
         if docs_root.exists():
             candidates.extend(sorted(path for path in docs_root.rglob("*.md") if path.is_file()))
 
@@ -449,9 +465,9 @@ def overbroad_process_check(root: Path) -> list[dict[str, str]]:
 
 def ambiguity_enforcement_check(root: Path) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
-    ambiguity_path = find_file(root, ["Docs/AI/ambiguity-profile.md", "docs/ai/ambiguity-profile.md"])
+    ambiguity_path = find_file(root, ["Docs/AI/ambiguity-profile.md", "docs/AI/ambiguity-profile.md", "docs/ai/ambiguity-profile.md"])
     agents_text = read_text(root / "AGENTS.md")
-    profile_text = read_text(find_file(root, ["Docs/AI/harness-profile.md", "docs/ai/harness-profile.md"]) or Path("__missing__"))
+    profile_text = read_text(find_file(root, ["Docs/AI/harness-profile.md", "docs/AI/harness-profile.md", "docs/ai/harness-profile.md"]) or Path("__missing__"))
 
     if not ambiguity_path:
         issues.append(

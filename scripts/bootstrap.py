@@ -28,6 +28,15 @@ write_policy = load_local_module("write_policy")
 
 
 def package_scripts_text(repo_scan: dict[str, Any]) -> list[str]:
+    if repo_scan.get("project_type") == "codex-plugin":
+        return [
+            "- Focused Python script check: `python -m py_compile scripts\\console.py scripts\\factory.py scripts\\diagnose.py`.",
+            "- Broad script check: `python -m py_compile scripts\\console.py scripts\\diagnose.py scripts\\evaluate.py scripts\\factory.py scripts\\bootstrap.py scripts\\history.py scripts\\history_store.py scripts\\tune.py scripts\\write_policy.py scripts\\generate_prompt.py scripts\\scan_plugins.py scripts\\scan_repo_harness.py scripts\\scan_skills.py scripts\\worker_patterns.py`.",
+            "- Skill validation on Windows: `python %USERPROFILE%\\.codex\\skills\\.system\\skill-creator\\scripts\\quick_validate.py skills\\repo-harness-tuner`.",
+            "- Plugin validation on Windows: `python %USERPROFILE%\\.codex\\skills\\.system\\plugin-creator\\scripts\\validate_plugin.py .`.",
+            "- Use the equivalent `$HOME/.codex/skills/.system/...` paths on Unix-like machines.",
+            "- GitHub Actions broad check: `.github/workflows/validate.yml`.",
+        ]
     scripts = repo_scan.get("package_scripts", {})
     if not isinstance(scripts, dict) or not scripts:
         return ["- Validation commands unknown: no package scripts detected; use manual only validation until project commands exist."]

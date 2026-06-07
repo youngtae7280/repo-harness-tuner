@@ -12,10 +12,17 @@ HARNESS_PATHS = [
     "CLAUDE.md",
     ".cursorrules",
     ".github/copilot-instructions.md",
+    ".codex-plugin/plugin.json",
+    ".mcp.json",
+    ".app.json",
     "Docs/AI/harness-profile.md",
     "Docs/AI/ambiguity-profile.md",
     "Docs/AI/validation.md",
     "Docs/AI/project-map.md",
+    "docs/AI/harness-profile.md",
+    "docs/AI/ambiguity-profile.md",
+    "docs/AI/validation.md",
+    "docs/AI/project-map.md",
     "Docs/SKILLS.md",
     "docs/ai/harness-profile.md",
     "docs/ai/ambiguity-profile.md",
@@ -51,8 +58,16 @@ def detect_project_type(root: Path, package: dict | None = None) -> dict[str, ob
 
     markers: list[str] = []
     project_type = "unknown"
+    python_scripts = sorted((root / "scripts").glob("*.py")) if (root / "scripts").exists() else []
 
-    if (root / "ProjectSettings").exists() and (root / "Assets").exists():
+    if (root / ".codex-plugin" / "plugin.json").exists():
+        project_type = "codex-plugin"
+        markers.append(".codex-plugin/plugin.json")
+        if (root / "skills").exists():
+            markers.append("skills/")
+        if python_scripts:
+            markers.append("python-scripts")
+    elif (root / "ProjectSettings").exists() and (root / "Assets").exists():
         project_type = "unity"
         markers.extend(["Assets/", "ProjectSettings/"])
         if (root / "Packages" / "manifest.json").exists():
@@ -60,12 +75,14 @@ def detect_project_type(root: Path, package: dict | None = None) -> dict[str, ob
     elif (root / "project.godot").exists():
         project_type = "godot"
         markers.append("project.godot")
-    elif (root / "pyproject.toml").exists() or (root / "requirements.txt").exists():
+    elif (root / "pyproject.toml").exists() or (root / "requirements.txt").exists() or python_scripts:
         project_type = "python"
         if (root / "pyproject.toml").exists():
             markers.append("pyproject.toml")
         if (root / "requirements.txt").exists():
             markers.append("requirements.txt")
+        if python_scripts:
+            markers.append("python-scripts")
     elif (root / "package.json").exists():
         if "vite" in deps or (root / "vite.config.ts").exists() or (root / "vite.config.js").exists():
             project_type = "vite-node"
@@ -115,10 +132,18 @@ def scan(root: Path) -> dict[str, object]:
     docs_reports = root / "Docs" / "Reports"
     report_count = len(list(docs_reports.glob("*"))) if docs_reports.exists() else 0
 
+    def has_any_case_variant(rel: str) -> bool:
+        variants = {
+            rel,
+            rel.replace("Docs/AI", "docs/AI"),
+            rel.replace("Docs/AI", "docs/ai"),
+        }
+        return any((root / variant).exists() for variant in variants)
+
     missing_recommended = [
         rel
         for rel in ["AGENTS.md", "Docs/AI/harness-profile.md", "Docs/AI/ambiguity-profile.md", "Docs/AI/validation.md"]
-        if not (root / rel).exists() and not (root / rel.replace("Docs/AI", "docs/ai")).exists()
+        if not has_any_case_variant(rel)
     ]
 
     project = detect_project_type(root, package)

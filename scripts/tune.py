@@ -238,7 +238,7 @@ def build_proposals(
         )
     if needs_profile:
         ensure_or_update(
-            ["Docs/AI/harness-profile.md", "docs/ai/harness-profile.md"],
+            ["Docs/AI/harness-profile.md", "docs/AI/harness-profile.md", "docs/ai/harness-profile.md"],
             "Docs/AI/harness-profile.md",
             "Docs/AI/harness-profile.md",
             "harness-profile",
@@ -248,7 +248,7 @@ def build_proposals(
         )
     if needs_validation:
         ensure_or_update(
-            ["Docs/AI/validation.md", "docs/ai/validation.md"],
+            ["Docs/AI/validation.md", "docs/AI/validation.md", "docs/ai/validation.md"],
             "Docs/AI/validation.md",
             "Docs/AI/validation.md",
             "validation",
@@ -258,7 +258,7 @@ def build_proposals(
         )
     if needs_involvement:
         ensure_or_update(
-            ["Docs/AI/ambiguity-profile.md", "docs/ai/ambiguity-profile.md"],
+            ["Docs/AI/ambiguity-profile.md", "docs/AI/ambiguity-profile.md", "docs/ai/ambiguity-profile.md"],
             "Docs/AI/ambiguity-profile.md",
             "Docs/AI/ambiguity-profile.md",
             "human-involvement",
