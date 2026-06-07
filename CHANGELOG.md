@@ -10,7 +10,7 @@ Initial GitHub release.
 - `eval --score` for semi-automatic scoring of recorded baseline vs with-harness assertion results.
 - Human-involvement write guards: file-writing commands at involvement level 4 or 5 require `--confirm-write`.
 - `patterns --prompt <pattern-id>` for visible/background Codex worker assignment prompts.
-- GitHub Actions validation workflow template for script compilation and CLI smoke tests.
+- GitHub Actions validation workflow for script compilation and CLI smoke tests.
 - Reviewable `tune --dry-run --diff` command that converts diagnosis into managed-section unified diffs.
 - Repo-local Codex harness diagnosis for `AGENTS.md`, `Docs/AI/*`, package scripts, and common agent instruction files.
 - Project-type presets for Unity, Godot, Vite/Node, Node, Python, docs-only, and unknown repositories.

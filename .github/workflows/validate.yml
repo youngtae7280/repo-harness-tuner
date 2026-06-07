@@ -1,0 +1,36 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile scripts
+        run: python -m py_compile scripts/*.py
+
+      - name: Validate plugin manifest JSON
+        run: python -m json.tool .codex-plugin/plugin.json
+
+      - name: Smoke test CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          python scripts/console.py patterns --json
+          python scripts/console.py patterns --prompt background-review --repo "$tmp" --phase new-project --scope "validation drift"
+          python scripts/console.py bootstrap --repo "$tmp" --phase new-project --write
+          python skills/codex-harness-setup/scripts/check_harness.py "$tmp"
+          python scripts/console.py diagnose --repo "$tmp" --phase new-project --json
+          python scripts/console.py tune --repo "$tmp" --phase new-project --dry-run --diff
