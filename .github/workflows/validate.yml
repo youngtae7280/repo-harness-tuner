@@ -38,6 +38,12 @@ jobs:
           test -f "$tmp/Docs/AI/harness-loop-plan.md"
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --record-history --note "ci smoke"
           test -f "$tmp/Docs/AI/harness-history.jsonl"
+          cat > "$tmp/eval-results.json" <<'JSON'
+          {"results":[{"task_id":"ci","assertions":[{"text":"keeps validation focused","baseline":"fail","with_harness":"pass","evidence":"smoke"}]}]}
+          JSON
+          python scripts/console.py eval --repo "$tmp" --score "$tmp/eval-results.json" --write-score --note "ci score smoke" --json
+          test -f "$tmp/Docs/AI/harness-eval-results.jsonl"
+          python scripts/console.py diagnose --repo "$tmp" --phase new-project --json | grep '"eval_score_records": 1'
           python scripts/console.py patterns --json
           python scripts/console.py patterns --prompt background-review --repo "$tmp" --phase new-project --scope "validation drift"
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --json

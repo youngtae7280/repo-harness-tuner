@@ -111,6 +111,8 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     factory_quality = factory_payload.get("factory_quality", {})
     artifact_summary = factory_payload.get("artifact_inventory", {}).get("summary", {})
     evidence_refs = [str(item) for item in factory_payload.get("repo_evidence", {}).get("evidence_refs", [])]
+    history_feedback = diagnosis.get("history_feedback", {})
+    signal_types = [str(signal.get("type")) for signal in history_feedback.get("signals", []) if isinstance(signal, dict)]
     if "factory_evidence_min" in expected:
         assert_minimum(failures, "factory_evidence_refs", int(factory_quality.get("evidence_ref_count", 0)), int(expected["factory_evidence_min"]))
     if "factory_skills_with_evidence_min" in expected:
@@ -123,6 +125,14 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
         assert_equal(failures, "factory_generic_output", bool(factory_quality.get("generic_output", False)), bool(expected["factory_generic_output"]))
     if "factory_evidence_contains" in expected:
         assert_contains_all(failures, "factory_evidence_refs", evidence_refs, list(expected["factory_evidence_contains"]))
+    if "history_signals_min" in expected:
+        assert_minimum(failures, "history_signals", len(signal_types), int(expected["history_signals_min"]))
+    if "eval_score_records_min" in expected:
+        assert_minimum(failures, "eval_score_records", int(history_feedback.get("eval_score_records", 0) or 0), int(expected["eval_score_records_min"]))
+    if "review_pressure" in expected:
+        assert_equal(failures, "review_pressure", history_feedback.get("review_pressure", "normal"), expected["review_pressure"])
+    if "closed_loop_signal_contains" in expected:
+        assert_contains_all(failures, "closed_loop_signals", signal_types, list(expected["closed_loop_signal_contains"]))
     assert_range(
         failures,
         "readiness",
@@ -158,6 +168,9 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "factory_skills_with_evidence": factory_quality.get("skills_with_evidence", 0),
             "factory_conflicts": artifact_summary.get("conflict_count", 0),
             "factory_stale": artifact_summary.get("stale_count", 0),
+            "history_signals": len(signal_types),
+            "eval_score_records": history_feedback.get("eval_score_records", 0),
+            "review_pressure": history_feedback.get("review_pressure", "normal"),
             "diagnosis_findings": len(diagnosis["readiness"]["findings"]),
             "harness_files": len(repo_scan.get("files", [])),
             "eval_mode": eval_payload.get("evaluation_mode", ""),
@@ -208,7 +221,9 @@ def print_report(payload: dict[str, Any]) -> None:
                 f"{observed['project_type']} readiness={observed['readiness']} "
                 f"next={observed['next_action']} eval_tasks={observed['eval_tasks']} "
                 f"factory_evidence={observed.get('factory_evidence_refs', 0)} "
-                f"conflicts={observed.get('factory_conflicts', 0)}"
+                f"conflicts={observed.get('factory_conflicts', 0)} "
+                f"signals={observed.get('history_signals', 0)} "
+                f"pressure={observed.get('review_pressure', 'normal')}"
             )
         for failure in result.get("failures", []):
             print(f"  failure: {failure}")

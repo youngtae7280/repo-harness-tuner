@@ -7,8 +7,8 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - GitHub: https://github.com/youngtae7280/repo-harness-tuner
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
-- Current milestone: https://github.com/youngtae7280/repo-harness-tuner/milestone/3
-- Next implementation target: `v0.8.0 - Stronger Closed Loop`
+- Current milestone: v1.0.0 stable public release, after the v0.8.0 closed-loop release.
+- Next implementation target: `v1.0.0 - Stable Public Release`
 
 ## Clone On A New PC
 
@@ -115,15 +115,15 @@ The closed v0.3.0 milestone remains useful as historical context:
 
 The v0.5.0 factory output quality milestone is implemented. It added repo evidence extraction, repo-specific skill drafts, stale/conflict artifact detection, safer unmanaged replacement, factory quality fixture assertions, and updated docs.
 
-The active implementation target is v0.8.0: strengthening the closed loop from eval/history evidence back into diagnose, tune, factory, and run-loop.
+The v0.8.0 stronger closed-loop milestone is implemented. It added durable eval score records, eval/history feedback into diagnose/tune/factory/run-loop, closed-loop fixture scenarios, and a bounded low-risk auto-apply guard for recommended writes.
 
-Start with the GitHub `v0.8.0 - Stronger Closed Loop` milestone. The expected work is:
+Start with the GitHub `v1.0.0 - Stable Public Release` milestone. The expected work is:
 
-1. Persist or import scored eval results for future diagnosis.
-2. Feed repeated history signals into next actions and factory plans.
-3. Add closed-loop fixture scenarios.
-4. Bound low-risk auto-apply behavior to managed sections or newly created docs.
-5. Document closed-loop behavior and release criteria.
+1. Stabilize CLI names, JSON schemas, exit codes, and write-safety behavior.
+2. Finish first-time install, upgrade, reinstall, and troubleshooting docs.
+3. Define versioning and breaking-change policy.
+4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, and broad CLI smoke tests.
+5. Confirm a fresh clone on a different PC can run `doctor`, `run-loop`, `fixture-test`, and plugin install from docs only.
 
 ## Local-Only State
 

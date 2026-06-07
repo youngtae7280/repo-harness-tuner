@@ -494,6 +494,9 @@ def build_factory_plan(
     artifact_inventory = collect_artifact_inventory(root.resolve(), [str(skill["id"]) for skill in skills])
     pattern = choose_pattern(preset, diagnosis, team_size)
     generic_output = bool(evidence["evidence_refs"]) and not any(skill.get("evidence_refs") for skill in skills)
+    history_feedback = diagnosis.get("history_feedback", {})
+    closed_loop = history_feedback.get("closed_loop", {})
+    feedback_next_steps = [str(item) for item in history_feedback.get("recommendations", [])][:3]
     return {
         "schema": "repo-harness-tuner.factory.v1",
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -504,7 +507,7 @@ def build_factory_plan(
         "factory_goal": "Generate project-specific Codex worker teams and skill plans while the harness engine keeps them right-sized over time.",
         "harness_engine": {
             "readiness": diagnosis["readiness"],
-            "history_feedback": diagnosis.get("history_feedback", {}),
+            "history_feedback": history_feedback,
             "human_involvement": diagnosis["human_involvement"],
             "next_review_trigger": diagnosis["harness_design"]["next_review_trigger"],
         },
@@ -517,6 +520,9 @@ def build_factory_plan(
             "roles_with_evidence": sum(1 for role in roles if role.get("evidence_refs")),
             "conflict_count": artifact_inventory["summary"]["conflict_count"],
             "stale_count": artifact_inventory["summary"]["stale_count"],
+            "closed_loop_signal_count": int(closed_loop.get("signal_count", len(history_feedback.get("signals", []))) or 0),
+            "eval_score_records": int(history_feedback.get("eval_score_records", 0) or 0),
+            "review_pressure": history_feedback.get("review_pressure", "normal"),
         },
         "team_factory": {
             "domain_key": domain_key,
@@ -540,6 +546,7 @@ def build_factory_plan(
             "next_steps": [
                 "review this factory plan with the current human-involvement level",
                 "review repo evidence and artifact conflicts before writing generated outputs",
+                *feedback_next_steps,
                 "generate repo-local team and skill docs before creating executable automation",
                 "calibrate with eval golden tasks before treating the generated team as stable",
                 "feed eval and history results back into diagnose/tune",
@@ -556,6 +563,7 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
     engine = payload["harness_engine"]
     evidence = payload.get("repo_evidence", {})
     inventory = payload.get("artifact_inventory", {})
+    feedback = engine.get("history_feedback", {})
     lines = [
         "# Factory Plan",
         GENERATED_MARKER,
@@ -568,6 +576,7 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"Harness readiness: {engine['readiness']['score']}/{engine['readiness']['max_score']}",
         f"Human involvement: {engine['human_involvement']}/5",
         f"Next review trigger: {engine['next_review_trigger']}",
+        f"Review pressure: {feedback.get('review_pressure', 'normal')}",
         "",
         "## Team Architecture",
         f"- Label: {team['label']}",
@@ -580,6 +589,13 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
     ]
     for item in evidence.get("evidence_refs", []):
         lines.append(f"- Evidence: `{item}`")
+    if feedback.get("signals"):
+        lines.extend(["", "## Closed-Loop Feedback"])
+        lines.append(f"- Eval score records: {feedback.get('eval_score_records', 0)}")
+        for signal in feedback.get("signals", []):
+            lines.append(f"- {signal['type']}: {signal['detail']}")
+        for recommendation in feedback.get("recommendations", []):
+            lines.append(f"- Recommendation: {recommendation}")
     lines.extend(["", "## Artifact Inventory"])
     summary = inventory.get("summary", {})
     lines.append(
@@ -617,6 +633,7 @@ def build_agent_team_doc(payload: dict[str, Any]) -> str:
     engine = payload["harness_engine"]
     evidence = payload.get("repo_evidence", {})
     inventory = payload.get("artifact_inventory", {})
+    feedback = engine.get("history_feedback", {})
     lines = [
         "# Agent Team",
         GENERATED_MARKER,
@@ -643,6 +660,11 @@ def build_agent_team_doc(payload: dict[str, Any]) -> str:
             f"- Existing artifacts: {inventory_summary.get('artifact_count', 0)}",
             f"- Conflicts: {inventory_summary.get('conflict_count', 0)}",
             f"- Stale or unmanaged artifacts: {inventory_summary.get('stale_count', 0)}",
+            "",
+            "## Closed-Loop Feedback",
+            f"- Review pressure: {feedback.get('review_pressure', 'normal')}",
+            f"- Eval score records: {feedback.get('eval_score_records', 0)}",
+            f"- Signals: {len(feedback.get('signals', []))}",
             "",
             "## Architecture",
             f"- Team: {team['label']}",
@@ -1018,7 +1040,9 @@ def print_factory_plan(payload: dict[str, Any]) -> None:
         "Factory quality: "
         f"evidence_refs={quality.get('evidence_ref_count', 0)}, "
         f"skills_with_evidence={quality.get('skills_with_evidence', 0)}, "
-        f"conflicts={quality.get('conflict_count', 0)}, stale={quality.get('stale_count', 0)}"
+        f"conflicts={quality.get('conflict_count', 0)}, stale={quality.get('stale_count', 0)}, "
+        f"closed_loop_signals={quality.get('closed_loop_signal_count', 0)}, "
+        f"eval_scores={quality.get('eval_score_records', 0)}, pressure={quality.get('review_pressure', 'normal')}"
     )
     print("")
     print("Team architecture:")

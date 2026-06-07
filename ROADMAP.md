@@ -57,6 +57,8 @@ Done when:
 
 ## v0.8.0 - Stronger Closed Loop
 
+Status: released.
+
 Goal: make evaluation and history directly influence future diagnosis, tuning, and factory design.
 
 Scope:
@@ -97,4 +99,4 @@ Done when:
 
 ## Current Priority
 
-The next implementation milestone is **v0.8.0 - Stronger Closed Loop**. Use the v0.3.0 fixture suite and v0.5.0 factory quality assertions as the regression safety net for every later milestone.
+The next implementation milestone is **v1.0.0 - Stable Public Release**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, and v0.8.0 closed-loop history/eval fixtures as the regression safety net for every later milestone.

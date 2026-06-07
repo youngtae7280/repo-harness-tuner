@@ -238,10 +238,25 @@ def cmd_patterns(args: argparse.Namespace) -> int:
 def cmd_eval(args: argparse.Namespace) -> int:
     if args.score:
         payload = evaluate_module.score_eval_results(Path(args.score))
+        if args.write_score:
+            guard = write_policy.write_guard("eval", args.phase, args.human_involvement, args.confirm_write)
+            if guard:
+                payload["write_blocked"] = guard
+                if args.json:
+                    emit_json(payload)
+                else:
+                    evaluate_module.print_eval_score(payload)
+                    print("")
+                    print(write_policy.format_guard(guard))
+                return 2
+            payload["score_path"] = str(evaluate_module.append_eval_score(Path(args.repo).resolve(), payload, args.note))
         if args.json:
             emit_json(payload)
         else:
             evaluate_module.print_eval_score(payload)
+            if args.write_score:
+                print("")
+                print(f"Eval score written: {payload['score_path']}")
         return 0
     payload = evaluate_module.build_eval_plan(Path(args.repo), args.phase, args.module, args.human_involvement, args.repo_type)
     if args.write_plan:
@@ -489,10 +504,13 @@ def cmd_run_loop(args: argparse.Namespace) -> int:
         if args.write_recommended:
             print("")
             print("Recommended write:")
+            guard = payload["recommended_write"].get("auto_apply_guard", {})
+            if payload["recommended_write"].get("blocked"):
+                print(f"- blocked: {guard.get('reason', 'auto-apply guard blocked the write')}")
             for result in payload["recommended_write"]["results"]:
                 print(f"- {result['status']}: {result['path']}")
             if not payload["recommended_write"]["results"]:
-                print(f"- {payload['recommended_write'].get('note', 'No changes.')}")
+                print(f"- {payload['recommended_write'].get('note', guard.get('reason', 'No changes.'))}")
         if args.record_history:
             print("")
             print(f"History written: {payload['history_record']['path']}")
@@ -635,6 +653,8 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-eval-plan.md in the target repo.")
     eval_parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     eval_parser.add_argument("--score", help="Score a JSON result file created from the eval result_schema.")
+    eval_parser.add_argument("--write-score", action="store_true", help="Append eval score results to Docs/AI/harness-eval-results.jsonl.")
+    eval_parser.add_argument("--note", default="", help="Optional note stored with --write-score.")
     eval_parser.add_argument("--json", action="store_true")
     eval_parser.set_defaults(func=cmd_eval)
 

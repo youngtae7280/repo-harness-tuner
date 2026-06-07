@@ -25,6 +25,8 @@ Current fixtures:
 - `unity-minimal`: Unity `Assets/`, `ProjectSettings/`, and `Packages/manifest.json` markers; should recommend bootstrap.
 - `codex-plugin-minimal`: `.codex-plugin/plugin.json`, `skills/`, and Python script markers; should recommend bootstrap with plugin-specific presets.
 - `harnessed-vite`: Vite/Node project with repo-local harness and team artifacts; should be fit and recommend history recording.
+- `closed-loop-history`: harnessed Vite/Node project with repeated history signals; should raise review pressure and recommend tuning.
+- `closed-loop-eval`: harnessed Vite/Node project with stored eval-score regression signals; should raise review pressure and recommend tuning.
 
 ## Assertions
 
@@ -38,6 +40,7 @@ Each fixture checks:
 - factory team label,
 - factory evidence quality,
 - stale or conflicting factory artifact signals,
+- history/eval closed-loop signal handling,
 - high-risk write guard behavior,
 - read-only commands do not modify fixture files.
 
@@ -58,3 +61,10 @@ After adding a fixture, update `tests/fixtures/manifest.json` with expected asse
 python scripts\console.py fixture-test --fixture <fixture-id>
 python scripts\console.py fixture-test
 ```
+
+Closed-loop fixtures can also assert:
+
+- `history_signals_min`
+- `eval_score_records_min`
+- `review_pressure`
+- `closed_loop_signal_contains`

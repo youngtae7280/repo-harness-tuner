@@ -286,6 +286,7 @@ def build_proposals(
             "human_involvement_gap_count": len(diagnosis.get("human_involvement_enforcement", [])),
             "history_signal_count": len(diagnosis.get("history_feedback", {}).get("signals", [])),
             "history_review_pressure": diagnosis.get("history_feedback", {}).get("review_pressure", "normal"),
+            "eval_score_records": diagnosis.get("history_feedback", {}).get("eval_score_records", 0),
         },
         "proposals": proposals,
         "notes": notes,

@@ -81,6 +81,79 @@ def write_target_exists(root: Path, rel: str) -> bool:
     return any((root / variant).exists() for variant in variants)
 
 
+SAFE_AUTO_APPLY_KINDS = {"bootstrap", "tune", "factory-artifacts"}
+SAFE_AUTO_APPLY_FILES = {"AGENTS.md"}
+SAFE_AUTO_APPLY_PREFIXES = ("Docs/AI/", "docs/AI/", "docs/ai/")
+BLOCKED_AUTO_APPLY_FRAGMENTS = (
+    ".github/",
+    ".codex-plugin/",
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "pyproject.toml",
+    "requirements.txt",
+    "Pipfile",
+    "marketplace.json",
+)
+
+
+def normalize_rel_path(path: str) -> str:
+    return str(path).replace("\\", "/").lstrip("./")
+
+
+def safe_auto_apply_path(path: str) -> bool:
+    rel = normalize_rel_path(path)
+    lowered = rel.lower()
+    if any(fragment.lower() in lowered for fragment in BLOCKED_AUTO_APPLY_FRAGMENTS):
+        return False
+    return rel in SAFE_AUTO_APPLY_FILES or any(rel.startswith(prefix) for prefix in SAFE_AUTO_APPLY_PREFIXES)
+
+
+def auto_apply_guard(action: dict[str, Any], planned_items: list[dict[str, Any]]) -> dict[str, Any]:
+    kind = str(action.get("write_kind") or "none")
+    checked_paths = [normalize_rel_path(str(item.get("path", ""))) for item in planned_items if item.get("path")]
+    unsafe_paths = [path for path in checked_paths if not safe_auto_apply_path(path)]
+    unsafe_actions = [
+        str(item.get("action") or item.get("status") or "")
+        for item in planned_items
+        if str(item.get("action") or item.get("status") or "") in {"delete", "remove", "install", "uninstall", "enable", "disable"}
+    ]
+    if kind not in SAFE_AUTO_APPLY_KINDS:
+        return {
+            "allowed": False,
+            "reason": f"{kind} is not a low-risk managed harness write kind.",
+            "checked_paths": checked_paths,
+        }
+    if unsafe_actions:
+        return {
+            "allowed": False,
+            "reason": f"Unsafe action(s) are not eligible for automatic apply: {', '.join(sorted(set(unsafe_actions)))}.",
+            "checked_paths": checked_paths,
+        }
+    if unsafe_paths:
+        return {
+            "allowed": False,
+            "reason": "Recommended write touches paths outside managed harness docs or AGENTS.md.",
+            "checked_paths": checked_paths,
+            "unsafe_paths": unsafe_paths,
+        }
+    return {
+        "allowed": True,
+        "reason": "Recommended write is limited to managed harness docs or AGENTS.md.",
+        "checked_paths": checked_paths,
+    }
+
+
+def closed_loop_evidence_note(history_feedback: dict[str, Any], next_action: dict[str, Any]) -> str:
+    signals = history_feedback.get("signals", [])
+    if not signals:
+        return "No stored history or eval evidence changed the next action."
+    if next_action.get("id") in {"tune", "eval-review"}:
+        return "Stored history or eval evidence influenced the next action."
+    return "Stored history or eval evidence was reported but did not override higher-priority harness gaps."
+
+
 def choose_next_action(
     root: Path,
     phase: str,
@@ -94,6 +167,9 @@ def choose_next_action(
     history_summary: dict[str, Any],
 ) -> dict[str, Any]:
     missing = list(repo_scan.get("missing_recommended", []))
+    history_feedback = diagnosis.get("history_feedback", {})
+    signal_types = {str(signal.get("type")) for signal in history_feedback.get("signals", []) if isinstance(signal, dict)}
+    eval_repair_signals = {"eval-regression", "eval-unchanged-fail"} & signal_types
     if len(missing) >= 2:
         return {
             "id": "bootstrap",
@@ -109,6 +185,30 @@ def choose_next_action(
                 ["--write"],
             ),
             "write_kind": "bootstrap",
+        }
+    if eval_repair_signals and tune_payload.get("proposals"):
+        return {
+            "id": "tune",
+            "label": "Apply the proposed harness tuning diff",
+            "reason": f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}",
+            "command": command_line(
+                "tune",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                ["--dry-run", "--diff"],
+            ),
+            "write_kind": "tune",
+        }
+    if eval_repair_signals:
+        return {
+            "id": "eval-review",
+            "label": "Review eval failures before changing generated teams or skills",
+            "reason": f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}, but no safe managed diff was generated",
+            "command": command_line("diagnose", root, phase, modules, human_involvement, repo_type),
+            "write_kind": "none",
         }
     if tune_payload.get("proposals"):
         return {
@@ -184,6 +284,8 @@ def build_loop_plan(
     eval_payload = evaluate_module.build_eval_plan(root, phase, modules, human_involvement, repo_type)
     factory_payload = factory_module.build_factory_plan(root, domain, phase, modules, human_involvement, repo_type, team_size)
     history_summary = history_module.summarize(history_module.load_history(root))
+    history_feedback = diagnosis.get("history_feedback", {})
+    closed_loop = history_feedback.get("closed_loop", {})
     next_action = choose_next_action(
         root,
         phase,
@@ -201,6 +303,8 @@ def build_loop_plan(
         status = "needs-bootstrap"
     elif tune_payload.get("proposals"):
         status = "needs-tune"
+    elif history_feedback.get("review_pressure") in {"high", "elevated"}:
+        status = "needs-review"
     elif diagnosis.get("drift") or diagnosis.get("human_involvement_enforcement"):
         status = "needs-review"
 
@@ -228,6 +332,10 @@ def build_loop_plan(
             "tune_proposals": len(tune_payload.get("proposals", [])),
             "eval_tasks": len(eval_payload.get("golden_tasks", [])),
             "history_entries": int(history_summary.get("count", 0) or 0),
+            "eval_score_records": int(history_feedback.get("eval_score_records", 0) or 0),
+            "closed_loop_signals": int(closed_loop.get("signal_count", len(history_feedback.get("signals", []))) or 0),
+            "review_pressure": history_feedback.get("review_pressure", "normal"),
+            "closed_loop_evidence_note": closed_loop_evidence_note(history_feedback, next_action),
             "next_action": next_action,
         },
         "analyze": {
@@ -241,6 +349,16 @@ def build_loop_plan(
             "process_overhead": diagnosis.get("process_overhead", []),
             "human_involvement_enforcement": diagnosis.get("human_involvement_enforcement", []),
             "history_feedback": diagnosis.get("history_feedback", {}),
+        },
+        "closed_loop": {
+            "review_pressure": history_feedback.get("review_pressure", "normal"),
+            "signals": history_feedback.get("signals", []),
+            "recommendations": history_feedback.get("recommendations", []),
+            "eval_score_records": int(history_feedback.get("eval_score_records", 0) or 0),
+            "uses_history": bool(closed_loop.get("uses_history")),
+            "uses_eval_scores": bool(closed_loop.get("uses_eval_scores")),
+            "used_for_next_action": next_action["id"] in {"tune", "eval-review"},
+            "evidence_note": closed_loop_evidence_note(history_feedback, next_action),
         },
         "design": {
             "target_files": design.get("target_files", []),
@@ -290,6 +408,8 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"Readiness: {summary['readiness']}/{summary['max_readiness']}",
         f"Human involvement: {summary['human_involvement']}/5",
         f"Worker pattern: {summary['worker_label']} (`{summary['worker_pattern']}`)",
+        f"Review pressure: {summary['review_pressure']} ({summary['closed_loop_signals']} closed-loop signal(s), {summary['eval_score_records']} eval score record(s))",
+        f"Closed-loop evidence: {summary['closed_loop_evidence_note']}",
         "",
         "## Next Action",
         f"- {next_action['label']}",
@@ -304,6 +424,8 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
         f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
         f"- History: {summary['history_entries']} recorded event(s).",
+        f"- Closed loop: {summary['closed_loop_signals']} signal(s), review pressure `{summary['review_pressure']}`.",
+        f"- Evidence note: {summary['closed_loop_evidence_note']}",
         "",
         "## Target Files",
     ]
@@ -332,10 +454,16 @@ def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) 
     team_size = int(options.get("team_size") or 3)
     if kind == "bootstrap":
         plan = bootstrap_module.plan_bootstrap(root, payload["phase"], human_involvement, repo_type, modules, force)
-        return {"action": action, "results": bootstrap_module.apply_bootstrap(plan, root)}
+        guard = auto_apply_guard(action, list(plan.get("actions", [])))
+        if not guard["allowed"]:
+            return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
+        return {"action": action, "results": bootstrap_module.apply_bootstrap(plan, root), "auto_apply_guard": guard}
     if kind == "tune":
         tune_payload = tune_module.build_proposals(root, payload["phase"], modules, human_involvement, repo_type, force)
-        return {"action": action, "results": tune_module.apply_proposals(tune_payload, root, force)}
+        guard = auto_apply_guard(action, list(tune_payload.get("proposals", [])))
+        if not guard["allowed"]:
+            return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
+        return {"action": action, "results": tune_module.apply_proposals(tune_payload, root, force), "auto_apply_guard": guard}
     if kind == "factory-artifacts":
         factory_payload = factory_module.build_factory_plan(
             root,
@@ -346,7 +474,15 @@ def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) 
             repo_type,
             team_size,
         )
-        return {"action": action, "results": factory_module.write_factory_artifacts(root, factory_payload, force)}
+        planned = [
+            {"path": "Docs/AI/agent-team.md", "action": "create"},
+            {"path": "Docs/AI/team-orchestration.md", "action": "create"},
+        ]
+        planned.extend({"path": skill["target_file"], "action": "create"} for skill in factory_payload["team_factory"]["skills"])
+        guard = auto_apply_guard(action, planned)
+        if not guard["allowed"]:
+            return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
+        return {"action": action, "results": factory_module.write_factory_artifacts(root, factory_payload, force), "auto_apply_guard": guard}
     return {"action": action, "results": [], "note": "No file changes were recommended for this action."}
 
 
@@ -385,6 +521,8 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print(f"- Tune: {summary['tune_proposals']} proposal(s)")
     print(f"- Evaluate: {summary['eval_tasks']} golden task(s)")
     print(f"- History: {summary['history_entries']} event(s)")
+    print(f"- Closed loop: {summary['closed_loop_signals']} signal(s), {summary['eval_score_records']} eval score record(s), pressure={summary['review_pressure']}")
+    print(f"- Evidence note: {summary['closed_loop_evidence_note']}")
     print("")
     print("Next action:")
     print(f"- {next_action['label']}")
@@ -439,10 +577,13 @@ def main() -> int:
         if args.write_recommended:
             print("")
             print("Recommended write:")
+            guard = payload["recommended_write"].get("auto_apply_guard", {})
+            if payload["recommended_write"].get("blocked"):
+                print(f"- blocked: {guard.get('reason', 'auto-apply guard blocked the write')}")
             for result in payload["recommended_write"]["results"]:
                 print(f"- {result['status']}: {result['path']}")
             if not payload["recommended_write"]["results"]:
-                print(f"- {payload['recommended_write'].get('note', 'No changes.')}")
+                print(f"- {payload['recommended_write'].get('note', guard.get('reason', 'No changes.'))}")
         if args.record_history:
             print("")
             print(f"History written: {payload['history_record']['path']}")

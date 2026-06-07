@@ -39,9 +39,11 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
 - Score recorded with-harness vs baseline evaluation JSON using `eval --score`.
+- Persist scored eval results with `eval --score --write-score` into `Docs/AI/harness-eval-results.jsonl` so future diagnosis, tuning, factory planning, and run-loop next actions can use them.
 - Generate a minimal initial harness with `bootstrap` or `apply`, dry-run by default and write-gated by `--write`.
 - Generate reviewable tuning diffs with `tune --dry-run --diff`, using managed sections instead of whole-file rewrites.
 - Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`, then feed recurring history signals back into diagnosis and tuning.
+- Merge history and eval-score signals into closed-loop review pressure, recommendations, factory quality fields, and run-loop next-action selection.
 - Recommend phase-aware harness review cadence.
 - Detect drift between `package.json` scripts and validation docs.
 - Detect overbroad process rules that require full QA, detailed reports, visible chats, or plans for every small task.
@@ -64,7 +66,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, evidence-backed triggers, artifact inventory, update paths, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
 5. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
 6. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. When human involvement is 4 or 5, add `--confirm-write` after reviewing the dry-run/diff. Existing bootstrap files require `--force` to overwrite.
-7. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/factory-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
+7. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Add `--repo <repo-root> --write-score --note "<why>"` when the score should influence future loops. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/factory-plan.md`, `Docs/AI/harness-eval-plan.md`, `Docs/AI/harness-eval-results.jsonl`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
 
 ## Recommended Workflow
 
@@ -78,7 +80,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 5. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
 6. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
 7. For team/skill factory planning, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For repo-local docs, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-artifacts`. For Codex skill drafts, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-codex-skills`. For confirmed installation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --install-codex-skills --confirm-install`.
-8. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`.
+8. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`. To feed the next loop, run `scripts/console.py eval --repo <repo-root> --score <results.json> --write-score --note "<why>"`.
 9. For fixture regression coverage before release-facing changes, run `scripts/console.py fixture-test`.
 10. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
 11. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
@@ -127,6 +129,8 @@ Use `eval` when the user asks whether the tuner is actually improving results. T
 
 Promote a harness change only when the evaluation suggests it improves correctness, reviewability, evidence quality, or overhead. Do not overfit the harness to one prompt.
 
+Use `eval --score --write-score` after reviewing recorded assertion results when the score should guide future work. The durable record is `Docs/AI/harness-eval-results.jsonl`. Eval regressions and unchanged failures raise review pressure and can make `run-loop` recommend `tune` or `eval-review`; eval improvements support keeping the current harness direction while watching overhead.
+
 ## Fixture Test Policy
 
 Use `fixture-test` before changing scanners, diagnosis scoring, loop next-action selection, factory presets, factory evidence quality, evaluation golden tasks, write guards, or read-only behavior. Fixtures live under `tests/fixtures` and are documented in `Docs/fixture-tests.md`. Keep fixtures small and free of dependency folders, Unity generated folders, secrets, logs, private data, or large generated artifacts.
@@ -147,13 +151,14 @@ Use `tune` for projects with existing harness files. It should generate a review
 
 Use `history` after meaningful harness changes, repeated mistakes, evaluation runs, or user feedback. The history record should stay concise: readiness, worker pattern, drift counts, target actions, next review trigger, and a short note.
 
-Future `diagnose` and `tune` runs should treat repeated history signals as design evidence: readiness regression, repeated validation drift, repeated process overhead, repeated human-involvement gaps, and recent failure notes raise review pressure and can justify a harness-profile update.
+Future `diagnose`, `tune`, `factory`, and `run-loop` runs should treat repeated history and eval-score signals as design evidence: readiness regression, repeated validation drift, repeated process overhead, repeated human-involvement gaps, recent failure notes, eval regressions, and unchanged eval failures raise review pressure and can justify a harness-profile update.
 
 ## Safety
 
 - Treat install, uninstall, enable, disable, and marketplace edits as explicit actions. Prefer inspection and generated instructions unless the user asks for changes.
 - Do not delete skills, plugins, marketplace entries, repo docs, or harness files without direct user approval.
 - For file-writing commands at human involvement 4 or 5, require `--confirm-write` after the dry-run or diff has been inspected.
+- `run-loop --write-recommended` may only apply low-risk managed harness writes under `AGENTS.md` or `Docs/AI/*`; it must refuse deletion, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside those managed harness surfaces.
 - Do not show secrets from environment files, credentials, logs, or private configuration.
 
 ## Output

@@ -698,8 +698,12 @@ def worker_architecture(
 
 def next_review_trigger(phase: str, readiness_score: int, history_feedback: dict[str, Any] | None = None) -> str:
     signal_types = {signal.get("type") for signal in (history_feedback or {}).get("signals", [])}
+    if "eval-regression" in signal_types:
+        return "before promoting the last harness/team change, then after the repaired eval task passes"
     if {"readiness-regression", "declining-readiness-trend", "recent-failure-note"} & signal_types:
         return "after the next meaningful task, then again after the repair is validated"
+    if "eval-unchanged-fail" in signal_types:
+        return "after the next focused harness tune and before generating new team/skill artifacts"
     if signal_types:
         return "after the next 1-2 meaningful cycles, or sooner if the same harness issue repeats"
     if phase == "new-project":
@@ -909,6 +913,7 @@ def diagnose(
                 "title": "Harness history feedback",
                 "detail": (
                     f"{history_feedback['count']} history snapshot(s), "
+                    f"{history_feedback.get('eval_score_records', 0)} eval score record(s), "
                     f"{len(history_feedback['signals'])} signal(s), "
                     f"review pressure {history_feedback['review_pressure']}."
                 ),
@@ -1016,6 +1021,7 @@ def build_tuning_prompt(payload: dict[str, Any], repo_type: str, modules: list[s
         lines.append("")
         lines.append("Harness history feedback:")
         lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        lines.append(f"- Eval score records: {history_feedback.get('eval_score_records', 0)}")
         for signal in history_feedback["signals"]:
             lines.append(f"- {signal['type']}: {signal['detail']}")
         if history_feedback.get("recommendations"):
@@ -1134,6 +1140,7 @@ def write_status(root: Path, payload: dict[str, Any]) -> Path:
     history_feedback = payload.get("history_feedback", {})
     if history_feedback.get("signals"):
         lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        lines.append(f"- Eval score records: {history_feedback.get('eval_score_records', 0)}")
         for signal in history_feedback["signals"]:
             lines.append(f"- {signal['type']}: {signal['detail']}")
     else:
@@ -1297,6 +1304,7 @@ def print_diagnosis(payload: dict[str, Any]) -> None:
     history_feedback = payload.get("history_feedback", {})
     if history_feedback.get("signals"):
         print(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        print(f"- Eval score records: {history_feedback.get('eval_score_records', 0)}")
         for signal in history_feedback["signals"]:
             print(f"- {signal['type']}: {signal['detail']}")
     else:

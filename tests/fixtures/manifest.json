@@ -93,6 +93,49 @@
         "factory_generic_output": false,
         "factory_evidence_contains": ["vite", "AGENTS.md", "Docs\\AI\\validation.md"]
       }
+    },
+    {
+      "id": "closed-loop-history",
+      "path": "closed-loop-history",
+      "phase": "active-development",
+      "domain": "Vite website",
+      "expected": {
+        "project_type": "vite-node",
+        "status": "needs-tune",
+        "readiness_min": 80,
+        "readiness_max": 100,
+        "next_action": "tune",
+        "eval_tasks": 3,
+        "factory_label": "Website Development Team",
+        "factory_evidence_min": 7,
+        "factory_skills_with_evidence_min": 3,
+        "factory_generic_output": false,
+        "history_signals_min": 2,
+        "review_pressure": "high",
+        "closed_loop_signal_contains": ["readiness-regression", "repeated-validation-drift"]
+      }
+    },
+    {
+      "id": "closed-loop-eval",
+      "path": "closed-loop-eval",
+      "phase": "active-development",
+      "domain": "Vite website",
+      "expected": {
+        "project_type": "vite-node",
+        "status": "needs-tune",
+        "readiness_min": 80,
+        "readiness_max": 100,
+        "next_action": "tune",
+        "eval_tasks": 3,
+        "factory_label": "Website Development Team",
+        "factory_evidence_min": 7,
+        "factory_skills_with_evidence_min": 3,
+        "factory_generic_output": false,
+        "history_signals_min": 2,
+        "eval_score_records_min": 1,
+        "review_pressure": "high",
+        "closed_loop_signal_contains": ["eval-regression", "eval-unchanged-fail"]
+      }
     }
   ]
 }

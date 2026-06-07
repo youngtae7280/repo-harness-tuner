@@ -26,6 +26,7 @@ def load_local_module(name: str):
 scan_repo_harness = load_local_module("scan_repo_harness")
 diagnose_module = load_local_module("diagnose")
 write_policy = load_local_module("write_policy")
+history_store = load_local_module("history_store")
 
 
 def golden_tasks(project_type: str, phase: str) -> list[dict[str, Any]]:
@@ -353,6 +354,18 @@ def score_eval_results(result_path: Path) -> dict[str, Any]:
     }
 
 
+def append_eval_score(root: Path, payload: dict[str, Any], note: str = "") -> Path:
+    path = history_store.eval_results_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = dict(payload)
+    record["repo"] = str(root.resolve())
+    if note:
+        record["note"] = note
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return path
+
+
 def print_eval_score(payload: dict[str, Any]) -> None:
     totals = payload["totals"]
     print("Eval mode: score")
@@ -385,16 +398,33 @@ def main() -> int:
     parser.add_argument("--write-plan", action="store_true")
     parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--score", help="Score a JSON result file created from the eval result_schema.")
+    parser.add_argument("--write-score", action="store_true", help="Append eval score results to Docs/AI/harness-eval-results.jsonl.")
+    parser.add_argument("--note", default="", help="Optional note stored with --write-score.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.repo)
     if args.score:
         payload = score_eval_results(Path(args.score))
+        if args.write_score:
+            guard = write_policy.write_guard("eval", args.phase, args.human_involvement, args.confirm_write)
+            if guard:
+                payload["write_blocked"] = guard
+                if args.json:
+                    print(json.dumps(payload, indent=2, ensure_ascii=False))
+                else:
+                    print_eval_score(payload)
+                    print("")
+                    print(write_policy.format_guard(guard))
+                return 2
+            payload["score_path"] = str(append_eval_score(root.resolve(), payload, args.note))
         if args.json:
             print(json.dumps(payload, indent=2, ensure_ascii=False))
         else:
             print_eval_score(payload)
+            if args.write_score:
+                print("")
+                print(f"Eval score written: {payload['score_path']}")
         return 0
 
     payload = build_eval_plan(root, args.phase, args.module, args.human_involvement, args.repo_type)

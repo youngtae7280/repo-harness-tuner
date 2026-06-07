@@ -32,6 +32,7 @@ v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정
 - `tune --dry-run --diff`로 기존 하네스에 review 가능한 unified diff를 만듭니다.
 - `history`로 `Docs/AI/harness-history.jsonl`에 진단 스냅샷을 남기고, 이후 `diagnose`/`tune`이 그 반복 신호를 다시 반영합니다.
 - `eval`로 baseline vs with-harness 평가 계획을 만들고, `eval --score`로 결과 JSON을 점수화합니다.
+- `eval --score --write-score`로 평가 점수를 `Docs/AI/harness-eval-results.jsonl`에 저장하고, 이후 `diagnose`/`tune`/`factory`/`run-loop`이 이 증거를 다시 사용합니다.
 - `patterns`로 Codex 워커 패턴을 확인하고, `patterns --prompt`로 visible/background worker용 지시 프롬프트를 생성합니다.
 - 내장된 `codex-harness-setup` 스킬을 사용해 실제 하네스 파일을 설계/수정합니다.
 
@@ -48,6 +49,7 @@ python scripts\console.py fixture-test
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py design --repo C:\path\to\repo --phase active-development
 python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --phase active-development
+python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after harness change"
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
 python scripts\console.py history --repo C:\path\to\repo --record --write --note "after feature slice"
 ```
@@ -152,7 +154,7 @@ python scripts\console.py run-loop --repo C:\path\to\repo --record-history --not
 python scripts\console.py fixture-test
 ```
 
-이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, factory evidence 품질, stale/conflict artifact, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
+이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, factory evidence 품질, stale/conflict artifact, closed-loop signal 처리, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
 
 ## 사람 개입 레벨
 
@@ -184,6 +186,8 @@ Engine은 “그 설계가 프로젝트에 맞게 계속 좋아지고 있는가�
 - evaluation score 반영
 - tune diff 생성
 
+v0.8.0부터는 history와 eval score가 함께 closed-loop feedback이 됩니다. history는 하네스 상태 스냅샷이고, eval score는 baseline 대비 with-harness 결과입니다. 둘은 파일을 따로 저장하지만, 다음 `diagnose`, `tune`, `factory`, `run-loop`에서는 하나의 판단 증거로 합쳐집니다.
+
 둘 중 하나만으로는 부족합니다. 이 플러그인의 목표는 팀/스킬 생성 공장과 점진적 하네스 개선 엔진을 함께 제공하는 것입니다.
 
 ## 평가
@@ -201,6 +205,20 @@ python scripts\console.py eval --score C:\path\to\eval-results.json
 ```
 
 점수화는 assertion 단위로 improved, regressed, unchanged pass, unchanged fail을 계산하고 keep/revise 권고를 냅니다.
+
+다음 루프가 이 결과를 학습하게 하려면 대상 repo를 지정하고 점수를 저장합니다.
+
+```powershell
+python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after harness change"
+```
+
+이 명령은 다음 파일에 JSONL 기록을 추가합니다.
+
+```text
+Docs/AI/harness-eval-results.jsonl
+```
+
+저장된 eval regression 또는 unchanged fail은 review pressure를 높이고, 다음 `run-loop`의 추천 작업을 `tune` 또는 `eval-review`로 바꿀 수 있습니다.
 
 ## 안전 기본값
 

@@ -32,9 +32,11 @@ See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tes
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
+- An `eval --score --write-score` mode that stores durable score history in `Docs/AI/harness-eval-results.jsonl`.
 - A safe `bootstrap`/`apply` flow that generates initial harness files in dry-run mode by default.
 - A `tune` command that turns diagnosis into reviewable unified diffs before writing files.
 - A `history` command that records diagnosis snapshots, summarizes harness evolution, and feeds recurring signals back into diagnosis.
+- Closed-loop feedback that uses stored eval scores and history records to raise review pressure, choose the next action, tune managed sections, and annotate factory plans.
 - Codex plugin-specific detection, factory roles, evaluation tasks, and validation guidance for plugin.json, bundled skills, and CLI smoke flows.
 - Phase-aware tuning cadence for new projects, prototypes, active development, pre-release, maintenance, and high-risk work.
 - Drift checks between package scripts and validation guidance.
@@ -91,6 +93,7 @@ python scripts\console.py patterns --prompt background-review --repo C:\path\to\
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --write-plan
 python scripts\console.py eval --score C:\path\to\eval-results.json
+python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after factory team tune"
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 5 --write --confirm-write
@@ -122,6 +125,7 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "technical doc
 python scripts\console.py patterns --json
 python scripts\console.py eval --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py eval --score C:\path\to\eval-results.json --json
+python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --json
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --json
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --json
 python scripts\console.py history --repo C:\path\to\repo --record --json
@@ -138,7 +142,7 @@ Use `doctor` first when you want to know whether the current repo harness is hea
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 ```
 
-It reports the project type, readiness, selected worker pattern, loop module counts, history count, and one next action.
+It reports the project type, readiness, selected worker pattern, loop module counts, history count, eval score count, closed-loop review pressure, and one next action.
 
 Use `run-loop` when you want the full planning pass in one command:
 
@@ -164,6 +168,8 @@ Docs/AI/harness-history.jsonl
 
 `loop` is an alias for `run-loop`. At human involvement 4 or 5, every file-writing loop command also requires `--confirm-write`.
 
+`--write-recommended` is bounded to low-risk managed harness writes. It refuses deletion, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside `AGENTS.md` or `Docs/AI/*`.
+
 ## Fixture Golden Tests
 
 Run `fixture-test` before changing detection, diagnosis, loop planning, factory presets, evaluation tasks, or write safety:
@@ -172,7 +178,7 @@ Run `fixture-test` before changing detection, diagnosis, loop planning, factory 
 python scripts\console.py fixture-test
 ```
 
-The fixture suite currently covers empty/new projects, Vite/Node projects, Unity projects, Codex plugin projects, and an already-harnessed Vite project. It checks project type, readiness range, next action, golden task count, factory label, factory evidence quality, stale/conflicting generated artifacts, high-risk write guards, and read-only command behavior.
+The fixture suite currently covers empty/new projects, Vite/Node projects, Unity projects, Codex plugin projects, an already-harnessed Vite project, history-pressure scenarios, and eval-score-pressure scenarios. It checks project type, readiness range, next action, golden task count, factory label, factory evidence quality, stale/conflicting generated artifacts, closed-loop signal handling, high-risk write guards, and read-only command behavior.
 
 See [Docs/fixture-tests.md](Docs/fixture-tests.md) for fixture authoring rules.
 
@@ -203,6 +209,7 @@ The diagnose command returns a recommended harness tuning cadence for the select
 - worker-pattern selection reason,
 - evaluation steps and next review trigger,
 - history feedback from `Docs/AI/harness-history.jsonl`, including readiness regression, repeated drift, repeated overhead, repeated human-involvement gaps, or recent failure notes,
+- eval score feedback from `Docs/AI/harness-eval-results.jsonl`, including regressions, unchanged failures, or improvements,
 - bootstrap actions for missing or existing harness files,
 - generated tuning diffs for missing or stale harness sections,
 - history snapshot summaries when requested,
@@ -360,6 +367,20 @@ python scripts\console.py eval --score C:\path\to\eval-results.json
 
 Accepted result files can contain either `{"results": [...]}` or a list of task results using the eval result schema. The scorer reports improved, regressed, unchanged pass, unchanged fail, and a keep/revise recommendation.
 
+To let future `diagnose`, `tune`, `factory`, and `run-loop` commands learn from that score, write it into the target repo:
+
+```powershell
+python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after harness change"
+```
+
+This appends JSONL records to:
+
+```text
+Docs/AI/harness-eval-results.jsonl
+```
+
+Stored eval regressions and unchanged failures raise closed-loop review pressure and can make the next `run-loop` action become `tune` or `eval-review`.
+
 Use `bootstrap` to generate the smallest useful initial harness. It is dry-run by default:
 
 ```powershell
@@ -420,6 +441,8 @@ Docs/AI/harness-history.jsonl
 ```
 
 Future `diagnose` and `tune` runs read this history and raise review pressure when readiness regresses or the same drift, overhead, human-involvement gap, or failure note repeats.
+
+Stored history and eval scores are intentionally separate files. History records describe the repo harness state; eval score records describe measured baseline-vs-with-harness outcomes. The closed-loop feedback layer reads both.
 
 ## Human Involvement
 

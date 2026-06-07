@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.0 - 2026-06-07
+
+Stronger closed-loop release.
+
+### Added
+
+- `eval --score --write-score` for appending durable score records to `Docs/AI/harness-eval-results.jsonl`.
+- Closed-loop feedback that merges harness history and stored eval scores for future `diagnose`, `tune`, `factory`, and `run-loop` decisions.
+- Eval-informed diagnosis signals for regressions, unchanged failures, and improvements.
+- Closed-loop fields in doctor/run-loop summaries, including eval score records, review pressure, and signal counts.
+- Factory quality fields and generated factory docs that include closed-loop review pressure and eval/history recommendations.
+- Fixture scenarios for history-pressure and eval-score-pressure projects.
+- Low-risk auto-apply guard for `run-loop --write-recommended`, limited to managed harness docs or `AGENTS.md`.
+
+### Changed
+
+- `run-loop` can select `tune` or `eval-review` when stored eval/history evidence says the harness needs repair.
+- `diagnose` next-review triggers now react to eval regressions and unchanged eval failures.
+- Fixture tests now assert history/eval signal counts, review pressure, and closed-loop signal types.
+- Documentation now describes eval score persistence and how closed-loop feedback influences later harness design.
+
+### Safety Defaults
+
+- Durable eval score writes require explicit `--write-score`.
+- Automatic recommended writes refuse deletion, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside managed harness docs or `AGENTS.md`.
+
 ## 0.5.0 - 2026-06-07
 
 Factory output quality release.
