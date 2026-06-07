@@ -1,6 +1,11 @@
 # Repo Harness Tuner
 
-Local Codex plugin for continuously improving repo-local Codex working rules. It runs a repeatable loop:
+Local Codex plugin for continuously improving repo-local Codex working rules and generating project-specific Codex team/skill plans. The final product direction is to carry both sides together:
+
+- **Factory**: generate project-specific agent teams, role prompts, skill plans, and orchestration docs.
+- **Engine**: analyze, diagnose, tune, evaluate, and keep those harnesses right-sized as the project evolves.
+
+It runs a repeatable loop:
 
 ```text
 Analyze -> Diagnose -> Design -> Tune -> Restructure -> Evaluate
@@ -17,6 +22,7 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
 - Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
+- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
@@ -38,9 +44,10 @@ Use the loop whenever a project starts, changes shape, accumulates repeated agen
 1. **Analyze**: inspect repo shape, scripts, existing `AGENTS.md`, `Docs/AI/*`, and coordination docs.
 2. **Diagnose**: score readiness, detect drift, detect overbroad process, and recommend the next smallest change.
 3. **Design**: choose target files, worker visibility, validation evidence, and the next review trigger.
-4. **Tune**: generate a reviewable diff for missing or stale harness sections.
-5. **Restructure**: use the embedded `codex-harness-setup` skill to add, shorten, split, or tune harness files.
-6. **Evaluate**: run the harness checker, record status when useful, and set the next tuning cadence.
+4. **Factory**: design the project-specific Codex worker team and planned skills when the work benefits from specialized roles.
+5. **Tune**: generate a reviewable diff for missing or stale harness sections.
+6. **Restructure**: use the embedded `codex-harness-setup` skill to add, shorten, split, or tune harness files.
+7. **Evaluate**: run the harness checker, record status when useful, and set the next tuning cadence.
 
 For a brand-new project, this plugin should usually bootstrap only:
 
@@ -61,6 +68,8 @@ python scripts\console.py overview --repo C:\path\to\repo
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project --human-involvement 3 --emit-prompt
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
+python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --phase active-development
+python scripts\console.py factory --repo C:\path\to\repo --domain "deep research" --team-size 3 --write-plan
 python scripts\console.py patterns
 python scripts\console.py patterns --prompt background-review --repo C:\path\to\repo --phase active-development --scope "validation drift"
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
@@ -90,6 +99,7 @@ JSON output is available for the scan commands:
 python scripts\console.py overview --repo C:\path\to\repo --json
 python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --json
 python scripts\console.py patterns --json
 python scripts\console.py eval --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py eval --score C:\path\to\eval-results.json --json
@@ -156,6 +166,32 @@ Use `design` when you want the next harness structure without the full diagnosis
 
 ```powershell
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
+```
+
+Use `factory` when you want the team/skill factory side of the plugin:
+
+```powershell
+python scripts\console.py factory --repo C:\path\to\repo --domain "full-stack website development" --phase active-development
+```
+
+It combines repo diagnosis with a domain preset and returns:
+
+- planned Codex worker roles,
+- planned skill files under `Docs/AI/skills/*.md`,
+- a team architecture pattern,
+- orchestration rules for visible chats vs background workers,
+- evaluation and history feedback hooks.
+
+Use `--write-plan` only when you want a durable factory plan:
+
+```powershell
+python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --write-plan
+```
+
+This writes:
+
+```text
+Docs/AI/factory-plan.md
 ```
 
 Use `--write-plan` only when you want a durable design plan in the target repository:

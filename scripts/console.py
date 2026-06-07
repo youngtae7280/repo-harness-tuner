@@ -33,6 +33,7 @@ bootstrap_module = load_module("bootstrap")
 history_module = load_module("history")
 tune_module = load_module("tune")
 write_policy = load_module("write_policy")
+factory_module = load_module("factory")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -263,6 +264,38 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_factory(args: argparse.Namespace) -> int:
+    payload = factory_module.build_factory_plan(
+        Path(args.repo),
+        args.domain,
+        args.phase,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.team_size,
+    )
+    if args.write_plan:
+        guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                factory_module.print_factory_plan(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
+        payload["plan_path"] = str(factory_module.write_factory_plan(Path(args.repo).resolve(), payload))
+    if args.json:
+        emit_json(payload)
+    else:
+        factory_module.print_factory_plan(payload)
+        if args.write_plan:
+            print("")
+            print(f"Factory plan written: {payload['plan_path']}")
+    return 0
+
+
 def cmd_bootstrap(args: argparse.Namespace) -> int:
     plan = bootstrap_module.plan_bootstrap(
         Path(args.repo),
@@ -437,6 +470,19 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--score", help="Score a JSON result file created from the eval result_schema.")
     eval_parser.add_argument("--json", action="store_true")
     eval_parser.set_defaults(func=cmd_eval)
+
+    factory = sub.add_parser("factory", help="Design a Codex team/skill factory plan from repo and domain evidence.")
+    factory.add_argument("--repo", default=".")
+    factory.add_argument("--domain", default="current repository", help="Domain or product area, for example 'Unity tycoon game UI' or 'deep research'.")
+    factory.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    factory.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    factory.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    factory.add_argument("--repo-type", default="unknown")
+    factory.add_argument("--team-size", type=int, default=3)
+    factory.add_argument("--write-plan", action="store_true", help="Write Docs/AI/factory-plan.md in the target repo.")
+    factory.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    factory.add_argument("--json", action="store_true")
+    factory.set_defaults(func=cmd_factory)
 
     bootstrap = sub.add_parser("bootstrap", help="Dry-run or write a minimal repo Codex harness.")
     bootstrap.add_argument("--repo", default=".")
