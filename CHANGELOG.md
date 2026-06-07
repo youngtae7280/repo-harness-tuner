@@ -9,6 +9,7 @@ Initial GitHub release.
 - `factory` command for project-specific Codex team/skill factory planning from domain and repo evidence.
 - `factory --write-artifacts` for repo-local `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and `Docs/AI/skills/*.md` generation.
 - `factory --write-codex-skills` for copyable Codex `SKILL.md` draft generation under `Docs/AI/codex-skills`.
+- `factory --install-codex-skills --confirm-install` for installing generated Codex skill drafts into a selected skills directory.
 - Product direction now explicitly combines a team/skill generation factory with the adaptive harness improvement engine.
 - History-informed diagnosis and tuning: repeated readiness regression, validation drift, process overhead, human-involvement gaps, and failure notes now feed back into `diagnose` and `tune`.
 - `eval --score` for semi-automatic scoring of recorded baseline vs with-harness assertion results.

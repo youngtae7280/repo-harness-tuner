@@ -22,7 +22,7 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
 - Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
-- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan, optional repo-local team/skill artifacts, and optional Codex `SKILL.md` draft folders.
+- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan, optional repo-local team/skill artifacts, optional Codex `SKILL.md` draft folders, and confirmed skill installs.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
@@ -72,6 +72,7 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon 
 python scripts\console.py factory --repo C:\path\to\repo --domain "deep research" --team-size 3 --write-plan
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-codex-skills
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
 python scripts\console.py patterns
 python scripts\console.py patterns --prompt background-review --repo C:\path\to\repo --phase active-development --scope "validation drift"
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
@@ -225,6 +226,14 @@ Docs/AI/codex-skills/<skill-id>/SKILL.md
 ```
 
 These drafts are not installed automatically. Review and validate them before copying or installing them into a Codex skills directory.
+
+Use `--install-codex-skills --confirm-install` when you want the generated skill drafts installed into Codex's skills directory:
+
+```powershell
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
+```
+
+By default this installs under `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is not set. Use `--skill-install-root` for a different destination, and `--force` only when intentionally replacing existing generated skills.
 
 Use `--write-plan` only when you want a durable design plan in the target repository:
 

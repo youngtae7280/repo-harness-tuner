@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -486,6 +488,68 @@ def write_file_once(root: Path, rel: str, content: str, force: bool) -> dict[str
     return {"path": rel, "status": "overwrite" if existed else "create"}
 
 
+def validate_codex_skill_content(skill_name: str, content: str) -> list[str]:
+    errors: list[str] = []
+    if not content.startswith("---\n"):
+        errors.append("missing YAML frontmatter")
+        return errors
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        errors.append("frontmatter is not closed")
+        return errors
+    frontmatter = parts[1]
+    body = parts[2].strip()
+    fields: dict[str, str] = {}
+    for line in frontmatter.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip().strip('"')
+    if fields.get("name") != skill_name:
+        errors.append(f"frontmatter name must be {skill_name}")
+    if not fields.get("description"):
+        errors.append("frontmatter description is required")
+    if not re.fullmatch(r"[a-z0-9-]{1,64}", fields.get("name", "")):
+        errors.append("skill name must use lowercase letters, digits, and hyphens only")
+    if not body:
+        errors.append("skill body is required")
+    return errors
+
+
+def default_skill_install_root() -> Path:
+    codex_home = os.environ.get("CODEX_HOME")
+    if codex_home:
+        return Path(codex_home) / "skills"
+    return Path.home() / ".codex" / "skills"
+
+
+def install_codex_skill_scaffolds(
+    payload: dict[str, Any],
+    install_root: Path | None = None,
+    force: bool = False,
+) -> list[dict[str, Any]]:
+    root = (install_root or default_skill_install_root()).resolve()
+    results: list[dict[str, Any]] = []
+    for skill in payload["team_factory"]["skills"]:
+        skill_name = normalize_skill_name(str(skill["id"]))
+        content = build_codex_skill_md(payload, skill)
+        errors = validate_codex_skill_content(skill_name, content)
+        destination = root / skill_name
+        if errors:
+            results.append({"path": str(destination), "skill": skill_name, "status": "invalid", "errors": errors})
+            continue
+        if destination.exists() and not force:
+            results.append({"path": str(destination), "skill": skill_name, "status": "skipped-existing"})
+            continue
+        existed = destination.exists()
+        if existed and force:
+            shutil.rmtree(destination)
+        destination.mkdir(parents=True, exist_ok=True)
+        (destination / "SKILL.md").write_text(content, encoding="utf-8")
+        results.append({"path": str(destination), "skill": skill_name, "status": "overwrite" if existed else "installed"})
+    return results
+
+
 def write_factory_artifacts(root: Path, payload: dict[str, Any], force: bool = False) -> list[dict[str, str]]:
     team = payload["team_factory"]
     results = [
@@ -550,6 +614,9 @@ def main() -> int:
     parser.add_argument("--write-artifacts", action="store_true", help="Write Docs/AI/agent-team.md, Docs/AI/skills/*.md, and Docs/AI/team-orchestration.md.")
     parser.add_argument("--write-codex-skills", action="store_true", help="Write Codex SKILL.md draft folders under --codex-skill-output.")
     parser.add_argument("--codex-skill-output", default="Docs/AI/codex-skills", help="Repo-relative output directory for generated Codex skill drafts.")
+    parser.add_argument("--install-codex-skills", action="store_true", help="Install generated Codex skill drafts into --skill-install-root or $CODEX_HOME/skills.")
+    parser.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
+    parser.add_argument("--confirm-install", action="store_true", help="Required with --install-codex-skills.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
     parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
@@ -557,7 +624,7 @@ def main() -> int:
 
     root = Path(args.repo)
     payload = build_factory_plan(root, args.domain, args.phase, args.module, args.human_involvement, args.repo_type, args.team_size)
-    if args.write_plan or args.write_artifacts or args.write_codex_skills:
+    if args.write_plan or args.write_artifacts or args.write_codex_skills or args.install_codex_skills:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
             payload["write_blocked"] = guard
@@ -568,12 +635,28 @@ def main() -> int:
                 print("")
                 print(write_policy.format_guard(guard))
             return 2
+    if args.install_codex_skills and not args.confirm_install:
+        payload["install_blocked"] = {
+            "blocked": True,
+            "required_flag": "--confirm-install",
+            "reason": "Installing generated skills writes outside the target repo and must be explicitly confirmed.",
+        }
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print_factory_plan(payload)
+            print("")
+            print("Install blocked: pass --confirm-install after reviewing the generated skill drafts.")
+        return 2
     if args.write_plan:
         payload["plan_path"] = str(write_factory_plan(root.resolve(), payload))
     if args.write_artifacts:
         payload["artifact_results"] = write_factory_artifacts(root.resolve(), payload, args.force)
     if args.write_codex_skills:
         payload["codex_skill_results"] = write_codex_skill_scaffolds(root.resolve(), payload, args.codex_skill_output, args.force)
+    if args.install_codex_skills:
+        install_root = Path(args.skill_install_root) if args.skill_install_root else None
+        payload["install_results"] = install_codex_skill_scaffolds(payload, install_root, args.force)
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:
@@ -591,6 +674,11 @@ def main() -> int:
             print("Codex skill drafts:")
             for result in payload["codex_skill_results"]:
                 print(f"- {result['status']}: {result['path']}")
+        if args.install_codex_skills:
+            print("")
+            print("Installed Codex skills:")
+            for result in payload["install_results"]:
+                print(f"- {result['status']}: {result['skill']} -> {result['path']}")
     return 0
 
 

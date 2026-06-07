@@ -33,9 +33,12 @@ jobs:
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --write-artifacts
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --write-codex-skills
+          install_root="$(mktemp -d)"
+          python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --install-codex-skills --confirm-install --skill-install-root "$install_root"
           test -f "$tmp/Docs/AI/agent-team.md"
           test -f "$tmp/Docs/AI/team-orchestration.md"
           test -f "$tmp/Docs/AI/codex-skills/source-map/SKILL.md"
+          test -f "$install_root/source-map/SKILL.md"
           python scripts/console.py bootstrap --repo "$tmp" --phase new-project --write
           python skills/codex-harness-setup/scripts/check_harness.py "$tmp"
           python scripts/console.py diagnose --repo "$tmp" --phase new-project --json

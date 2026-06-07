@@ -274,7 +274,7 @@ def cmd_factory(args: argparse.Namespace) -> int:
         args.repo_type,
         args.team_size,
     )
-    if args.write_plan or args.write_artifacts or args.write_codex_skills:
+    if args.write_plan or args.write_artifacts or args.write_codex_skills or args.install_codex_skills:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
             payload["write_blocked"] = guard
@@ -285,6 +285,19 @@ def cmd_factory(args: argparse.Namespace) -> int:
                 print("")
                 print(write_policy.format_guard(guard))
             return 2
+    if args.install_codex_skills and not args.confirm_install:
+        payload["install_blocked"] = {
+            "blocked": True,
+            "required_flag": "--confirm-install",
+            "reason": "Installing generated skills writes outside the target repo and must be explicitly confirmed.",
+        }
+        if args.json:
+            emit_json(payload)
+        else:
+            factory_module.print_factory_plan(payload)
+            print("")
+            print("Install blocked: pass --confirm-install after reviewing the generated skill drafts.")
+        return 2
     if args.write_plan:
         payload["plan_path"] = str(factory_module.write_factory_plan(Path(args.repo).resolve(), payload))
     if args.write_artifacts:
@@ -296,6 +309,9 @@ def cmd_factory(args: argparse.Namespace) -> int:
             args.codex_skill_output,
             args.force,
         )
+    if args.install_codex_skills:
+        install_root = Path(args.skill_install_root) if args.skill_install_root else None
+        payload["install_results"] = factory_module.install_codex_skill_scaffolds(payload, install_root, args.force)
     if args.json:
         emit_json(payload)
     else:
@@ -313,6 +329,11 @@ def cmd_factory(args: argparse.Namespace) -> int:
             print("Codex skill drafts:")
             for result in payload["codex_skill_results"]:
                 print(f"- {result['status']}: {result['path']}")
+        if args.install_codex_skills:
+            print("")
+            print("Installed Codex skills:")
+            for result in payload["install_results"]:
+                print(f"- {result['status']}: {result['skill']} -> {result['path']}")
     return 0
 
 
@@ -503,6 +524,9 @@ def build_parser() -> argparse.ArgumentParser:
     factory.add_argument("--write-artifacts", action="store_true", help="Write Docs/AI/agent-team.md, Docs/AI/skills/*.md, and Docs/AI/team-orchestration.md.")
     factory.add_argument("--write-codex-skills", action="store_true", help="Write Codex SKILL.md draft folders under --codex-skill-output.")
     factory.add_argument("--codex-skill-output", default="Docs/AI/codex-skills", help="Repo-relative output directory for generated Codex skill drafts.")
+    factory.add_argument("--install-codex-skills", action="store_true", help="Install generated Codex skill drafts into --skill-install-root or $CODEX_HOME/skills.")
+    factory.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
+    factory.add_argument("--confirm-install", action="store_true", help="Required with --install-codex-skills.")
     factory.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
     factory.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     factory.add_argument("--json", action="store_true")
