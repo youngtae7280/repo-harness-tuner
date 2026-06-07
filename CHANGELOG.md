@@ -6,6 +6,7 @@ Initial GitHub release.
 
 ### Added
 
+- Reviewable `tune --dry-run --diff` command that converts diagnosis into managed-section unified diffs.
 - Repo-local Codex harness diagnosis for `AGENTS.md`, `Docs/AI/*`, package scripts, and common agent instruction files.
 - Project-type presets for Unity, Godot, Vite/Node, Node, Python, docs-only, and unknown repositories.
 - Harness design output with target files, validation steps, worker architecture, and next review trigger.
@@ -20,4 +21,5 @@ Initial GitHub release.
 
 - File writes require explicit `--write`.
 - Existing harness files are skipped unless `--force` is used with `--write`.
+- Tuning existing files updates managed sections instead of rewriting whole harness files.
 - Evaluation is plan-only and does not automatically spawn agents.

@@ -35,7 +35,7 @@ HARNESS_PATHS = [
 
 def read_json(path: Path) -> dict:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8-sig"))
     except Exception as exc:  # noqa: BLE001 - diagnostic scanner
         return {"_error": str(exc)}
 

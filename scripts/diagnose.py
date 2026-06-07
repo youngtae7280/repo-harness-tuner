@@ -243,7 +243,7 @@ OVERBROAD_RULES = [
 def read_text(path: Path) -> str:
     if not path.exists():
         return ""
-    return path.read_text(encoding="utf-8", errors="replace")
+    return path.read_text(encoding="utf-8-sig", errors="replace")
 
 
 def find_file(root: Path, candidates: list[str]) -> Path | None:

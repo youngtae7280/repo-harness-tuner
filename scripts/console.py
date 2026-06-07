@@ -31,6 +31,7 @@ worker_patterns = load_module("worker_patterns")
 evaluate_module = load_module("evaluate")
 bootstrap_module = load_module("bootstrap")
 history_module = load_module("history")
+tune_module = load_module("tune")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -266,6 +267,29 @@ def cmd_history(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tune(args: argparse.Namespace) -> int:
+    payload = tune_module.build_proposals(
+        Path(args.repo),
+        args.phase,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.force,
+    )
+    if args.write:
+        payload["results"] = tune_module.apply_proposals(payload, Path(args.repo), args.force)
+    if args.json:
+        emit_json(payload)
+    else:
+        tune_module.print_summary(payload, args.diff)
+        if args.write:
+            print("")
+            print("Results:")
+            for result in payload["results"]:
+                print(f"- {result['status']}: {result['path']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -372,6 +396,19 @@ def build_parser() -> argparse.ArgumentParser:
     history.add_argument("--note", default="")
     history.add_argument("--json", action="store_true")
     history.set_defaults(func=cmd_history)
+
+    tune = sub.add_parser("tune", help="Generate dry-run harness tuning diffs.")
+    tune.add_argument("--repo", default=".")
+    tune.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    tune.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    tune.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    tune.add_argument("--repo-type", default="unknown")
+    tune.add_argument("--dry-run", action="store_true", help="Compatibility flag; dry-run is the default.")
+    tune.add_argument("--diff", action="store_true", help="Print unified diff.")
+    tune.add_argument("--write", action="store_true", help="Write proposed changes. Default is dry-run.")
+    tune.add_argument("--force", action="store_true", help="Apply even when files changed since diff generation.")
+    tune.add_argument("--json", action="store_true")
+    tune.set_defaults(func=cmd_tune)
 
     return parser
 

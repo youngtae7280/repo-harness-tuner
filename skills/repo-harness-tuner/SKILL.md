@@ -1,6 +1,6 @@
 ---
 name: repo-harness-tuner
-description: Continuously analyze, diagnose, design, restructure, and evaluate repo-local Codex harness design, including AGENTS.md, Docs/AI/*, validation guidance, target files, human-involvement policy, prompt templates, and visible/background worker policy. Use when the user asks whether a project has the right Codex harness, wants to bootstrap a first project, or wants to reduce/strengthen project-specific agent process over time.
+description: Continuously analyze, diagnose, design, tune, restructure, and evaluate repo-local Codex harness design, including AGENTS.md, Docs/AI/*, validation guidance, target files, human-involvement policy, prompt templates, and visible/background worker policy. Use when the user asks whether a project has the right Codex harness, wants to bootstrap a first project, or wants to reduce/strengthen project-specific agent process over time.
 ---
 
 # Repo Harness Tuner
@@ -10,7 +10,7 @@ description: Continuously analyze, diagnose, design, restructure, and evaluate r
 Use this skill as the front-end for the repo harness improvement loop:
 
 ```text
-Analyze -> Diagnose -> Design -> Restructure -> Evaluate
+Analyze -> Diagnose -> Design -> Tune -> Restructure -> Evaluate
 ```
 
 This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather evidence and decide what should change; use the embedded `codex-harness-setup` skill as the implementation engine when harness files need to be created, shortened, split, or tuned.
@@ -25,6 +25,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
 - Generate a minimal initial harness with `bootstrap` or `apply`, dry-run by default and write-gated by `--write`.
+- Generate reviewable tuning diffs with `tune --dry-run --diff`, using managed sections instead of whole-file rewrites.
 - Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`.
 - Recommend phase-aware harness review cadence.
 - Detect drift between `package.json` scripts and validation docs.
@@ -44,7 +45,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
-5. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. Add `--write` only after the user wants files written. Existing files require `--force` to overwrite.
+5. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. Existing bootstrap files require `--force` to overwrite.
 6. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
 
 ## Recommended Workflow
@@ -58,12 +59,13 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 4. For available worker architectures, run `scripts/console.py patterns --json`.
 5. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`.
 6. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
-7. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
-8. For installed skills, run `scripts/console.py skills --json`.
-9. For installed plugins, run `scripts/console.py plugins --json`.
-10. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-11. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-12. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+7. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
+8. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
+9. For installed skills, run `scripts/console.py skills --json`.
+10. For installed plugins, run `scripts/console.py plugins --json`.
+11. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+12. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+13. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
@@ -107,6 +109,8 @@ Promote a harness change only when the evaluation suggests it improves correctne
 
 Use `bootstrap` for first-project setup or empty harnesses. It is dry-run by default and should show actions before writing files. Use `apply` as an alias only when the user clearly wants generated files applied.
 
+Use `tune` for projects with existing harness files. It should generate a reviewable unified diff first and update only managed sections marked with `repo-harness-tuner:start:*` / `repo-harness-tuner:end:*`, unless creating a missing baseline file.
+
 Use `history` after meaningful harness changes, repeated mistakes, evaluation runs, or user feedback. The history record should stay concise: readiness, worker pattern, drift counts, target actions, next review trigger, and a short note.
 
 ## Safety
@@ -129,6 +133,7 @@ For scans, report:
 - worker architecture, selected pattern, and evaluation steps,
 - eval plan golden tasks and assertions when requested,
 - bootstrap dry-run or write results,
+- tune diff proposals and write results,
 - harness history summary or written event path,
 - recommended review cadence,
 - human-involvement and visibility matrix,

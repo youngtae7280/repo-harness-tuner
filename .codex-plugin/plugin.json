@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "0.1.0+codex.20260607070928",
+  "version": "0.1.0+codex.20260607072345",
   "description": "Continuously design and improve repo-local Codex harnesses.",
   "author": {
     "name": "Local developer"
@@ -10,16 +10,17 @@
   "interface": {
     "displayName": "Repo Harness Tuner",
     "shortDescription": "Continuously improve repo-local Codex working rules.",
-    "longDescription": "Repo Harness Tuner runs a repeatable analyze, diagnose, design, restructure, and evaluate loop for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, tune, review, evaluate, and track AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
+    "longDescription": "Repo Harness Tuner runs a repeatable analyze, diagnose, design, tune, restructure, and evaluate loop for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, and track AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
-      "Analyze-diagnose-design-restructure-evaluate loop",
+      "Analyze-diagnose-design-tune-restructure-evaluate loop",
       "Project-type harness presets",
       "Harness design plan generation",
       "Codex worker pattern selection",
       "With-harness evaluation planning",
       "Dry-run harness bootstrap",
+      "Reviewable tuning diffs",
       "Harness history tracking",
       "Repo harness diagnosis",
       "Human involvement policy",
@@ -31,6 +32,7 @@
       "Run the harness improvement loop",
       "Bootstrap this repo's Codex harness",
       "Design the next harness tuning step",
+      "Generate a harness tuning diff",
       "Create a harness evaluation plan",
       "Record a harness history snapshot",
       "Tune and evaluate this repo's harness"
