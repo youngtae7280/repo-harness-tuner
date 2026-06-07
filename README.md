@@ -19,6 +19,8 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
+- A safe `bootstrap`/`apply` flow that generates initial harness files in dry-run mode by default.
+- A `history` command that records diagnosis snapshots and summarizes harness evolution.
 - Phase-aware tuning cadence for new projects, prototypes, active development, pre-release, maintenance, and high-risk work.
 - Drift checks between package scripts and validation guidance.
 - Human-involvement and worker-visibility matrix generation.
@@ -57,6 +59,11 @@ python scripts\console.py design --repo C:\path\to\repo --phase active-developme
 python scripts\console.py patterns
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --write-plan
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
+python scripts\console.py apply --repo C:\path\to\repo --phase new-project --write --force
+python scripts\console.py history --repo C:\path\to\repo
+python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --module "Ending taxonomy: 5"
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --write-status
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --write-plan
@@ -74,6 +81,8 @@ python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --js
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py patterns --json
 python scripts\console.py eval --repo C:\path\to\repo --phase prototype --json
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --json
+python scripts\console.py history --repo C:\path\to\repo --record --json
 python scripts\console.py skills --json
 python scripts\console.py plugins --json
 python scripts\console.py repo --repo C:\path\to\repo --json
@@ -105,6 +114,8 @@ The diagnose command returns a recommended harness tuning cadence for the select
 - recommended worker architecture,
 - worker-pattern selection reason,
 - evaluation steps and next review trigger,
+- bootstrap actions for missing or existing harness files,
+- history snapshot summaries when requested,
 - human-involvement and worker visibility matrix,
 - phase-specific tuning cadence.
 
@@ -178,6 +189,37 @@ This writes:
 Docs/AI/harness-eval-plan.md
 ```
 
+Use `bootstrap` to generate the smallest useful initial harness. It is dry-run by default:
+
+```powershell
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3
+```
+
+Write files only after reviewing the dry-run:
+
+```powershell
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
+```
+
+Existing files are skipped unless `--force` is used together with `--write`.
+
+```powershell
+python scripts\console.py apply --repo C:\path\to\repo --phase new-project --write --force
+```
+
+Use `history` to track whether the harness is improving over time:
+
+```powershell
+python scripts\console.py history --repo C:\path\to\repo
+python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
+```
+
+This appends JSONL records to:
+
+```text
+Docs/AI/harness-history.jsonl
+```
+
 ## Human Involvement
 
 The user-facing control is human involvement, from 1 to 5:
@@ -242,3 +284,14 @@ Use a single agent for small, low-risk tasks.
 ## Safety
 
 This plugin is read-first. Install, uninstall, enable, disable, delete, and marketplace edits should be explicit user-requested actions. Do not delete skills, plugins, marketplace entries, or repo harness files without direct approval.
+
+File-writing commands require `--write`. Existing harness files are skipped by default and require `--force` to overwrite.
+
+## Additional Docs
+
+- Korean README: `README_KO.md`
+- Changelog: `CHANGELOG.md`
+- Contributing guide: `CONTRIBUTING.md`
+- Security policy: `SECURITY.md`
+- License: `LICENSE`
+- Notices: `NOTICE.md`

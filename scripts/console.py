@@ -29,6 +29,8 @@ generate_prompt = load_module("generate_prompt")
 diagnose_module = load_module("diagnose")
 worker_patterns = load_module("worker_patterns")
 evaluate_module = load_module("evaluate")
+bootstrap_module = load_module("bootstrap")
+history_module = load_module("history")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -211,6 +213,59 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bootstrap(args: argparse.Namespace) -> int:
+    plan = bootstrap_module.plan_bootstrap(
+        Path(args.repo),
+        args.phase,
+        args.human_involvement,
+        args.repo_type,
+        args.module,
+        args.force,
+    )
+    if args.write:
+        plan["results"] = bootstrap_module.apply_bootstrap(plan, Path(args.repo))
+    if args.json:
+        emit_json(plan)
+    else:
+        bootstrap_module.print_plan(plan, args.show_content)
+        if args.write:
+            print("")
+            print("Results:")
+            for result in plan["results"]:
+                print(f"- {result['status']}: {result['path']}")
+    return 0
+
+
+def cmd_history(args: argparse.Namespace) -> int:
+    root = Path(args.repo)
+    if args.record:
+        event = history_module.build_event(
+            root,
+            args.phase,
+            args.human_involvement,
+            args.repo_type,
+            args.module,
+            args.note,
+            args.event_type,
+        )
+        payload: dict[str, Any] = {"event": event}
+        if args.write:
+            payload["path"] = str(history_module.append_event(root, event))
+        if args.json:
+            emit_json(payload)
+        else:
+            print("History event:")
+            print(f"- Type: {event['type']}")
+            print(f"- Readiness: {event['readiness']}/100")
+            print(f"- Worker pattern: {event['worker_label']} ({event['worker_pattern']})")
+            if args.write:
+                print(f"- Written: {payload['path']}")
+    else:
+        payload = history_module.summarize(history_module.load_history(root))
+        emit_json(payload) if args.json else history_module.print_summary(root, payload)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -280,6 +335,43 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-eval-plan.md in the target repo.")
     eval_parser.add_argument("--json", action="store_true")
     eval_parser.set_defaults(func=cmd_eval)
+
+    bootstrap = sub.add_parser("bootstrap", help="Dry-run or write a minimal repo Codex harness.")
+    bootstrap.add_argument("--repo", default=".")
+    bootstrap.add_argument("--phase", default="new-project", choices=sorted(diagnose_module.PHASES))
+    bootstrap.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    bootstrap.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    bootstrap.add_argument("--repo-type", default="unknown")
+    bootstrap.add_argument("--write", action="store_true", help="Write files. Default is dry-run.")
+    bootstrap.add_argument("--force", action="store_true", help="Overwrite existing harness files when --write is set.")
+    bootstrap.add_argument("--show-content", action="store_true")
+    bootstrap.add_argument("--json", action="store_true")
+    bootstrap.set_defaults(func=cmd_bootstrap)
+
+    apply_parser = sub.add_parser("apply", help="Alias for bootstrap; requires --write to modify files.")
+    apply_parser.add_argument("--repo", default=".")
+    apply_parser.add_argument("--phase", default="new-project", choices=sorted(diagnose_module.PHASES))
+    apply_parser.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    apply_parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    apply_parser.add_argument("--repo-type", default="unknown")
+    apply_parser.add_argument("--write", action="store_true", help="Write files. Default is dry-run.")
+    apply_parser.add_argument("--force", action="store_true", help="Overwrite existing harness files when --write is set.")
+    apply_parser.add_argument("--show-content", action="store_true")
+    apply_parser.add_argument("--json", action="store_true")
+    apply_parser.set_defaults(func=cmd_bootstrap)
+
+    history = sub.add_parser("history", help="Summarize or record harness tuning history.")
+    history.add_argument("--repo", default=".")
+    history.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    history.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    history.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    history.add_argument("--repo-type", default="unknown")
+    history.add_argument("--record", action="store_true", help="Build a diagnosis snapshot event.")
+    history.add_argument("--write", action="store_true", help="Append the event to Docs/AI/harness-history.jsonl.")
+    history.add_argument("--event-type", default="diagnosis-snapshot")
+    history.add_argument("--note", default="")
+    history.add_argument("--json", action="store_true")
+    history.set_defaults(func=cmd_history)
 
     return parser
 

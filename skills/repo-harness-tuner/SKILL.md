@@ -24,6 +24,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
+- Generate a minimal initial harness with `bootstrap` or `apply`, dry-run by default and write-gated by `--write`.
+- Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`.
 - Recommend phase-aware harness review cadence.
 - Detect drift between `package.json` scripts and validation docs.
 - Detect overbroad process rules that require full QA, detailed reports, visible chats, or plans for every small task.
@@ -42,7 +44,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
-5. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, or `Docs/AI/harness-eval-plan.md` only when durable status is useful or requested.
+5. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. Add `--write` only after the user wants files written. Existing files require `--force` to overwrite.
+6. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
 
 ## Recommended Workflow
 
@@ -54,11 +57,13 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 3. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
 4. For available worker architectures, run `scripts/console.py patterns --json`.
 5. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`.
-6. For installed skills, run `scripts/console.py skills --json`.
-7. For installed plugins, run `scripts/console.py plugins --json`.
-8. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-9. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-10. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+6. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
+7. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
+8. For installed skills, run `scripts/console.py skills --json`.
+9. For installed plugins, run `scripts/console.py plugins --json`.
+10. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+11. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+12. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
@@ -98,6 +103,12 @@ Use `eval` when the user asks whether the tuner is actually improving results. T
 
 Promote a harness change only when the evaluation suggests it improves correctness, reviewability, evidence quality, or overhead. Do not overfit the harness to one prompt.
 
+## Bootstrap And History Policy
+
+Use `bootstrap` for first-project setup or empty harnesses. It is dry-run by default and should show actions before writing files. Use `apply` as an alias only when the user clearly wants generated files applied.
+
+Use `history` after meaningful harness changes, repeated mistakes, evaluation runs, or user feedback. The history record should stay concise: readiness, worker pattern, drift counts, target actions, next review trigger, and a short note.
+
 ## Safety
 
 - Treat install, uninstall, enable, disable, and marketplace edits as explicit actions. Prefer inspection and generated instructions unless the user asks for changes.
@@ -117,6 +128,8 @@ For scans, report:
 - target files and reasons from the harness design,
 - worker architecture, selected pattern, and evaluation steps,
 - eval plan golden tasks and assertions when requested,
+- bootstrap dry-run or write results,
+- harness history summary or written event path,
 - recommended review cadence,
 - human-involvement and visibility matrix,
 - suggested next action,
