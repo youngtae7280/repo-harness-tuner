@@ -1,0 +1,34 @@
+{
+  "name": "repo-harness-tuner",
+  "version": "0.1.0+codex.20260607062850",
+  "description": "Continuously design and improve repo-local Codex harnesses.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Repo Harness Tuner",
+    "shortDescription": "Continuously improve repo-local Codex working rules.",
+    "longDescription": "Repo Harness Tuner runs a repeatable analyze, diagnose, design, restructure, and evaluate loop for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, tune, and review AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, worker visibility, target files, and next review triggers as the project evolves.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Analyze-diagnose-design-restructure-evaluate loop",
+      "Project-type harness presets",
+      "Harness design plan generation",
+      "Repo harness diagnosis",
+      "Human involvement policy",
+      "Validation guide tuning",
+      "Worker visibility policy",
+      "Embedded codex-harness-setup"
+    ],
+    "defaultPrompt": [
+      "Run the harness improvement loop",
+      "Bootstrap this repo's Codex harness",
+      "Design the next harness tuning step",
+      "Tune and evaluate this repo's harness"
+    ]
+  },
+  "apps": "./.app.json"
+}

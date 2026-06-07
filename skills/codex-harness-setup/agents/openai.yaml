@@ -1,0 +1,3 @@
+interface:
+  display_name: "Codex Harness Setup"
+  short_description: "Design, audit, and right-size Codex harnesses and agent scaffolding."
