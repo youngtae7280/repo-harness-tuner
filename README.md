@@ -13,7 +13,7 @@ Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 
 It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guidance, target files, human-involvement policy, visible/background worker policy, and repo-local team/skill artifacts as the project evolves.
 
-See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tests through v1.0.0.
+See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tests through v1.0.0. See [HANDOFF.md](HANDOFF.md) when continuing the work from another PC using GitHub as the source of truth.
 
 ## What It Provides
 

@@ -5,6 +5,8 @@ Repo Harness Tuner is moving toward a stable 1.0 release in staged milestones. T
 - **Factory**: generate project-specific Codex teams, role prompts, skill plans, and orchestration artifacts.
 - **Engine**: analyze, diagnose, design, tune, evaluate, and continuously improve repo-local Codex harnesses.
 
+For machine-to-machine continuation, use [HANDOFF.md](HANDOFF.md).
+
 ## v0.3.0 - Fixture Golden Tests
 
 Goal: make the harness engine measurably testable across representative project shapes.

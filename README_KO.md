@@ -15,7 +15,7 @@ Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 
 대상은 `AGENTS.md`, `Docs/AI/*`, 검증 지침, 사람 개입 정책, 워커 패턴, 평가 계획, 하네스 변경 이력, agent team/skill 계획입니다.
 
-v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정리되어 있습니다.
+v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정리되어 있습니다. 다른 PC에서 GitHub만 보고 이어서 작업할 때는 [HANDOFF.md](HANDOFF.md)를 보면 됩니다.
 
 ## 주요 기능
 
