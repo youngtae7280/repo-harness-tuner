@@ -31,10 +31,11 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Apply Codex plugin-specific presets for plugin.json, bundled skill validation, cachebuster, and CLI smoke-test workflows.
-- Generate a Codex team/skill factory plan with `factory`, including agent roles, planned skill files, orchestration rules, and planned outputs.
+- Generate a Codex team/skill factory plan with `factory`, including concrete repo evidence, agent roles, planned skill files, orchestration rules, artifact inventory, update paths, and planned outputs.
 - Generate repo-local factory artifacts with `factory --write-artifacts`: `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and `Docs/AI/skills/*.md`.
 - Generate copyable Codex skill draft folders with `factory --write-codex-skills`: `Docs/AI/codex-skills/<skill-id>/SKILL.md`.
 - Install generated Codex skill drafts with `factory --install-codex-skills --confirm-install` into `$CODEX_HOME/skills` or `~/.codex/skills`.
+- Detect generic factory output, stale/unmanaged factory artifacts, planned skill conflicts, installed/generated skill overlap, and safe update paths.
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
 - Score recorded with-harness vs baseline evaluation JSON using `eval --score`.
@@ -60,7 +61,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 1. **Analyze**: inspect project type, existing harness files, package scripts, CI/hooks, reports, and coordination docs. Prefer `scripts/console.py doctor --repo <repo-root>` for a first read-only status pass.
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
-4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
+4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, evidence-backed triggers, artifact inventory, update paths, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
 5. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
 6. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. When human involvement is 4 or 5, add `--confirm-write` after reviewing the dry-run/diff. Existing bootstrap files require `--force` to overwrite.
 7. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/factory-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
@@ -128,11 +129,13 @@ Promote a harness change only when the evaluation suggests it improves correctne
 
 ## Fixture Test Policy
 
-Use `fixture-test` before changing scanners, diagnosis scoring, loop next-action selection, factory presets, evaluation golden tasks, write guards, or read-only behavior. Fixtures live under `tests/fixtures` and are documented in `Docs/fixture-tests.md`. Keep fixtures small and free of dependency folders, Unity generated folders, secrets, logs, private data, or large generated artifacts.
+Use `fixture-test` before changing scanners, diagnosis scoring, loop next-action selection, factory presets, factory evidence quality, evaluation golden tasks, write guards, or read-only behavior. Fixtures live under `tests/fixtures` and are documented in `Docs/fixture-tests.md`. Keep fixtures small and free of dependency folders, Unity generated folders, secrets, logs, private data, or large generated artifacts.
 
 ## Factory Policy
 
-Use `factory` when the user asks to generate a project-specific team, skill set, or harness like `revfactory/harness` style agent-team design. The first output should be a plan: roles, planned skills, orchestration, visible/background policy, and evaluation hooks. Use `--write-artifacts` to create repo-local markdown artifacts after the user wants files written. Use `--write-codex-skills` to create copyable Codex `SKILL.md` draft folders under `Docs/AI/codex-skills`. Use `--install-codex-skills --confirm-install` only after the user wants installation; default installs to `$CODEX_HOME/skills` or `~/.codex/skills`, and `--skill-install-root` may redirect installs for testing or team workflows.
+Use `factory` when the user asks to generate a project-specific team, skill set, or harness like `revfactory/harness` style agent-team design. The first output should be a plan: repo evidence, roles, planned skills, orchestration, visible/background policy, artifact inventory, update paths, and evaluation hooks. Generated role prompts and skill triggers should cite concrete evidence such as project type, scripts, harness files, source markers, and validation commands when available. Use `--write-artifacts` to create repo-local markdown artifacts after the user wants files written. Use `--write-codex-skills` to create copyable Codex `SKILL.md` draft folders under `Docs/AI/codex-skills`. Use `--install-codex-skills --confirm-install` only after the user wants installation; default installs to `$CODEX_HOME/skills` or `~/.codex/skills`, and `--skill-install-root` may redirect installs for testing or team workflows.
+
+Factory writes preserve existing files by default. Generated files contain the `repo-harness-tuner:generated:factory` marker. Use `--force` for reviewed generated files. Use `--force --replace-unmanaged` only after reviewing a file or installed skill that lacks the generated marker. Report stale/unmanaged artifacts, planned skill conflicts, installed overlaps, and the recommended update path before writing.
 
 The factory side and engine side must stay linked: generated teams and skills should be evaluated with `eval`, recorded in `history`, and tuned by `diagnose`/`tune` as the project evolves.
 
@@ -165,7 +168,7 @@ For scans, report:
 - human-involvement enforcement gaps,
 - target files and reasons from the harness design,
 - worker architecture, selected pattern, and evaluation steps,
-- factory plan roles, planned skills, orchestration, and planned outputs when requested,
+- factory plan repo evidence, roles, planned skills, orchestration, artifact inventory, update paths, and planned outputs when requested,
 - eval plan golden tasks and assertions when requested,
 - fixture-test pass/fail summary when requested,
 - bootstrap dry-run or write results,

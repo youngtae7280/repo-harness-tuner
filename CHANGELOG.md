@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0 - 2026-06-07
+
+Factory output quality release.
+
+### Added
+
+- Repo evidence summaries in `factory` output, including project markers, package scripts, harness files, source markers, and validation commands.
+- Evidence-backed role purposes, skill triggers, Codex skill draft descriptions, validation hints, and boundaries.
+- Factory artifact inventory for existing repo-local artifacts, stale/unmanaged files, planned skill conflicts, and installed skill overlaps.
+- `--replace-unmanaged` for explicitly replacing existing files or installed skills that do not contain the repo-harness-tuner generated marker.
+- Fixture assertions for factory evidence quality, generic-output prevention, stale artifacts, and planned skill conflicts.
+
+### Changed
+
+- Factory writes now mark generated files and preserve unmanaged existing files unless `--force --replace-unmanaged` is used after review.
+- Factory docs and skill instructions now distinguish planning, repo-local artifacts, Codex skill drafts, and confirmed skill installation.
+
 ## 0.3.0 - 2026-06-07
 
 Fixture golden-test release.

@@ -303,8 +303,10 @@ def cmd_factory(args: argparse.Namespace) -> int:
     if args.write_plan:
         payload["plan_path"] = str(factory_module.write_factory_plan(Path(args.repo).resolve(), payload))
     if args.write_artifacts:
+        payload["replace_unmanaged"] = args.replace_unmanaged
         payload["artifact_results"] = factory_module.write_factory_artifacts(Path(args.repo).resolve(), payload, args.force)
     if args.write_codex_skills:
+        payload["replace_unmanaged"] = args.replace_unmanaged
         payload["codex_skill_results"] = factory_module.write_codex_skill_scaffolds(
             Path(args.repo).resolve(),
             payload,
@@ -312,8 +314,9 @@ def cmd_factory(args: argparse.Namespace) -> int:
             args.force,
         )
     if args.install_codex_skills:
+        payload["replace_unmanaged"] = args.replace_unmanaged
         install_root = Path(args.skill_install_root) if args.skill_install_root else None
-        payload["install_results"] = factory_module.install_codex_skill_scaffolds(payload, install_root, args.force)
+        payload["install_results"] = factory_module.install_codex_skill_scaffolds(payload, install_root, args.force, args.replace_unmanaged)
     if args.json:
         emit_json(payload)
     else:
@@ -651,6 +654,7 @@ def build_parser() -> argparse.ArgumentParser:
     factory.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
     factory.add_argument("--confirm-install", action="store_true", help="Required with --install-codex-skills.")
     factory.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
+    factory.add_argument("--replace-unmanaged", action="store_true", help="Allow --force to replace existing files without the repo-harness-tuner generated marker.")
     factory.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     factory.add_argument("--json", action="store_true")
     factory.set_defaults(func=cmd_factory)

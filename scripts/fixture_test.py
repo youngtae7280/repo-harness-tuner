@@ -63,6 +63,18 @@ def assert_range(failures: list[str], label: str, actual: int, minimum: int, max
         failures.append(f"{label}: expected {minimum}-{maximum}, got {actual}")
 
 
+def assert_minimum(failures: list[str], label: str, actual: int, minimum: int) -> None:
+    if actual < minimum:
+        failures.append(f"{label}: expected at least {minimum}, got {actual}")
+
+
+def assert_contains_all(failures: list[str], label: str, actual: list[str], expected: list[str]) -> None:
+    haystack = "\n".join(actual).lower()
+    for item in expected:
+        if str(item).lower() not in haystack:
+            failures.append(f"{label}: expected to contain {item!r}")
+
+
 def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     fixture_id = str(fixture["id"])
     root = (fixtures_root / str(fixture["path"])).resolve()
@@ -95,6 +107,21 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     assert_equal(failures, "next_action", next_action["id"], expected.get("next_action"))
     assert_equal(failures, "eval_tasks", summary["eval_tasks"], expected.get("eval_tasks"))
     assert_equal(failures, "factory_label", factory_payload["team_factory"]["label"], expected.get("factory_label"))
+    factory_quality = factory_payload.get("factory_quality", {})
+    artifact_summary = factory_payload.get("artifact_inventory", {}).get("summary", {})
+    evidence_refs = [str(item) for item in factory_payload.get("repo_evidence", {}).get("evidence_refs", [])]
+    if "factory_evidence_min" in expected:
+        assert_minimum(failures, "factory_evidence_refs", int(factory_quality.get("evidence_ref_count", 0)), int(expected["factory_evidence_min"]))
+    if "factory_skills_with_evidence_min" in expected:
+        assert_minimum(failures, "factory_skills_with_evidence", int(factory_quality.get("skills_with_evidence", 0)), int(expected["factory_skills_with_evidence_min"]))
+    if "factory_conflicts_min" in expected:
+        assert_minimum(failures, "factory_conflicts", int(artifact_summary.get("conflict_count", 0)), int(expected["factory_conflicts_min"]))
+    if "factory_stale_min" in expected:
+        assert_minimum(failures, "factory_stale", int(artifact_summary.get("stale_count", 0)), int(expected["factory_stale_min"]))
+    if "factory_generic_output" in expected:
+        assert_equal(failures, "factory_generic_output", bool(factory_quality.get("generic_output", False)), bool(expected["factory_generic_output"]))
+    if "factory_evidence_contains" in expected:
+        assert_contains_all(failures, "factory_evidence_refs", evidence_refs, list(expected["factory_evidence_contains"]))
     assert_range(
         failures,
         "readiness",
@@ -125,6 +152,11 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "next_action": next_action["id"],
             "eval_tasks": summary["eval_tasks"],
             "factory_label": factory_payload["team_factory"]["label"],
+            "factory_evidence_refs": factory_quality.get("evidence_ref_count", 0),
+            "factory_generic_output": factory_quality.get("generic_output", False),
+            "factory_skills_with_evidence": factory_quality.get("skills_with_evidence", 0),
+            "factory_conflicts": artifact_summary.get("conflict_count", 0),
+            "factory_stale": artifact_summary.get("stale_count", 0),
             "diagnosis_findings": len(diagnosis["readiness"]["findings"]),
             "harness_files": len(repo_scan.get("files", [])),
             "eval_mode": eval_payload.get("evaluation_mode", ""),
@@ -173,7 +205,9 @@ def print_report(payload: dict[str, Any]) -> None:
             print(
                 "  "
                 f"{observed['project_type']} readiness={observed['readiness']} "
-                f"next={observed['next_action']} eval_tasks={observed['eval_tasks']}"
+                f"next={observed['next_action']} eval_tasks={observed['eval_tasks']} "
+                f"factory_evidence={observed.get('factory_evidence_refs', 0)} "
+                f"conflicts={observed.get('factory_conflicts', 0)}"
             )
         for failure in result.get("failures", []):
             print(f"  failure: {failure}")

@@ -26,7 +26,8 @@ v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정
 - Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, unknown 프로젝트 프리셋을 적용합니다.
 - `diagnose`로 하네스 준비도, 검증 drift, 과한 프로세스 규칙, 사람 개입 enforcement gap을 진단합니다.
 - `design`으로 다음에 손댈 파일, 워커 구조, 평가 단계, 다음 리뷰 시점을 설계합니다.
-- `factory`로 도메인 설명과 저장소 진단을 합쳐 Codex agent team/skill 계획, repo-local 문서, Codex `SKILL.md` 초안, 확인된 skill 설치를 처리합니다.
+- `factory`로 도메인 설명과 구체적인 저장소 evidence를 합쳐 Codex agent team/skill 계획, repo-local 문서, Codex `SKILL.md` 초안, 확인된 skill 설치를 처리합니다.
+- factory 출력에서 프로젝트 marker, package scripts, 하네스 파일, source marker, validation command, stale/conflict artifact, 안전한 update path를 확인합니다.
 - `bootstrap`/`apply`로 새 프로젝트의 최소 하네스를 dry-run 우선으로 생성합니다.
 - `tune --dry-run --diff`로 기존 하네스에 review 가능한 unified diff를 만듭니다.
 - `history`로 `Docs/AI/harness-history.jsonl`에 진단 스냅샷을 남기고, 이후 `diagnose`/`tune`이 그 반복 신호를 다시 반영합니다.
@@ -77,7 +78,7 @@ Docs/AI/team-orchestration.md
 Docs/AI/skills/*.md
 ```
 
-기존 factory artifact를 의도적으로 덮어쓰려면 `--force`를 함께 사용합니다.
+기존 파일은 기본적으로 보존됩니다. 생성된 factory 파일에는 `repo-harness-tuner` marker가 들어갑니다. 기존 generated 파일을 의도적으로 다시 만들 때는 `--force`를 사용합니다. marker가 없는 기존 파일은 사용자가 작성했거나 unmanaged 상태로 보고, 검토 후 `--force --replace-unmanaged`를 함께 써야 덮어쓸 수 있습니다.
 
 설치/복사 가능한 Codex skill 초안까지 만들려면:
 
@@ -99,7 +100,7 @@ Docs/AI/codex-skills/<skill-id>/SKILL.md
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
 ```
 
-기본 설치 위치는 `$CODEX_HOME/skills`이고, `CODEX_HOME`이 없으면 `~/.codex/skills`입니다. 다른 위치에 설치하려면 `--skill-install-root`를 사용합니다. 설치는 저장소 밖에 쓰는 작업이므로 항상 `--confirm-install`이 필요합니다.
+기본 설치 위치는 `$CODEX_HOME/skills`이고, `CODEX_HOME`이 없으면 `~/.codex/skills`입니다. 다른 위치에 설치하려면 `--skill-install-root`를 사용합니다. 설치는 저장소 밖에 쓰는 작업이므로 항상 `--confirm-install`이 필요합니다. 기존 installed skill은 기본적으로 보존되며, generated skill은 `--force`, marker가 없는 수동 skill은 검토 후 `--force --replace-unmanaged`가 필요합니다.
 
 새 프로젝트에서는 먼저 dry-run으로 봅니다.
 
@@ -151,7 +152,7 @@ python scripts\console.py run-loop --repo C:\path\to\repo --record-history --not
 python scripts\console.py fixture-test
 ```
 
-이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
+이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, factory evidence 품질, stale/conflict artifact, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
 
 ## 사람 개입 레벨
 

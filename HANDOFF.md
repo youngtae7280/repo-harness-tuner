@@ -7,8 +7,8 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - GitHub: https://github.com/youngtae7280/repo-harness-tuner
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
-- Current milestone: https://github.com/youngtae7280/repo-harness-tuner/milestone/2
-- Next implementation target: `v0.5.0 - Factory Output Quality`
+- Current milestone: https://github.com/youngtae7280/repo-harness-tuner/milestone/3
+- Next implementation target: `v0.8.0 - Stronger Closed Loop`
 
 ## Clone On A New PC
 
@@ -113,16 +113,17 @@ The closed v0.3.0 milestone remains useful as historical context:
 - Issue #5: document fixture authoring and release criteria.
 - Issue #6: release checklist.
 
-The active implementation target is v0.5.0: improving factory output quality.
+The v0.5.0 factory output quality milestone is implemented. It added repo evidence extraction, repo-specific skill drafts, stale/conflict artifact detection, safer unmanaged replacement, factory quality fixture assertions, and updated docs.
 
-Start with the GitHub `v0.5.0 - Factory Output Quality` milestone. The expected work is:
+The active implementation target is v0.8.0: strengthening the closed loop from eval/history evidence back into diagnose, tune, factory, and run-loop.
 
-1. Add repo evidence extraction for factory outputs.
-2. Make generated skill drafts more repo-specific and less generic.
-3. Detect stale/conflicting generated artifacts and recommend update paths.
-4. Improve `factory --write-artifacts` and `factory --write-codex-skills` update behavior.
-5. Add fixture assertions that prevent generic factory regressions.
-6. Update docs and release notes for the v0.5.0 factory workflow.
+Start with the GitHub `v0.8.0 - Stronger Closed Loop` milestone. The expected work is:
+
+1. Persist or import scored eval results for future diagnosis.
+2. Feed repeated history signals into next actions and factory plans.
+3. Add closed-loop fixture scenarios.
+4. Bound low-risk auto-apply behavior to managed sections or newly created docs.
+5. Document closed-loop behavior and release criteria.
 
 ## Local-Only State
 

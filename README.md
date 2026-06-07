@@ -27,7 +27,8 @@ See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tes
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
 - Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, Codex plugin, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
-- A `factory` command that turns a domain description plus repo evidence into a Codex team/skill factory plan, optional repo-local team/skill artifacts, optional Codex `SKILL.md` draft folders, and confirmed skill installs.
+- A `factory` command that turns a domain description plus concrete repo evidence into a Codex team/skill factory plan, optional repo-local team/skill artifacts, optional Codex `SKILL.md` draft folders, and confirmed skill installs.
+- Factory quality checks for evidence-backed role prompts, repo-specific skill triggers, validation hints, stale generated artifacts, planned skill conflicts, and safe update paths.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
@@ -84,6 +85,7 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "deep research
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-codex-skills
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
+python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts --force --replace-unmanaged
 python scripts\console.py patterns
 python scripts\console.py patterns --prompt background-review --repo C:\path\to\repo --phase active-development --scope "validation drift"
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
@@ -170,7 +172,7 @@ Run `fixture-test` before changing detection, diagnosis, loop planning, factory 
 python scripts\console.py fixture-test
 ```
 
-The fixture suite currently covers empty/new projects, Vite/Node projects, Unity projects, Codex plugin projects, and an already-harnessed Vite project. It checks project type, readiness range, next action, golden task count, factory label, high-risk write guards, and read-only command behavior.
+The fixture suite currently covers empty/new projects, Vite/Node projects, Unity projects, Codex plugin projects, and an already-harnessed Vite project. It checks project type, readiness range, next action, golden task count, factory label, factory evidence quality, stale/conflicting generated artifacts, high-risk write guards, and read-only command behavior.
 
 See [Docs/fixture-tests.md](Docs/fixture-tests.md) for fixture authoring rules.
 
@@ -239,10 +241,13 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "full-stack we
 
 It combines repo diagnosis with a domain preset and returns:
 
+- concrete repo evidence such as project markers, package scripts, harness files, source markers, and validation commands,
 - planned Codex worker roles,
 - planned skill files under `Docs/AI/skills/*.md`,
+- repo-specific skill triggers, boundaries, and validation hints,
 - a team architecture pattern,
 - orchestration rules for visible chats vs background workers,
+- existing artifact conflicts, stale/unmanaged artifact signals, installed skill overlaps, and recommended update paths,
 - evaluation and history feedback hooks.
 
 Use `--write-plan` only when you want a durable factory plan:
@@ -271,7 +276,7 @@ Docs/AI/team-orchestration.md
 Docs/AI/skills/*.md
 ```
 
-Use `--force` only when you intentionally want to overwrite existing factory artifact files.
+Existing files are preserved by default. Generated files contain a `repo-harness-tuner` marker. Use `--force` only when you intentionally want to replace existing generated factory files. If an existing file has no generated marker, it is treated as user-authored or unmanaged and also requires `--replace-unmanaged` after review.
 
 Use `--write-codex-skills` when you want copyable/installable Codex skill drafts:
 
@@ -293,7 +298,7 @@ Use `--install-codex-skills --confirm-install` when you want the generated skill
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
 ```
 
-By default this installs under `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is not set. Use `--skill-install-root` for a different destination, and `--force` only when intentionally replacing existing generated skills.
+By default this installs under `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is not set. Use `--skill-install-root` for a different destination. Existing installed skills are preserved by default; use `--force` for generated skills and `--force --replace-unmanaged` only after reviewing a manually authored installed skill.
 
 Use `--write-plan` only when you want a durable design plan in the target repository:
 

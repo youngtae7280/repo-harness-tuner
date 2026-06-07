@@ -28,7 +28,11 @@
         "readiness_max": 60,
         "next_action": "bootstrap",
         "eval_tasks": 3,
-        "factory_label": "Website Development Team"
+        "factory_label": "Website Development Team",
+        "factory_evidence_min": 6,
+        "factory_skills_with_evidence_min": 3,
+        "factory_generic_output": false,
+        "factory_evidence_contains": ["vite", "package.json", "script:build"]
       }
     },
     {
@@ -43,7 +47,11 @@
         "readiness_max": 60,
         "next_action": "bootstrap",
         "eval_tasks": 3,
-        "factory_label": "Game Development Team"
+        "factory_label": "Game Development Team",
+        "factory_evidence_min": 3,
+        "factory_skills_with_evidence_min": 3,
+        "factory_generic_output": false,
+        "factory_evidence_contains": ["Assets", "ProjectSettings"]
       }
     },
     {
@@ -58,7 +66,11 @@
         "readiness_max": 60,
         "next_action": "bootstrap",
         "eval_tasks": 3,
-        "factory_label": "Codex Plugin Team"
+        "factory_label": "Codex Plugin Team",
+        "factory_evidence_min": 4,
+        "factory_skills_with_evidence_min": 3,
+        "factory_generic_output": false,
+        "factory_evidence_contains": [".codex-plugin/plugin.json", "skills/"]
       }
     },
     {
@@ -73,7 +85,13 @@
         "readiness_max": 100,
         "next_action": "record-history",
         "eval_tasks": 3,
-        "factory_label": "Website Development Team"
+        "factory_label": "Website Development Team",
+        "factory_evidence_min": 8,
+        "factory_skills_with_evidence_min": 3,
+        "factory_conflicts_min": 1,
+        "factory_stale_min": 1,
+        "factory_generic_output": false,
+        "factory_evidence_contains": ["vite", "AGENTS.md", "Docs\\AI\\validation.md"]
       }
     }
   ]

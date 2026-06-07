@@ -36,6 +36,8 @@ Each fixture checks:
 - next recommended action,
 - evaluation golden task count,
 - factory team label,
+- factory evidence quality,
+- stale or conflicting factory artifact signals,
 - high-risk write guard behavior,
 - read-only commands do not modify fixture files.
 

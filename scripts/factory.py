@@ -31,6 +31,8 @@ diagnose_module = load_local_module("diagnose")
 worker_patterns = load_local_module("worker_patterns")
 write_policy = load_local_module("write_policy")
 
+GENERATED_MARKER = "<!-- repo-harness-tuner:generated:factory -->"
+
 
 DOMAIN_PRESETS: dict[str, dict[str, Any]] = {
     "research": {
@@ -141,6 +143,247 @@ DOMAIN_PRESETS: dict[str, dict[str, Any]] = {
 }
 
 
+def short_list(items: list[str], limit: int = 6) -> list[str]:
+    return items[:limit]
+
+
+def path_exists(root: Path, rel: str) -> bool:
+    return (root / rel).exists()
+
+
+def collect_source_markers(root: Path, project_type: str) -> list[str]:
+    markers: list[str] = []
+    candidates_by_type = {
+        "codex-plugin": [
+            ".codex-plugin/plugin.json",
+            ".mcp.json",
+            ".app.json",
+            "skills",
+            "scripts",
+        ],
+        "vite-node": [
+            "package.json",
+            "vite.config.ts",
+            "vite.config.js",
+            "src",
+        ],
+        "node": [
+            "package.json",
+            "src",
+            "lib",
+        ],
+        "unity": [
+            "Assets",
+            "ProjectSettings/ProjectVersion.txt",
+            "Packages/manifest.json",
+        ],
+        "godot": [
+            "project.godot",
+            "scenes",
+            "scripts",
+        ],
+        "python": [
+            "pyproject.toml",
+            "requirements.txt",
+            "scripts",
+            "src",
+        ],
+        "docs-only": [
+            "README.md",
+            "Docs",
+            "docs",
+        ],
+    }
+    for rel in candidates_by_type.get(project_type, ["README.md", "Docs", "docs", "src", "scripts"]):
+        if path_exists(root, rel):
+            markers.append(rel)
+    if (root / "skills").exists():
+        skill_files = sorted((root / "skills").glob("*/SKILL.md"))
+        markers.extend(str(path.relative_to(root)).replace("\\", "/") for path in skill_files[:4])
+    if (root / "scripts").exists():
+        script_files = sorted((root / "scripts").glob("*.py"))
+        markers.extend(str(path.relative_to(root)).replace("\\", "/") for path in script_files[:4])
+    if (root / "src").exists():
+        source_files = sorted(path for path in (root / "src").rglob("*") if path.is_file())
+        markers.extend(str(path.relative_to(root)).replace("\\", "/") for path in source_files[:4])
+    return short_list(dedupe(markers), 10)
+
+
+def build_validation_commands(root: Path, project_type: str, package_scripts: dict[str, Any]) -> list[str]:
+    commands: list[str] = []
+    for name in ["typecheck", "test", "build", "lint", "check", "validate"]:
+        if name in package_scripts:
+            commands.append(f"npm run {name}")
+    if project_type == "codex-plugin":
+        commands.extend(
+            [
+                "python -m py_compile scripts/*.py",
+                "python <plugin-creator>/scripts/validate_plugin.py .",
+                "python <skill-creator>/scripts/quick_validate.py skills/<skill-name>",
+            ]
+        )
+    if project_type == "python":
+        if (root / "pyproject.toml").exists():
+            commands.append("python -m py_compile scripts/*.py")
+        elif (root / "scripts").exists():
+            commands.append("python -m py_compile scripts/*.py")
+    if project_type == "unity":
+        commands.append("Record Unity Editor/build validation when available.")
+    if not commands:
+        commands.append("Use project-specific validation from Docs/AI/validation.md when available.")
+    return short_list(dedupe(commands), 8)
+
+
+def collect_artifact_inventory(root: Path, planned_skill_ids: list[str] | None = None) -> dict[str, Any]:
+    planned = {normalize_skill_name(skill_id) for skill_id in (planned_skill_ids or [])}
+    docs_ai = root / "Docs" / "AI"
+    artifact_paths = [
+        "Docs/AI/factory-plan.md",
+        "Docs/AI/agent-team.md",
+        "Docs/AI/team-orchestration.md",
+    ]
+    for path in sorted((docs_ai / "skills").glob("*.md")) if (docs_ai / "skills").exists() else []:
+        artifact_paths.append(str(path.relative_to(root)).replace("\\", "/"))
+    for path in sorted((docs_ai / "codex-skills").glob("*/SKILL.md")) if (docs_ai / "codex-skills").exists() else []:
+        artifact_paths.append(str(path.relative_to(root)).replace("\\", "/"))
+
+    artifacts: list[dict[str, Any]] = []
+    conflicts: list[dict[str, str]] = []
+    stale: list[dict[str, str]] = []
+    for rel in dedupe(artifact_paths):
+        path = root / rel
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8-sig", errors="replace") if path.suffix.lower() == ".md" else ""
+        generated = GENERATED_MARKER in text
+        artifact_id = path.parent.name if rel.endswith("/SKILL.md") else path.stem
+        if "/skills/" in rel and rel.endswith(".md"):
+            artifact_id = path.stem
+        normalized_id = normalize_skill_name(artifact_id)
+        status = "generated-existing" if generated else "unmanaged-existing"
+        item = {
+            "path": rel,
+            "id": normalized_id,
+            "status": status,
+            "generated_marker": generated,
+            "size_bytes": path.stat().st_size,
+        }
+        artifacts.append(item)
+        if normalized_id in planned:
+            conflicts.append(
+                {
+                    "type": "planned-skill-overlap",
+                    "id": normalized_id,
+                    "path": rel,
+                    "update_path": "review existing content; use --force for generated files or --replace-unmanaged with --force for user-authored files",
+                }
+            )
+        if not generated and rel.startswith("Docs/AI/"):
+            stale.append(
+                {
+                    "type": "unmanaged-factory-artifact",
+                    "path": rel,
+                    "update_path": "preserve by default; review before replacing unmanaged content",
+                }
+            )
+
+    installed_overlaps: list[dict[str, str]] = []
+    install_root = default_skill_install_root()
+    if install_root.exists():
+        for skill_id in sorted(planned):
+            candidate = install_root / skill_id
+            if candidate.exists():
+                installed_overlaps.append(
+                    {
+                        "id": skill_id,
+                        "path": str(candidate),
+                        "update_path": "review installed skill before using --force during confirmed install",
+                    }
+                )
+
+    return {
+        "artifacts": artifacts,
+        "conflicts": conflicts,
+        "stale": stale,
+        "installed_overlaps": installed_overlaps,
+        "summary": {
+            "artifact_count": len(artifacts),
+            "conflict_count": len(conflicts),
+            "stale_count": len(stale),
+            "installed_overlap_count": len(installed_overlaps),
+        },
+    }
+
+
+def collect_repo_evidence(root: Path, repo_scan: dict[str, Any], project_type: str) -> dict[str, Any]:
+    package_scripts = repo_scan.get("package_scripts", {})
+    scripts = package_scripts if isinstance(package_scripts, dict) else {}
+    harness_files = [str(item.get("path")) for item in repo_scan.get("files", []) if item.get("path")]
+    project_markers = [str(item) for item in repo_scan.get("project_markers", [])]
+    source_markers = collect_source_markers(root, project_type)
+    validation_commands = build_validation_commands(root, project_type, scripts)
+    refs = dedupe(project_markers + short_list(list(scripts), 5) + short_list(harness_files, 6) + source_markers)
+    quality_signals = []
+    if project_markers:
+        quality_signals.append("project markers detected")
+    if scripts:
+        quality_signals.append("package scripts detected")
+    if harness_files:
+        quality_signals.append("harness files detected")
+    if source_markers:
+        quality_signals.append("source markers detected")
+    if not quality_signals:
+        quality_signals.append("minimal repo evidence available")
+    return {
+        "project_markers": project_markers,
+        "package_scripts": [{"name": name, "command": str(command)} for name, command in scripts.items()],
+        "harness_files": harness_files,
+        "source_markers": source_markers,
+        "validation_commands": validation_commands,
+        "evidence_refs": refs,
+        "quality_signals": quality_signals,
+        "summary": summarize_evidence(project_type, refs, validation_commands),
+    }
+
+
+def summarize_evidence(project_type: str, refs: list[str], validation_commands: list[str]) -> str:
+    if not refs:
+        return f"{project_type} project with limited concrete markers; keep generated output conservative."
+    ref_text = ", ".join(short_list(refs, 5))
+    validation_text = ", ".join(short_list(validation_commands, 3))
+    return f"{project_type} evidence: {ref_text}. Validation hints: {validation_text}."
+
+
+def evidence_trigger_suffix(evidence: dict[str, Any]) -> str:
+    refs = evidence.get("evidence_refs", [])
+    if not refs:
+        return "the repo has few concrete markers and needs conservative discovery first"
+    return "repo evidence such as " + ", ".join(short_list([str(item) for item in refs], 4))
+
+
+def role_purpose_with_evidence(purpose: str, evidence: dict[str, Any]) -> str:
+    refs = evidence.get("evidence_refs", [])
+    if not refs:
+        return purpose
+    return f"{purpose} Ground decisions in {', '.join(short_list([str(item) for item in refs], 3))}."
+
+
+def skill_trigger_with_evidence(purpose: str, evidence: dict[str, Any]) -> str:
+    base = (purpose[0].lower() + purpose[1:]).rstrip(".")
+    return f"Use when work needs {base} with {evidence_trigger_suffix(evidence)}."
+
+
+def dedupe(items: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        result.append(item)
+    return result
+
+
 def classify_domain(domain: str, project_type: str) -> str:
     if project_type == "codex-plugin":
         return "codex-plugin"
@@ -169,7 +412,7 @@ def choose_pattern(preset: dict[str, Any], diagnosis: dict[str, Any], team_size:
     return worker_patterns.get_pattern(str(preset["preferred_pattern"]))
 
 
-def build_roles(preset: dict[str, Any], team_size: int) -> list[dict[str, Any]]:
+def build_roles(preset: dict[str, Any], team_size: int, evidence: dict[str, Any]) -> list[dict[str, Any]]:
     base_roles = preset["roles"]
     selected = base_roles[: max(1, min(team_size, len(base_roles)))]
     roles = []
@@ -178,24 +421,37 @@ def build_roles(preset: dict[str, Any], team_size: int) -> list[dict[str, Any]]:
             {
                 "id": role_id,
                 "order": index,
-                "purpose": purpose,
+                "purpose": role_purpose_with_evidence(purpose, evidence),
                 "visibility": "visible chat" if index == 1 and "decision" in purpose.lower() else "background/read-only by default",
-                "outputs": ["concise findings", "file references when relevant", "validation or skipped-check reason"],
+                "evidence_refs": short_list([str(item) for item in evidence.get("evidence_refs", [])], 5),
+                "outputs": [
+                    "concise findings",
+                    "repo evidence references when relevant",
+                    "validation command or skipped-check reason",
+                ],
             }
         )
     return roles
 
 
-def build_skills(preset: dict[str, Any], roles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_skills(preset: dict[str, Any], roles: list[dict[str, Any]], evidence: dict[str, Any]) -> list[dict[str, Any]]:
     skills = []
     for skill_id, purpose in preset["skills"]:
+        validation_commands = [str(item) for item in evidence.get("validation_commands", [])]
         skills.append(
             {
                 "id": skill_id,
                 "purpose": purpose,
                 "target_file": f"Docs/AI/skills/{skill_id}.md",
                 "status": "planned",
-                "trigger": f"Use when work needs {purpose[0].lower() + purpose[1:]}",
+                "trigger": skill_trigger_with_evidence(purpose, evidence),
+                "evidence_refs": short_list([str(item) for item in evidence.get("evidence_refs", [])], 6),
+                "validation": short_list(validation_commands, 4),
+                "boundaries": [
+                    "do not replace repo-specific validation with broad boilerplate",
+                    "do not expand this skill beyond the detected project/domain markers",
+                    "ask or escalate before release, dependency, secret, destructive, or user-visible direction changes",
+                ],
             }
         )
     if roles:
@@ -205,7 +461,14 @@ def build_skills(preset: dict[str, Any], roles: list[dict[str, Any]]) -> list[di
                 "purpose": "Coordinate role order, handoffs, review gates, and merge evidence.",
                 "target_file": "Docs/AI/team-orchestration.md",
                 "status": "planned",
-                "trigger": "Use when more than one Codex worker or visible decision point is needed.",
+                "trigger": f"Use when more than one Codex worker or visible decision point is needed and {evidence_trigger_suffix(evidence)}.",
+                "evidence_refs": short_list([str(item) for item in evidence.get("evidence_refs", [])], 6),
+                "validation": short_list([str(item) for item in evidence.get("validation_commands", [])], 4),
+                "boundaries": [
+                    "do not spawn workers for small single-file changes",
+                    "do not persist reports unless future Codex sessions need them",
+                    "keep final writes and closeout owned by the main thread",
+                ],
             }
         )
     return skills
@@ -225,9 +488,12 @@ def build_factory_plan(
     project_type = str(diagnosis["harness_design"]["project_type"])
     domain_key = classify_domain(domain, project_type)
     preset = DOMAIN_PRESETS[domain_key]
-    roles = build_roles(preset, team_size)
-    skills = build_skills(preset, roles)
+    evidence = collect_repo_evidence(root.resolve(), repo_scan, project_type)
+    roles = build_roles(preset, team_size, evidence)
+    skills = build_skills(preset, roles, evidence)
+    artifact_inventory = collect_artifact_inventory(root.resolve(), [str(skill["id"]) for skill in skills])
     pattern = choose_pattern(preset, diagnosis, team_size)
+    generic_output = bool(evidence["evidence_refs"]) and not any(skill.get("evidence_refs") for skill in skills)
     return {
         "schema": "repo-harness-tuner.factory.v1",
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -241,6 +507,16 @@ def build_factory_plan(
             "history_feedback": diagnosis.get("history_feedback", {}),
             "human_involvement": diagnosis["human_involvement"],
             "next_review_trigger": diagnosis["harness_design"]["next_review_trigger"],
+        },
+        "repo_evidence": evidence,
+        "artifact_inventory": artifact_inventory,
+        "factory_quality": {
+            "generic_output": generic_output,
+            "evidence_ref_count": len(evidence["evidence_refs"]),
+            "skills_with_evidence": sum(1 for skill in skills if skill.get("evidence_refs")),
+            "roles_with_evidence": sum(1 for role in roles if role.get("evidence_refs")),
+            "conflict_count": artifact_inventory["summary"]["conflict_count"],
+            "stale_count": artifact_inventory["summary"]["stale_count"],
         },
         "team_factory": {
             "domain_key": domain_key,
@@ -263,6 +539,7 @@ def build_factory_plan(
             ],
             "next_steps": [
                 "review this factory plan with the current human-involvement level",
+                "review repo evidence and artifact conflicts before writing generated outputs",
                 "generate repo-local team and skill docs before creating executable automation",
                 "calibrate with eval golden tasks before treating the generated team as stable",
                 "feed eval and history results back into diagnose/tune",
@@ -277,8 +554,11 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
     path = docs_ai / "factory-plan.md"
     team = payload["team_factory"]
     engine = payload["harness_engine"]
+    evidence = payload.get("repo_evidence", {})
+    inventory = payload.get("artifact_inventory", {})
     lines = [
         "# Factory Plan",
+        GENERATED_MARKER,
         "",
         f"Updated: {payload['created_at']}",
         f"Domain: {payload['domain']}",
@@ -295,8 +575,28 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"- Visibility: {team['architecture_pattern']['visibility']}",
         f"- Coordination: {team['architecture_pattern']['coordination']}",
         "",
-        "## Roles",
+        "## Repo Evidence",
+        f"- Summary: {evidence.get('summary', 'No concrete evidence summary available.')}",
     ]
+    for item in evidence.get("evidence_refs", []):
+        lines.append(f"- Evidence: `{item}`")
+    lines.extend(["", "## Artifact Inventory"])
+    summary = inventory.get("summary", {})
+    lines.append(
+        "- Existing artifacts: "
+        f"{summary.get('artifact_count', 0)}, conflicts: {summary.get('conflict_count', 0)}, "
+        f"stale/unmanaged: {summary.get('stale_count', 0)}, installed overlaps: {summary.get('installed_overlap_count', 0)}"
+    )
+    for item in inventory.get("conflicts", []):
+        lines.append(f"- Conflict `{item['id']}` at `{item['path']}`: {item['update_path']}")
+    for item in inventory.get("stale", []):
+        lines.append(f"- Unmanaged `{item['path']}`: {item['update_path']}")
+    lines.extend(
+        [
+            "",
+        "## Roles",
+        ]
+    )
     for role in team["roles"]:
         lines.append(f"- `{role['id']}`: {role['purpose']}")
     lines.extend(["", "## Planned Skills"])
@@ -315,8 +615,11 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
 def build_agent_team_doc(payload: dict[str, Any]) -> str:
     team = payload["team_factory"]
     engine = payload["harness_engine"]
+    evidence = payload.get("repo_evidence", {})
+    inventory = payload.get("artifact_inventory", {})
     lines = [
         "# Agent Team",
+        GENERATED_MARKER,
         "",
         f"Domain: {payload['domain']}",
         f"Project type: {payload['project_type']}",
@@ -327,14 +630,29 @@ def build_agent_team_doc(payload: dict[str, Any]) -> str:
         "## Team Goal",
         payload["factory_goal"],
         "",
-        "## Architecture",
-        f"- Team: {team['label']}",
-        f"- Pattern: {team['architecture_pattern']['label']} (`{team['architecture_pattern']['id']}`)",
-        f"- Visibility: {team['architecture_pattern']['visibility']}",
-        f"- Coordination: {team['architecture_pattern']['coordination']}",
-        "",
-        "## Roles",
+        "## Repo Evidence",
+        f"- Summary: {evidence.get('summary', 'No concrete evidence summary available.')}",
     ]
+    for item in evidence.get("evidence_refs", []):
+        lines.append(f"- `{item}`")
+    inventory_summary = inventory.get("summary", {})
+    lines.extend(
+        [
+            "",
+            "## Existing Artifact Signals",
+            f"- Existing artifacts: {inventory_summary.get('artifact_count', 0)}",
+            f"- Conflicts: {inventory_summary.get('conflict_count', 0)}",
+            f"- Stale or unmanaged artifacts: {inventory_summary.get('stale_count', 0)}",
+            "",
+            "## Architecture",
+            f"- Team: {team['label']}",
+            f"- Pattern: {team['architecture_pattern']['label']} (`{team['architecture_pattern']['id']}`)",
+            f"- Visibility: {team['architecture_pattern']['visibility']}",
+            f"- Coordination: {team['architecture_pattern']['coordination']}",
+            "",
+            "## Roles",
+        ]
+    )
     for role in team["roles"]:
         lines.extend(
             [
@@ -367,6 +685,7 @@ def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
     related_roles = ", ".join(role["id"] for role in team["roles"]) or "main Codex thread"
     lines = [
         f"# {skill['id']}",
+        GENERATED_MARKER,
         "",
         f"Status: {skill['status']}",
         f"Domain: {payload['domain']}",
@@ -381,20 +700,41 @@ def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
         "## Related Roles",
         related_roles,
         "",
-        "## Workflow",
-        "1. Inspect the repo source of truth before adding process.",
-        "2. Keep scope bounded to the current task and domain.",
-        "3. Produce concise evidence that the main thread can merge.",
-        "4. Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
-        "",
-        "## Evidence",
-        "- concise findings or decision summary",
-        "- file references when relevant",
-        "- validation command, skipped-check reason, or manual evidence",
-        "",
-        "## Tuning",
-        "Use `repo-harness-tuner diagnose`, `history`, and `eval --score` to decide whether this skill should be kept, revised, or retired.",
+        "## Repo Evidence",
     ]
+    for item in skill.get("evidence_refs", []):
+        lines.append(f"- `{item}`")
+    if not skill.get("evidence_refs"):
+        lines.append("- No concrete repo evidence available; start with conservative discovery.")
+    lines.extend(
+        [
+            "",
+            "## Validation",
+        ]
+    )
+    for item in skill.get("validation", []):
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Boundaries"])
+    for item in skill.get("boundaries", []):
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Workflow",
+            "1. Inspect the repo source of truth before adding process.",
+            "2. Keep scope bounded to the current task and domain.",
+            "3. Produce concise evidence that the main thread can merge.",
+            "4. Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
+            "",
+            "## Evidence",
+            "- concise findings or decision summary",
+            "- file references when relevant",
+            "- validation command, skipped-check reason, or manual evidence",
+            "",
+            "## Tuning",
+            "Use `repo-harness-tuner diagnose`, `history`, and `eval --score` to decide whether this skill should be kept, revised, or retired.",
+        ]
+    )
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -420,10 +760,12 @@ def build_codex_skill_md(payload: dict[str, Any], skill: dict[str, Any]) -> str:
     skill_name = normalize_skill_name(str(skill["id"]))
     team = payload["team_factory"]
     related_roles = ", ".join(role["id"] for role in team["roles"]) or "main Codex thread"
+    evidence_refs = [str(item) for item in skill.get("evidence_refs", [])]
+    evidence_text = ", ".join(short_list(evidence_refs, 4)) if evidence_refs else "limited concrete repo markers"
     description = (
         f"{skill['purpose']} Use when Codex is working on {payload['domain']} and needs "
         f"{trigger_phrase(str(skill.get('trigger', 'this workflow')))}, "
-        "with repo-local evidence, bounded scope, and handoff back to the main thread."
+        f"grounded in {evidence_text}, bounded scope, and handoff back to the main thread."
     )
     lines = [
         "---",
@@ -432,37 +774,65 @@ def build_codex_skill_md(payload: dict[str, Any], skill: dict[str, Any]) -> str:
         "---",
         "",
         f"# {skill_name}",
+        GENERATED_MARKER,
         "",
         "## Purpose",
         skill["purpose"],
         "",
-        "## Use",
-        "- Inspect the repository source of truth before adding new process.",
-        "- Keep the work bounded to the current request and domain.",
-        "- Return concise evidence that the main Codex thread can merge.",
-        "- Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
+        "## Trigger",
+        skill["trigger"],
         "",
-        "## Related Roles",
-        related_roles,
-        "",
-        "## Expected Evidence",
-        "- concise findings or decision summary",
-        "- file references when relevant",
-        "- validation command, skipped-check reason, or manual evidence",
-        "",
-        "## Tuning",
-        "Revise or retire this skill when `repo-harness-tuner eval --score` or `repo-harness-tuner history` shows no improvement, repeated misses, or unnecessary overhead.",
+        "## Repo Evidence",
     ]
+    for item in evidence_refs:
+        lines.append(f"- `{item}`")
+    if not evidence_refs:
+        lines.append("- No concrete repo evidence available; begin with conservative discovery.")
+    lines.extend(
+        [
+            "",
+            "## Validation",
+        ]
+    )
+    for item in skill.get("validation", []):
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Boundaries"])
+    for item in skill.get("boundaries", []):
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## Use",
+            "- Inspect the repository source of truth before adding new process.",
+            "- Keep the work bounded to the current request and domain.",
+            "- Return concise evidence that the main Codex thread can merge.",
+            "- Escalate to visible user review for product direction, release, destructive operations, dependencies, secrets, or privacy-sensitive changes.",
+            "",
+            "## Related Roles",
+            related_roles,
+            "",
+            "## Expected Evidence",
+            "- concise findings or decision summary",
+            "- file references when relevant",
+            "- validation command, skipped-check reason, or manual evidence",
+            "",
+            "## Tuning",
+            "Revise or retire this skill when `repo-harness-tuner eval --score` or `repo-harness-tuner history` shows no improvement, repeated misses, or unnecessary overhead.",
+        ]
+    )
     return "\n".join(lines).rstrip() + "\n"
 
 
 def build_orchestration_doc(payload: dict[str, Any]) -> str:
     team = payload["team_factory"]
+    evidence = payload.get("repo_evidence", {})
     lines = [
         "# Team Orchestration",
+        GENERATED_MARKER,
         "",
         f"Domain: {payload['domain']}",
         f"Pattern: {team['architecture_pattern']['label']} (`{team['architecture_pattern']['id']}`)",
+        f"Repo evidence: {evidence.get('summary', 'No concrete evidence summary available.')}",
         "",
         "## Default Flow",
         "1. Main thread analyzes the request, repo state, and human-involvement level.",
@@ -495,14 +865,32 @@ def build_orchestration_doc(payload: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def write_file_once(root: Path, rel: str, content: str, force: bool) -> dict[str, str]:
+def write_file_once(root: Path, rel: str, content: str, force: bool, replace_unmanaged: bool = False) -> dict[str, str]:
     path = root / rel
     existed = path.exists()
-    if existed and not force:
-        return {"path": rel, "status": "skipped-existing"}
+    if existed:
+        existing_text = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else ""
+        generated = GENERATED_MARKER in existing_text
+        if not force:
+            flag = "--force" if generated else "--force --replace-unmanaged"
+            return {
+                "path": rel,
+                "status": "skipped-existing",
+                "reason": f"Existing {'generated' if generated else 'unmanaged'} file preserved; review and pass {flag} to replace.",
+            }
+        if not generated and not replace_unmanaged:
+            return {
+                "path": rel,
+                "status": "blocked-unmanaged-existing",
+                "reason": "Existing file has no repo-harness-tuner generated marker; pass --replace-unmanaged with --force after review to replace it.",
+            }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
-    return {"path": rel, "status": "overwrite" if existed else "create"}
+    if existed:
+        status = "overwrite-unmanaged" if replace_unmanaged else "overwrite"
+    else:
+        status = "create"
+    return {"path": rel, "status": status}
 
 
 def validate_codex_skill_content(skill_name: str, content: str) -> list[str]:
@@ -544,6 +932,7 @@ def install_codex_skill_scaffolds(
     payload: dict[str, Any],
     install_root: Path | None = None,
     force: bool = False,
+    replace_unmanaged: bool = False,
 ) -> list[dict[str, Any]]:
     root = (install_root or default_skill_install_root()).resolve()
     results: list[dict[str, Any]] = []
@@ -559,24 +948,42 @@ def install_codex_skill_scaffolds(
             results.append({"path": str(destination), "skill": skill_name, "status": "skipped-existing"})
             continue
         existed = destination.exists()
+        if existed:
+            existing_skill = destination / "SKILL.md"
+            existing_text = existing_skill.read_text(encoding="utf-8-sig", errors="replace") if existing_skill.exists() else ""
+            generated = GENERATED_MARKER in existing_text
+            if not generated and not replace_unmanaged:
+                results.append(
+                    {
+                        "path": str(destination),
+                        "skill": skill_name,
+                        "status": "blocked-unmanaged-existing",
+                        "reason": "Existing installed skill has no repo-harness-tuner generated marker; pass --replace-unmanaged with --force after review to replace it.",
+                    }
+                )
+                continue
         if existed and force:
             shutil.rmtree(destination)
         destination.mkdir(parents=True, exist_ok=True)
         (destination / "SKILL.md").write_text(content, encoding="utf-8")
-        results.append({"path": str(destination), "skill": skill_name, "status": "overwrite" if existed else "installed"})
+        if existed:
+            status = "overwrite-unmanaged" if replace_unmanaged else "overwrite"
+        else:
+            status = "installed"
+        results.append({"path": str(destination), "skill": skill_name, "status": status})
     return results
 
 
 def write_factory_artifacts(root: Path, payload: dict[str, Any], force: bool = False) -> list[dict[str, str]]:
     team = payload["team_factory"]
     results = [
-        write_file_once(root, "Docs/AI/agent-team.md", build_agent_team_doc(payload), force),
-        write_file_once(root, "Docs/AI/team-orchestration.md", build_orchestration_doc(payload), force),
+        write_file_once(root, "Docs/AI/agent-team.md", build_agent_team_doc(payload), force, bool(payload.get("replace_unmanaged"))),
+        write_file_once(root, "Docs/AI/team-orchestration.md", build_orchestration_doc(payload), force, bool(payload.get("replace_unmanaged"))),
     ]
     for skill in team["skills"]:
         if skill["target_file"] == "Docs/AI/team-orchestration.md":
             continue
-        results.append(write_file_once(root, skill["target_file"], build_skill_doc(payload, skill), force))
+        results.append(write_file_once(root, skill["target_file"], build_skill_doc(payload, skill), force, bool(payload.get("replace_unmanaged"))))
     return results
 
 
@@ -590,19 +997,29 @@ def write_codex_skill_scaffolds(
     for skill in payload["team_factory"]["skills"]:
         skill_name = normalize_skill_name(str(skill["id"]))
         rel = str(Path(output_rel) / skill_name / "SKILL.md").replace("\\", "/")
-        results.append(write_file_once(root, rel, build_codex_skill_md(payload, skill), force))
+        results.append(write_file_once(root, rel, build_codex_skill_md(payload, skill), force, bool(payload.get("replace_unmanaged"))))
     return results
 
 
 def print_factory_plan(payload: dict[str, Any]) -> None:
     team = payload["team_factory"]
     engine = payload["harness_engine"]
+    evidence = payload.get("repo_evidence", {})
+    inventory = payload.get("artifact_inventory", {})
+    quality = payload.get("factory_quality", {})
     print(f"Factory goal: {payload['factory_goal']}")
     print(f"Repo: {payload['repo']}")
     print(f"Domain: {payload['domain']}")
     print(f"Project type: {payload['project_type']}")
     print(f"Readiness: {engine['readiness']['score']}/{engine['readiness']['max_score']}")
     print(f"Human involvement: {engine['human_involvement']}/5")
+    print(f"Repo evidence: {evidence.get('summary', 'No concrete evidence summary available.')}")
+    print(
+        "Factory quality: "
+        f"evidence_refs={quality.get('evidence_ref_count', 0)}, "
+        f"skills_with_evidence={quality.get('skills_with_evidence', 0)}, "
+        f"conflicts={quality.get('conflict_count', 0)}, stale={quality.get('stale_count', 0)}"
+    )
     print("")
     print("Team architecture:")
     print(f"- {team['label']}")
@@ -616,6 +1033,15 @@ def print_factory_plan(payload: dict[str, Any]) -> None:
     print("Planned skills:")
     for skill in team["skills"]:
         print(f"- {skill['id']}: {skill['purpose']}")
+        if skill.get("evidence_refs"):
+            print(f"  Evidence: {', '.join(short_list([str(item) for item in skill['evidence_refs']], 4))}")
+    if inventory.get("conflicts") or inventory.get("stale"):
+        print("")
+        print("Artifact update signals:")
+        for item in inventory.get("conflicts", []):
+            print(f"- conflict {item['id']}: {item['path']} ({item['update_path']})")
+        for item in inventory.get("stale", []):
+            print(f"- unmanaged {item['path']} ({item['update_path']})")
 
 
 def main() -> int:
@@ -635,12 +1061,14 @@ def main() -> int:
     parser.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
     parser.add_argument("--confirm-install", action="store_true", help="Required with --install-codex-skills.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing factory artifact files when writing.")
+    parser.add_argument("--replace-unmanaged", action="store_true", help="Allow --force to replace existing files without the repo-harness-tuner generated marker.")
     parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.repo)
     payload = build_factory_plan(root, args.domain, args.phase, args.module, args.human_involvement, args.repo_type, args.team_size)
+    payload["replace_unmanaged"] = args.replace_unmanaged
     if args.write_plan or args.write_artifacts or args.write_codex_skills or args.install_codex_skills:
         guard = write_policy.write_guard("factory", args.phase, args.human_involvement, args.confirm_write)
         if guard:
@@ -673,7 +1101,7 @@ def main() -> int:
         payload["codex_skill_results"] = write_codex_skill_scaffolds(root.resolve(), payload, args.codex_skill_output, args.force)
     if args.install_codex_skills:
         install_root = Path(args.skill_install_root) if args.skill_install_root else None
-        payload["install_results"] = install_codex_skill_scaffolds(payload, install_root, args.force)
+        payload["install_results"] = install_codex_skill_scaffolds(payload, install_root, args.force, args.replace_unmanaged)
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:

@@ -35,7 +35,7 @@ Done when:
 
 ## v0.5.0 - Factory Output Quality
 
-Status: next.
+Status: released.
 
 Goal: make generated team and skill artifacts more specific to repo evidence.
 
@@ -97,4 +97,4 @@ Done when:
 
 ## Current Priority
 
-The next implementation milestone is **v0.5.0 - Factory Output Quality**. Use the v0.3.0 fixture suite as the regression safety net for every later milestone.
+The next implementation milestone is **v0.8.0 - Stronger Closed Loop**. Use the v0.3.0 fixture suite and v0.5.0 factory quality assertions as the regression safety net for every later milestone.
