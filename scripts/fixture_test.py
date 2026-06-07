@@ -69,9 +69,10 @@ def assert_minimum(failures: list[str], label: str, actual: int, minimum: int) -
 
 
 def assert_contains_all(failures: list[str], label: str, actual: list[str], expected: list[str]) -> None:
-    haystack = "\n".join(actual).lower()
+    haystack = "\n".join(actual).replace("\\", "/").lower()
     for item in expected:
-        if str(item).lower() not in haystack:
+        needle = str(item).replace("\\", "/").lower()
+        if needle not in haystack:
             failures.append(f"{label}: expected to contain {item!r}")
 
 
