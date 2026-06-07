@@ -29,6 +29,14 @@ jobs:
           set -euo pipefail
           tmp="$(mktemp -d)"
           python scripts/scan_repo_harness.py --json | grep '"project_type": "codex-plugin"'
+          python scripts/console.py doctor --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py loop --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase high-risk --write-plan && exit 1 || test "$?" -eq 2
+          python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --write-plan
+          test -f "$tmp/Docs/AI/harness-loop-plan.md"
+          python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --record-history --note "ci smoke"
+          test -f "$tmp/Docs/AI/harness-history.jsonl"
           python scripts/console.py patterns --json
           python scripts/console.py patterns --prompt background-review --repo "$tmp" --phase new-project --scope "validation drift"
           python scripts/console.py factory --repo "$tmp" --domain "technical documentation" --phase new-project --json

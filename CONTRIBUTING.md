@@ -7,6 +7,8 @@ Thanks for improving Repo Harness Tuner. This plugin combines a team/skill gener
 Use Python 3.9+ from the plugin root.
 
 ```powershell
+python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "project domain"
+python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "project domain"
 python scripts\console.py patterns
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development
 python scripts\console.py factory --repo C:\path\to\repo --domain "project domain" --phase active-development
@@ -22,7 +24,7 @@ Before opening a PR or sharing a change, run:
 
 ```powershell
 $env:PYTHONPYCACHEPREFIX = Join-Path $env:TEMP 'repo-harness-tuner-pycache'
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
 python C:\Users\<you>\.codex\skills\.system\skill-creator\scripts\quick_validate.py C:\path\to\repo-harness-tuner\skills\repo-harness-tuner
 python C:\Users\<you>\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py C:\path\to\repo-harness-tuner
 ```

@@ -34,6 +34,7 @@ history_module = load_module("history")
 tune_module = load_module("tune")
 write_policy = load_module("write_policy")
 factory_module = load_module("factory")
+loop_module = load_module("loop")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -433,6 +434,67 @@ def cmd_tune(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    payload = loop_module.build_loop_plan(
+        Path(args.repo),
+        args.phase,
+        args.domain,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.team_size,
+    )
+    emit_json(payload) if args.json else loop_module.print_doctor(payload)
+    return 0
+
+
+def cmd_run_loop(args: argparse.Namespace) -> int:
+    payload = loop_module.build_loop_plan(
+        Path(args.repo),
+        args.phase,
+        args.domain,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.team_size,
+    )
+    if args.write_plan or args.write_recommended or args.record_history:
+        guard = write_policy.write_guard("run-loop", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                loop_module.print_doctor(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
+    if args.write_plan:
+        payload["loop_plan_path"] = str(loop_module.write_loop_plan(Path(args.repo).resolve(), payload))
+    if args.write_recommended:
+        payload["recommended_write"] = loop_module.apply_recommended(payload, Path(args.repo).resolve(), args.force)
+    if args.record_history:
+        payload["history_record"] = loop_module.record_history(payload, Path(args.repo).resolve(), args.note)
+    if args.json:
+        emit_json(payload)
+    else:
+        loop_module.print_doctor(payload)
+        if args.write_plan:
+            print("")
+            print(f"Loop plan written: {payload['loop_plan_path']}")
+        if args.write_recommended:
+            print("")
+            print("Recommended write:")
+            for result in payload["recommended_write"]["results"]:
+                print(f"- {result['status']}: {result['path']}")
+            if not payload["recommended_write"]["results"]:
+                print(f"- {payload['recommended_write'].get('note', 'No changes.')}")
+        if args.record_history:
+            print("")
+            print(f"History written: {payload['history_record']['path']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -463,6 +525,51 @@ def build_parser() -> argparse.ArgumentParser:
     overview.add_argument("--repo", default=".")
     overview.add_argument("--json", action="store_true")
     overview.set_defaults(func=cmd_overview)
+
+    doctor = sub.add_parser("doctor", help="Run the one-command read-only harness doctor.")
+    doctor.add_argument("--repo", default=".")
+    doctor.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    doctor.add_argument("--domain", default="current repository")
+    doctor.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    doctor.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    doctor.add_argument("--repo-type", default="unknown")
+    doctor.add_argument("--team-size", type=int, default=3)
+    doctor.add_argument("--json", action="store_true")
+    doctor.set_defaults(func=cmd_doctor)
+
+    run_loop = sub.add_parser("run-loop", help="Run the analyze-diagnose-design-factory-tune-evaluate loop.")
+    run_loop.add_argument("--repo", default=".")
+    run_loop.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    run_loop.add_argument("--domain", default="current repository")
+    run_loop.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    run_loop.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    run_loop.add_argument("--repo-type", default="unknown")
+    run_loop.add_argument("--team-size", type=int, default=3)
+    run_loop.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
+    run_loop.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
+    run_loop.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
+    run_loop.add_argument("--note", default="")
+    run_loop.add_argument("--force", action="store_true")
+    run_loop.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    run_loop.add_argument("--json", action="store_true")
+    run_loop.set_defaults(func=cmd_run_loop)
+
+    loop_alias = sub.add_parser("loop", help="Alias for run-loop.")
+    loop_alias.add_argument("--repo", default=".")
+    loop_alias.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    loop_alias.add_argument("--domain", default="current repository")
+    loop_alias.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    loop_alias.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    loop_alias.add_argument("--repo-type", default="unknown")
+    loop_alias.add_argument("--team-size", type=int, default=3)
+    loop_alias.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
+    loop_alias.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
+    loop_alias.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
+    loop_alias.add_argument("--note", default="")
+    loop_alias.add_argument("--force", action="store_true")
+    loop_alias.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    loop_alias.add_argument("--json", action="store_true")
+    loop_alias.set_defaults(func=cmd_run_loop)
 
     prompt = sub.add_parser("prompt", help="Generate a codex-harness-setup prompt.")
     prompt.add_argument("--mode", default="Setup", choices=["Audit only", "Setup", "Targeted upgrade", "Recovery", "Ambiguity profiling"])

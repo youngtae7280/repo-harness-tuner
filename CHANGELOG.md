@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0 - 2026-06-07
+
+One-command loop release.
+
+### Added
+
+- `doctor` command for a read-only health check, readiness score, loop summary, and recommended next action.
+- `run-loop` command, with `loop` alias, for the full analyze, diagnose, design, factory, tune, evaluate, and history planning pass.
+- `run-loop --write-plan` for writing `Docs/AI/harness-loop-plan.md` after reviewing the read-only plan.
+- `run-loop --write-recommended` for applying the next recommended bootstrap, tune, or factory artifact action.
+- `run-loop --record-history` for appending a `run-loop-snapshot` event to `Docs/AI/harness-history.jsonl`.
+- Smoke coverage for the new one-command loop and write guards.
+
+### Safety Defaults
+
+- `doctor` and default `run-loop` are read-only.
+- Loop writes require explicit write flags.
+- Human involvement 4 or 5 still requires `--confirm-write` before file writes.
+
 ## 0.1.0 - 2026-06-07
 
 Initial GitHub release.

@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+"""One-command doctor and run-loop orchestration for Repo Harness Tuner."""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def load_local_module(name: str):
+    path = SCRIPT_DIR / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+scan_repo_harness = load_local_module("scan_repo_harness")
+diagnose_module = load_local_module("diagnose")
+factory_module = load_local_module("factory")
+evaluate_module = load_local_module("evaluate")
+tune_module = load_local_module("tune")
+history_module = load_local_module("history")
+write_policy = load_local_module("write_policy")
+bootstrap_module = load_local_module("bootstrap")
+
+
+def quote_cli(value: str | Path) -> str:
+    text = str(value)
+    if not text:
+        return '""'
+    if re.search(r"\s", text):
+        return json.dumps(text, ensure_ascii=False)
+    return text
+
+
+def command_line(
+    command: str,
+    root: Path,
+    phase: str,
+    modules: list[str] | None = None,
+    human_involvement: int | None = None,
+    repo_type: str | None = None,
+    extra: list[str] | None = None,
+) -> str:
+    parts = [
+        "python",
+        "scripts/console.py",
+        command,
+        "--repo",
+        quote_cli(root.resolve()),
+        "--phase",
+        phase,
+    ]
+    if repo_type and repo_type != "unknown":
+        parts.extend(["--repo-type", quote_cli(repo_type)])
+    if human_involvement is not None:
+        parts.extend(["--human-involvement", str(human_involvement)])
+    for module in modules or []:
+        parts.extend(["--module", quote_cli(module)])
+    if extra:
+        parts.extend(extra)
+    return " ".join(parts)
+
+
+def write_target_exists(root: Path, rel: str) -> bool:
+    variants = {
+        rel,
+        rel.replace("Docs/AI", "docs/AI"),
+        rel.replace("Docs/AI", "docs/ai"),
+    }
+    return any((root / variant).exists() for variant in variants)
+
+
+def choose_next_action(
+    root: Path,
+    phase: str,
+    modules: list[str] | None,
+    human_involvement: int | None,
+    repo_type: str | None,
+    domain: str,
+    repo_scan: dict[str, Any],
+    diagnosis: dict[str, Any],
+    tune_payload: dict[str, Any],
+    history_summary: dict[str, Any],
+) -> dict[str, Any]:
+    missing = list(repo_scan.get("missing_recommended", []))
+    if len(missing) >= 2:
+        return {
+            "id": "bootstrap",
+            "label": "Bootstrap missing repo harness files",
+            "reason": "multiple baseline harness files are missing",
+            "command": command_line(
+                "bootstrap",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                ["--write"],
+            ),
+            "write_kind": "bootstrap",
+        }
+    if tune_payload.get("proposals"):
+        return {
+            "id": "tune",
+            "label": "Apply the proposed harness tuning diff",
+            "reason": f"{len(tune_payload['proposals'])} tuning proposal(s) are available",
+            "command": command_line(
+                "tune",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                ["--dry-run", "--diff"],
+            ),
+            "write_kind": "tune",
+        }
+    if not write_target_exists(root, "Docs/AI/agent-team.md"):
+        return {
+            "id": "factory-artifacts",
+            "label": "Generate repo-local team and skill artifacts",
+            "reason": "the harness is fit, but no repo-local agent team artifact exists yet",
+            "command": command_line(
+                "factory",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                ["--domain", quote_cli(domain), "--write-artifacts"],
+            ),
+            "write_kind": "factory-artifacts",
+        }
+    if int(history_summary.get("count", 0) or 0) == 0:
+        return {
+            "id": "record-history",
+            "label": "Record a baseline harness history snapshot",
+            "reason": "the harness is fit enough, but no history baseline has been recorded",
+            "command": command_line(
+                "history",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                ["--record", "--write", "--note", quote_cli("baseline from run-loop")],
+            ),
+            "write_kind": "history",
+        }
+    return {
+        "id": "observe",
+        "label": "Keep the harness stable and observe",
+        "reason": diagnosis["harness_design"]["next_review_trigger"],
+        "command": command_line("doctor", root, phase, modules, human_involvement, repo_type),
+        "write_kind": "none",
+    }
+
+
+def build_loop_plan(
+    root: Path,
+    phase: str,
+    domain: str = "current repository",
+    modules: list[str] | None = None,
+    human_involvement: int | None = None,
+    repo_type: str | None = None,
+    team_size: int = 3,
+) -> dict[str, Any]:
+    root = root.resolve()
+    repo_scan = scan_repo_harness.scan(root)
+    diagnosis = diagnose_module.diagnose(root, repo_scan, phase, modules, human_involvement, repo_type)
+    design = diagnosis["harness_design"]
+    tune_payload = tune_module.build_proposals(root, phase, modules, human_involvement, repo_type)
+    eval_payload = evaluate_module.build_eval_plan(root, phase, modules, human_involvement, repo_type)
+    factory_payload = factory_module.build_factory_plan(root, domain, phase, modules, human_involvement, repo_type, team_size)
+    history_summary = history_module.summarize(history_module.load_history(root))
+    next_action = choose_next_action(
+        root,
+        phase,
+        modules,
+        human_involvement,
+        repo_type,
+        domain,
+        repo_scan,
+        diagnosis,
+        tune_payload,
+        history_summary,
+    )
+    status = "fit"
+    if int(diagnosis["readiness"]["score"]) < 60:
+        status = "needs-bootstrap"
+    elif tune_payload.get("proposals"):
+        status = "needs-tune"
+    elif diagnosis.get("drift") or diagnosis.get("human_involvement_enforcement"):
+        status = "needs-review"
+
+    return {
+        "schema": "repo-harness-tuner.loop.v1",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "repo": str(root),
+        "phase": phase,
+        "domain": domain,
+        "options": {
+            "modules": modules or [],
+            "human_involvement": human_involvement,
+            "repo_type": repo_type or "unknown",
+            "team_size": team_size,
+        },
+        "status": status,
+        "summary": {
+            "project_type": design["project_type"],
+            "project_label": design["project_label"],
+            "readiness": diagnosis["readiness"]["score"],
+            "max_readiness": diagnosis["readiness"]["max_score"],
+            "human_involvement": diagnosis["human_involvement"],
+            "worker_pattern": design["worker_architecture"]["pattern"],
+            "worker_label": design["worker_architecture"].get("label", design["worker_architecture"]["pattern"]),
+            "tune_proposals": len(tune_payload.get("proposals", [])),
+            "eval_tasks": len(eval_payload.get("golden_tasks", [])),
+            "history_entries": int(history_summary.get("count", 0) or 0),
+            "next_action": next_action,
+        },
+        "analyze": {
+            "project_markers": repo_scan.get("project_markers", []),
+            "harness_files": repo_scan.get("files", []),
+            "missing_recommended": repo_scan.get("missing_recommended", []),
+        },
+        "diagnose": {
+            "readiness": diagnosis["readiness"],
+            "drift": diagnosis.get("drift", []),
+            "process_overhead": diagnosis.get("process_overhead", []),
+            "human_involvement_enforcement": diagnosis.get("human_involvement_enforcement", []),
+            "history_feedback": diagnosis.get("history_feedback", {}),
+        },
+        "design": {
+            "target_files": design.get("target_files", []),
+            "worker_architecture": design.get("worker_architecture", {}),
+            "next_review_trigger": design.get("next_review_trigger", ""),
+            "evaluation_steps": design.get("evaluation_steps", []),
+        },
+        "factory": {
+            "label": factory_payload["team_factory"]["label"],
+            "pattern": factory_payload["team_factory"]["architecture_pattern"],
+            "roles": factory_payload["team_factory"]["roles"],
+            "skills": factory_payload["team_factory"]["skills"],
+            "planned_outputs": factory_payload["team_factory"]["planned_outputs"],
+        },
+        "tune": {
+            "proposals": tune_payload.get("proposals", []),
+            "notes": tune_payload.get("notes", []),
+        },
+        "evaluate": {
+            "mode": eval_payload.get("evaluation_mode", "plan-only"),
+            "golden_tasks": eval_payload.get("golden_tasks", []),
+            "runbook": eval_payload.get("runbook", []),
+        },
+        "history": history_summary,
+        "commands": [
+            command_line("doctor", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
+            command_line("run-loop", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
+            next_action["command"],
+        ],
+    }
+
+
+def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
+    docs_ai = root / "Docs" / "AI"
+    docs_ai.mkdir(parents=True, exist_ok=True)
+    path = docs_ai / "harness-loop-plan.md"
+    summary = payload["summary"]
+    next_action = summary["next_action"]
+    lines = [
+        "# Harness Loop Plan",
+        "",
+        f"Updated: {payload['created_at']}",
+        f"Phase: {payload['phase']}",
+        f"Domain: {payload['domain']}",
+        f"Status: {payload['status']}",
+        f"Project type: {summary['project_label']} (`{summary['project_type']}`)",
+        f"Readiness: {summary['readiness']}/{summary['max_readiness']}",
+        f"Human involvement: {summary['human_involvement']}/5",
+        f"Worker pattern: {summary['worker_label']} (`{summary['worker_pattern']}`)",
+        "",
+        "## Next Action",
+        f"- {next_action['label']}",
+        f"- Reason: {next_action['reason']}",
+        f"- Command: `{next_action['command']}`",
+        "",
+        "## Loop Summary",
+        f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s), {len(payload['analyze']['missing_recommended'])} missing recommended file(s).",
+        f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s).",
+        f"- Design: {len(payload['design']['target_files'])} target action(s), next review `{payload['design']['next_review_trigger']}`.",
+        f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
+        f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
+        f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
+        f"- History: {summary['history_entries']} recorded event(s).",
+        "",
+        "## Target Files",
+    ]
+    for item in payload["design"]["target_files"]:
+        lines.append(f"- {item['action']}: `{item['path']}` - {item['reason']}")
+    lines.extend(["", "## Factory Roles"])
+    for role in payload["factory"]["roles"]:
+        lines.append(f"- `{role['id']}`: {role['purpose']}")
+    lines.extend(["", "## Evaluation Tasks"])
+    for task in payload["evaluate"]["golden_tasks"]:
+        lines.append(f"- `{task['id']}`: {task['purpose']}")
+    lines.extend(["", "## Commands"])
+    for command in payload["commands"]:
+        lines.append(f"- `{command}`")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return path
+
+
+def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) -> dict[str, Any]:
+    action = payload["summary"]["next_action"]
+    kind = action.get("write_kind")
+    options = payload.get("options", {})
+    modules = list(options.get("modules", [])) or None
+    human_involvement = options.get("human_involvement")
+    repo_type = options.get("repo_type") or "unknown"
+    team_size = int(options.get("team_size") or 3)
+    if kind == "bootstrap":
+        plan = bootstrap_module.plan_bootstrap(root, payload["phase"], human_involvement, repo_type, modules, force)
+        return {"action": action, "results": bootstrap_module.apply_bootstrap(plan, root)}
+    if kind == "tune":
+        tune_payload = tune_module.build_proposals(root, payload["phase"], modules, human_involvement, repo_type, force)
+        return {"action": action, "results": tune_module.apply_proposals(tune_payload, root, force)}
+    if kind == "factory-artifacts":
+        factory_payload = factory_module.build_factory_plan(
+            root,
+            payload["domain"],
+            payload["phase"],
+            modules,
+            human_involvement,
+            repo_type,
+            team_size,
+        )
+        return {"action": action, "results": factory_module.write_factory_artifacts(root, factory_payload, force)}
+    return {"action": action, "results": [], "note": "No file changes were recommended for this action."}
+
+
+def record_history(payload: dict[str, Any], root: Path, note: str = "") -> dict[str, Any]:
+    options = payload.get("options", {})
+    modules = list(options.get("modules", [])) or None
+    event = history_module.build_event(
+        root,
+        payload["phase"],
+        options.get("human_involvement"),
+        options.get("repo_type") or "unknown",
+        modules,
+        note or "run-loop snapshot",
+        "run-loop-snapshot",
+    )
+    path = history_module.append_event(root, event)
+    return {"event": event, "path": str(path)}
+
+
+def print_doctor(payload: dict[str, Any]) -> None:
+    summary = payload["summary"]
+    next_action = summary["next_action"]
+    print("Repo Harness Doctor")
+    print(f"Repo: {payload['repo']}")
+    print(f"Project: {summary['project_label']} ({summary['project_type']})")
+    print(f"Status: {payload['status']}")
+    print(f"Readiness: {summary['readiness']}/{summary['max_readiness']}")
+    print(f"Human involvement: {summary['human_involvement']}/5")
+    print(f"Worker pattern: {summary['worker_label']} ({summary['worker_pattern']})")
+    print("")
+    print("Loop:")
+    print(f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s)")
+    print(f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s)")
+    print(f"- Design: {len(payload['design']['target_files'])} target action(s)")
+    print(f"- Factory: {payload['factory']['label']} ({len(payload['factory']['roles'])} role(s))")
+    print(f"- Tune: {summary['tune_proposals']} proposal(s)")
+    print(f"- Evaluate: {summary['eval_tasks']} golden task(s)")
+    print(f"- History: {summary['history_entries']} event(s)")
+    print("")
+    print("Next action:")
+    print(f"- {next_action['label']}")
+    print(f"- Reason: {next_action['reason']}")
+    print(f"- Command: {next_action['command']}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", default=".")
+    parser.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    parser.add_argument("--domain", default="current repository")
+    parser.add_argument("--module", action="append")
+    parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
+    parser.add_argument("--repo-type", default="unknown")
+    parser.add_argument("--team-size", type=int, default=3)
+    parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
+    parser.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
+    parser.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
+    parser.add_argument("--note", default="")
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+
+    root = Path(args.repo)
+    payload = build_loop_plan(root, args.phase, args.domain, args.module, args.human_involvement, args.repo_type, args.team_size)
+    if args.write_plan or args.write_recommended or args.record_history:
+        guard = write_policy.write_guard("run-loop", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print_doctor(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
+    if args.write_plan:
+        payload["loop_plan_path"] = str(write_loop_plan(root.resolve(), payload))
+    if args.write_recommended:
+        payload["recommended_write"] = apply_recommended(payload, root.resolve(), args.force)
+    if args.record_history:
+        payload["history_record"] = record_history(payload, root.resolve(), args.note)
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print_doctor(payload)
+        if args.write_plan:
+            print("")
+            print(f"Loop plan written: {payload['loop_plan_path']}")
+        if args.write_recommended:
+            print("")
+            print("Recommended write:")
+            for result in payload["recommended_write"]["results"]:
+                print(f"- {result['status']}: {result['path']}")
+            if not payload["recommended_write"]["results"]:
+                print(f"- {payload['recommended_write'].get('note', 'No changes.')}")
+        if args.record_history:
+            print("")
+            print(f"History written: {payload['history_record']['path']}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

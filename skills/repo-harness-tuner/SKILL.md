@@ -25,6 +25,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Scan the current repository for `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, package scripts, and common project docs.
 - Compare installed capabilities against what the current repo actually documents or needs.
 - Score harness readiness and recommend concrete tuning changes.
+- Run `doctor` for a read-only one-command health check, loop summary, and recommended next action.
+- Run `run-loop` or `loop` for the full analyze -> diagnose -> design -> factory -> tune -> evaluate -> history planning pass.
 - Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Apply Codex plugin-specific presets for plugin.json, bundled skill validation, cachebuster, and CLI smoke-test workflows.
@@ -45,6 +47,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Generate a human-involvement and worker visibility matrix.
 - Emit a diagnosis-based `codex-harness-setup` prompt.
 - Generate bounded worker assignment prompts with `patterns --prompt <pattern-id>`.
+- Write `Docs/AI/harness-loop-plan.md`, apply the next recommended write action, or append `Docs/AI/harness-history.jsonl` through explicit `run-loop` flags only.
 - Write `Docs/AI/harness-status.md` only when the user explicitly asks for a durable status record.
 - Generate harness-design prompts for `codex-harness-setup`.
 - Explain whether parallel work should be hidden/backgrounded or exposed as visible user-facing chats.
@@ -53,7 +56,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 
 ## Improvement Loop
 
-1. **Analyze**: inspect project type, existing harness files, package scripts, CI/hooks, reports, and coordination docs.
+1. **Analyze**: inspect project type, existing harness files, package scripts, CI/hooks, reports, and coordination docs. Prefer `scripts/console.py doctor --repo <repo-root>` for a first read-only status pass.
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
@@ -63,23 +66,25 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 
 ## Recommended Workflow
 
-1. For a combined diagnosis overview, run `scripts/console.py overview --repo <repo-root>` from the plugin root.
-2. For harness scoring and tuning recommendations, run `scripts/console.py diagnose --repo <repo-root> --phase <phase>`.
+1. For the simplest entry point, run `scripts/console.py doctor --repo <repo-root> --phase <phase> --domain "<domain>"`.
+2. For the full planning pass, run `scripts/console.py run-loop --repo <repo-root> --phase <phase> --domain "<domain>"`. Add `--write-plan`, `--write-recommended`, or `--record-history` only after reviewing the read-only result.
+3. For a combined diagnosis overview, run `scripts/console.py overview --repo <repo-root>` from the plugin root.
+4. For harness scoring and tuning recommendations, run `scripts/console.py diagnose --repo <repo-root> --phase <phase>`.
    - Add `--emit-prompt` to generate a `codex-harness-setup` prompt from the diagnosis.
    - Add `--write-status` only when the user wants a durable `Docs/AI/harness-status.md` record.
    - Add `--write-plan` only when the user wants a durable `Docs/AI/harness-design-plan.md` record.
-3. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
-4. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
-5. For team/skill factory planning, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For repo-local docs, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-artifacts`. For Codex skill drafts, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-codex-skills`. For confirmed installation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --install-codex-skills --confirm-install`.
-6. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`.
-7. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
-8. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
-9. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
-10. For installed skills, run `scripts/console.py skills --json`.
-11. For installed plugins, run `scripts/console.py plugins --json`.
-12. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-13. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-14. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+5. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
+6. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
+7. For team/skill factory planning, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For repo-local docs, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-artifacts`. For Codex skill drafts, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-codex-skills`. For confirmed installation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --install-codex-skills --confirm-install`.
+8. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`.
+9. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
+10. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
+11. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
+12. For installed skills, run `scripts/console.py skills --json`.
+13. For installed plugins, run `scripts/console.py plugins --json`.
+14. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+15. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+16. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
