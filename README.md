@@ -10,13 +10,15 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 
 ## What It Provides
 
-- `repo-harness-tuner` skill for the analyze/diagnose/restructure/evaluate loop.
+- `repo-harness-tuner` skill for the analyze/diagnose/design/restructure/evaluate loop.
 - Embedded `codex-harness-setup` skill for creating and tuning repo-local harness files.
 - Read-only scanners for installed skills and plugins as supporting evidence.
 - A repo harness scanner for `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, and package scripts.
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
 - Project-type detection and presets for Unity, Godot, Vite/Node, Node, Python, and docs-only projects.
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
+- A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
+- An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
 - Phase-aware tuning cadence for new projects, prototypes, active development, pre-release, maintenance, and high-risk work.
 - Drift checks between package scripts and validation guidance.
 - Human-involvement and worker-visibility matrix generation.
@@ -52,6 +54,9 @@ python scripts\console.py overview --repo C:\path\to\repo
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project --human-involvement 3 --emit-prompt
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
+python scripts\console.py patterns
+python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
+python scripts\console.py eval --repo C:\path\to\repo --phase active-development --write-plan
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --module "Ending taxonomy: 5"
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --write-status
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --write-plan
@@ -67,6 +72,8 @@ JSON output is available for the scan commands:
 python scripts\console.py overview --repo C:\path\to\repo --json
 python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
+python scripts\console.py patterns --json
+python scripts\console.py eval --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py skills --json
 python scripts\console.py plugins --json
 python scripts\console.py repo --repo C:\path\to\repo --json
@@ -96,6 +103,7 @@ The diagnose command returns a recommended harness tuning cadence for the select
 - overbroad process rules such as always-full-QA, always-detailed-report, or always-visible-chat,
 - harness design target files and reasons,
 - recommended worker architecture,
+- worker-pattern selection reason,
 - evaluation steps and next review trigger,
 - human-involvement and worker visibility matrix,
 - phase-specific tuning cadence.
@@ -136,6 +144,40 @@ This writes:
 Docs/AI/harness-design-plan.md
 ```
 
+Use `patterns` to inspect the available Codex worker architectures:
+
+```powershell
+python scripts\console.py patterns
+```
+
+Current patterns are:
+
+- `single-agent`: one Codex thread handles analysis, edits, and closeout.
+- `background-review`: main thread edits while a short-lived read-only reviewer checks a focused risk.
+- `visible-decision-thread`: visible user-facing decision path for approval, product, roadmap, UX, release, or scope tradeoffs.
+- `producer-reviewer`: one worker produces, another independently checks objective criteria.
+- `fanout-review`: parallel read-only reviewers inspect separate risk surfaces.
+- `supervisor-cycle`: staged multi-slice harness improvement coordinated by the main thread.
+- `phase-handoff`: persistent artifacts support later phases or future sessions.
+
+Use `eval` to create a safe evaluation plan for comparing normal Codex behavior against repo-harness-tuner-guided behavior:
+
+```powershell
+python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
+```
+
+Use `--write-plan` only when you want a durable evaluation plan in the target repository:
+
+```powershell
+python scripts\console.py eval --repo C:\path\to\repo --phase active-development --write-plan
+```
+
+This writes:
+
+```text
+Docs/AI/harness-eval-plan.md
+```
+
 ## Human Involvement
 
 The user-facing control is human involvement, from 1 to 5:
@@ -153,7 +195,7 @@ Internally, this can still be stored in the repo harness as ask-before rules. Ro
 After installing the plugin in Codex, ask for the loop directly:
 
 ```text
-Run repo-harness-tuner on this project: analyze, diagnose, restructure, and evaluate the Codex harness.
+Run repo-harness-tuner on this project: analyze, diagnose, design, restructure, and evaluate the Codex harness.
 ```
 
 For diagnosis only:

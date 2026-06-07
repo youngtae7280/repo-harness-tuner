@@ -22,6 +22,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Score harness readiness and recommend concrete tuning changes.
 - Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
+- Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
+- Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
 - Recommend phase-aware harness review cadence.
 - Detect drift between `package.json` scripts and validation docs.
 - Detect overbroad process rules that require full QA, detailed reports, visible chats, or plans for every small task.
@@ -38,9 +40,9 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 
 1. **Analyze**: inspect project type, existing harness files, package scripts, CI/hooks, reports, and coordination docs.
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
-3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker visibility, validation evidence, and next review timing.
+3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
-5. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Write `Docs/AI/harness-status.md` or `Docs/AI/harness-design-plan.md` only when durable status is useful or requested.
+5. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, or `Docs/AI/harness-eval-plan.md` only when durable status is useful or requested.
 
 ## Recommended Workflow
 
@@ -50,11 +52,13 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
    - Add `--write-status` only when the user wants a durable `Docs/AI/harness-status.md` record.
    - Add `--write-plan` only when the user wants a durable `Docs/AI/harness-design-plan.md` record.
 3. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
-4. For installed skills, run `scripts/console.py skills --json`.
-5. For installed plugins, run `scripts/console.py plugins --json`.
-6. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-7. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-8. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+4. For available worker architectures, run `scripts/console.py patterns --json`.
+5. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`.
+6. For installed skills, run `scripts/console.py skills --json`.
+7. For installed plugins, run `scripts/console.py plugins --json`.
+8. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+9. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+10. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
@@ -81,12 +85,18 @@ Internally, the repo harness can store this as ask-before rules. Any `Ask before
 
 `codex-harness-setup` currently decides when subagents are worth the overhead, but it does not fully encode whether those workers should run as hidden background tasks or as visible chats.
 
-Use this policy in generated prompts:
+Use the worker-pattern selector first, then apply this policy in generated prompts:
 
 - Use visible chats for product decisions, scope negotiation, roadmap changes, QA reports the user must inspect, or specialist work where the user benefits from seeing the thread.
 - Use background/read-only workers for independent code review, test review, security review, static audits, or repo scans where only the final findings matter.
 - Use a single agent for small changes, docs edits, narrow validation fixes, or low-risk content corrections.
 - Persist reports only for staged/high-risk cycles, multi-agent handoffs, QA evidence, or decisions future agents must reuse.
+
+## Evaluation Policy
+
+Use `eval` when the user asks whether the tuner is actually improving results. The command is plan-only: it creates golden tasks, baseline/with-harness comparison instructions, and assertions, but does not automatically run separate agents.
+
+Promote a harness change only when the evaluation suggests it improves correctness, reviewability, evidence quality, or overhead. Do not overfit the harness to one prompt.
 
 ## Safety
 
@@ -105,7 +115,8 @@ For scans, report:
 - overbroad process rules and recommended demotions,
 - human-involvement enforcement gaps,
 - target files and reasons from the harness design,
-- worker architecture and evaluation steps,
+- worker architecture, selected pattern, and evaluation steps,
+- eval plan golden tasks and assertions when requested,
 - recommended review cadence,
 - human-involvement and visibility matrix,
 - suggested next action,

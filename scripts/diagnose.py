@@ -3,11 +3,28 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def load_local_module(name: str):
+    path = SCRIPT_DIR / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+worker_patterns = load_local_module("worker_patterns")
 
 
 PHASES = {
@@ -617,23 +634,37 @@ def build_evaluation_steps(root: Path, repo_scan: dict[str, Any], phase: str) ->
     return steps
 
 
-def worker_architecture(phase: str, human_involvement: int, readiness_score: int, needs_restructure: bool) -> dict[str, object]:
-    if phase == "high-risk" or human_involvement >= 5:
-        pattern = "approval-gated visible specialist"
-        default_visibility = "visible chat before edits"
-    elif human_involvement >= 4:
-        pattern = "visible decision chat plus optional background reviewer"
-        default_visibility = "visible chat for decisions, background for read-only checks"
-    elif needs_restructure and readiness_score < 70:
-        pattern = "single implementer plus background read-only reviewer"
-        default_visibility = "background reviewer only when the change touches shared harness policy"
-    else:
-        pattern = "single agent"
-        default_visibility = "single-agent by default"
-
+def worker_architecture(
+    phase: str,
+    human_involvement: int,
+    readiness_score: int,
+    needs_restructure: bool,
+    drift_count: int,
+    overhead_count: int,
+    enforcement_count: int,
+    project_type: str,
+) -> dict[str, object]:
+    selected = worker_patterns.select_pattern(
+        phase=phase,
+        human_involvement=human_involvement,
+        readiness_score=readiness_score,
+        needs_restructure=needs_restructure,
+        drift_count=drift_count,
+        overhead_count=overhead_count,
+        enforcement_count=enforcement_count,
+        project_type=project_type,
+    )
     return {
-        "pattern": pattern,
-        "default_visibility": default_visibility,
+        "pattern": selected["id"],
+        "label": selected["label"],
+        "summary": selected["summary"],
+        "default_visibility": selected["visibility"],
+        "coordination": selected["coordination"],
+        "selection_reasons": selected["selection_reasons"],
+        "use_when": selected["use_when"],
+        "evidence": selected["evidence"],
+        "avoid": selected["avoid_when"],
+        "fallback_patterns": selected["fallback_patterns"],
         "visible_chats": [
             "human approval points",
             "product, roadmap, UI, narrative, or release-direction decisions",
@@ -643,10 +674,6 @@ def worker_architecture(phase: str, human_involvement: int, readiness_score: int
             "read-only harness audit",
             "test or validation review",
             "security/static review when risk justifies it",
-        ],
-        "avoid": [
-            "persistent worker reports for tiny changes",
-            "visible chats when only final findings matter",
         ],
     }
 
@@ -741,6 +768,10 @@ def build_harness_design(
             "detect drift, overbroad process, and human-involvement enforcement gaps",
             "choose the smallest reversible harness change",
         ],
+        "design": [
+            "select target files, worker pattern, validation evidence, and next review trigger",
+            "prefer the lightest worker pattern that still reduces the diagnosed risk",
+        ],
         "restructure": [
             "update only target files that pay rent for future agent reliability",
             "prefer advisory repo-local docs before scripts, hooks, CI, or release gates",
@@ -756,7 +787,16 @@ def build_harness_design(
         "validation_emphasis": preset["validation_emphasis"],
         "baseline_files": preset["baseline_files"],
         "target_files": target_files,
-        "worker_architecture": worker_architecture(phase, human_involvement, score_value, needs_restructure),
+        "worker_architecture": worker_architecture(
+            phase,
+            human_involvement,
+            score_value,
+            needs_restructure,
+            len(drift),
+            len(overhead),
+            len(involvement_enforcement),
+            str(preset["key"]),
+        ),
         "loop": loop,
         "evaluation_steps": build_evaluation_steps(root, repo_scan, phase),
         "next_review_trigger": next_review_trigger(phase, score_value),
@@ -909,7 +949,13 @@ def build_tuning_prompt(payload: dict[str, Any], repo_type: str, modules: list[s
             lines.append(f"- {item['action']}: {item['path']} - {item['reason']}")
         worker = design.get("worker_architecture", {})
         if worker:
-            lines.append(f"- Worker pattern: {worker.get('pattern')} ({worker.get('default_visibility')})")
+            lines.append(
+                f"- Worker pattern: {worker.get('label', worker.get('pattern'))} "
+                f"[{worker.get('pattern')}] ({worker.get('default_visibility')})"
+            )
+            if worker.get("selection_reasons"):
+                for reason in worker["selection_reasons"]:
+                    lines.append(f"  - Reason: {reason}")
         lines.append(f"- Next review trigger: {design.get('next_review_trigger', 'after meaningful project change')}")
 
     lines.append("")
@@ -1008,8 +1054,11 @@ def write_status(root: Path, payload: dict[str, Any]) -> Path:
     lines.append("")
     lines.append("## Worker Architecture")
     worker = payload["harness_design"]["worker_architecture"]
-    lines.append(f"- Pattern: {worker['pattern']}")
+    lines.append(f"- Pattern: {worker.get('label', worker['pattern'])} ({worker['pattern']})")
     lines.append(f"- Default visibility: {worker['default_visibility']}")
+    lines.append(f"- Coordination: {worker['coordination']}")
+    for reason in worker.get("selection_reasons", []):
+        lines.append(f"- Selection reason: {reason}")
     lines.append("")
     lines.append("## Evaluation Steps")
     for step in payload["harness_design"]["evaluation_steps"]:
@@ -1051,15 +1100,18 @@ def write_design_plan(root: Path, payload: dict[str, Any]) -> Path:
         lines.append(f"- {item['action']}: {item['path']} - {item['reason']}")
     lines.append("")
     lines.append("## Loop")
-    for stage in ["analyze", "diagnose", "restructure", "evaluate"]:
+    for stage in ["analyze", "diagnose", "design", "restructure", "evaluate"]:
         lines.append(f"### {stage.title()}")
         for item in design["loop"][stage]:
             lines.append(f"- {item}")
         lines.append("")
     lines.append("## Worker Architecture")
     worker = design["worker_architecture"]
-    lines.append(f"- Pattern: {worker['pattern']}")
+    lines.append(f"- Pattern: {worker.get('label', worker['pattern'])} ({worker['pattern']})")
     lines.append(f"- Default visibility: {worker['default_visibility']}")
+    lines.append(f"- Coordination: {worker['coordination']}")
+    for reason in worker.get("selection_reasons", []):
+        lines.append(f"- Selection reason: {reason}")
     lines.append("")
     lines.append("Visible chats:")
     for item in worker["visible_chats"]:
@@ -1088,8 +1140,13 @@ def print_harness_design(design: dict[str, Any]) -> None:
     for item in design["target_files"]:
         print(f"  - {item['action']}: {item['path']} - {item['reason']}")
     worker = design["worker_architecture"]
-    print(f"- Worker pattern: {worker['pattern']}")
+    print(f"- Worker pattern: {worker.get('label', worker['pattern'])} ({worker['pattern']})")
     print(f"- Default visibility: {worker['default_visibility']}")
+    print(f"- Coordination: {worker['coordination']}")
+    if worker.get("selection_reasons"):
+        print("- Pattern selection:")
+        for reason in worker["selection_reasons"]:
+            print(f"  - {reason}")
     print("- Evaluation:")
     for step in design["evaluation_steps"]:
         print(f"  - {step['when']}: {step['command']}")

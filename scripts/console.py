@@ -27,6 +27,8 @@ scan_plugins = load_module("scan_plugins")
 scan_repo_harness = load_module("scan_repo_harness")
 generate_prompt = load_module("generate_prompt")
 diagnose_module = load_module("diagnose")
+worker_patterns = load_module("worker_patterns")
+evaluate_module = load_module("evaluate")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -183,6 +185,32 @@ def cmd_design(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_patterns(args: argparse.Namespace) -> int:
+    payload = {"patterns": worker_patterns.list_patterns(), "count": len(worker_patterns.PATTERNS)}
+    if args.json:
+        emit_json(payload)
+    else:
+        print(f"Worker patterns: {payload['count']}")
+        for pattern in payload["patterns"]:
+            print(f"- {pattern['id']}: {pattern['label']} - {pattern['summary']}")
+            print(f"  Visibility: {pattern['visibility']}")
+    return 0
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    payload = evaluate_module.build_eval_plan(Path(args.repo), args.phase, args.module, args.human_involvement, args.repo_type)
+    if args.write_plan:
+        payload["plan_path"] = str(evaluate_module.write_eval_plan(Path(args.repo).resolve(), payload))
+    if args.json:
+        emit_json(payload)
+    else:
+        evaluate_module.print_eval_plan(payload)
+        if args.write_plan:
+            print("")
+            print(f"Eval plan written: {payload['plan_path']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -194,6 +222,10 @@ def build_parser() -> argparse.ArgumentParser:
     plugins = sub.add_parser("plugins", help="List installed plugins.")
     plugins.add_argument("--json", action="store_true")
     plugins.set_defaults(func=cmd_plugins)
+
+    patterns = sub.add_parser("patterns", help="List Codex worker architecture patterns.")
+    patterns.add_argument("--json", action="store_true")
+    patterns.set_defaults(func=cmd_patterns)
 
     repo = sub.add_parser("repo", help="Scan a repository harness.")
     repo.add_argument("--repo", default=".")
@@ -238,6 +270,16 @@ def build_parser() -> argparse.ArgumentParser:
     design.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-design-plan.md in the target repo.")
     design.add_argument("--json", action="store_true")
     design.set_defaults(func=cmd_design)
+
+    eval_parser = sub.add_parser("eval", help="Create a with-harness vs baseline evaluation plan.")
+    eval_parser.add_argument("--repo", default=".")
+    eval_parser.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    eval_parser.add_argument("--module", action="append", help="Module human-involvement override, for example 'Ending taxonomy: 5'.")
+    eval_parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
+    eval_parser.add_argument("--repo-type", default="unknown")
+    eval_parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-eval-plan.md in the target repo.")
+    eval_parser.add_argument("--json", action="store_true")
+    eval_parser.set_defaults(func=cmd_eval)
 
     return parser
 
