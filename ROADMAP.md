@@ -9,6 +9,8 @@ For machine-to-machine continuation, use [HANDOFF.md](HANDOFF.md).
 
 ## v0.3.0 - Fixture Golden Tests
 
+Status: released.
+
 Goal: make the harness engine measurably testable across representative project shapes.
 
 Scope:
@@ -67,4 +69,4 @@ Scope:
 
 ## Current Priority
 
-The next implementation milestone is **v0.3.0 - Fixture Golden Tests**. Avoid expanding workspace discovery, GUI work, or deeper automation until the fixture suite exists, because the fixture suite is the safety net for every later milestone.
+The next implementation milestone is **v0.5.0 - Factory Output Quality**. Use the v0.3.0 fixture suite as the regression safety net for every later milestone.

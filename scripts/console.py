@@ -35,6 +35,7 @@ tune_module = load_module("tune")
 write_policy = load_module("write_policy")
 factory_module = load_module("factory")
 loop_module = load_module("loop")
+fixture_test_module = load_module("fixture_test")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -495,6 +496,15 @@ def cmd_run_loop(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fixture_test(args: argparse.Namespace) -> int:
+    payload = fixture_test_module.run_fixtures(Path(args.fixtures_root), args.fixture)
+    if args.json:
+        emit_json(payload)
+    else:
+        fixture_test_module.print_report(payload)
+    return 0 if payload["failed"] == 0 else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -570,6 +580,12 @@ def build_parser() -> argparse.ArgumentParser:
     loop_alias.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     loop_alias.add_argument("--json", action="store_true")
     loop_alias.set_defaults(func=cmd_run_loop)
+
+    fixture_test = sub.add_parser("fixture-test", help="Run fixture-based golden tests.")
+    fixture_test.add_argument("--fixtures-root", default=str(fixture_test_module.DEFAULT_FIXTURES_ROOT))
+    fixture_test.add_argument("--fixture", action="append", help="Run one fixture id. Can be repeated.")
+    fixture_test.add_argument("--json", action="store_true")
+    fixture_test.set_defaults(func=cmd_fixture_test)
 
     prompt = sub.add_parser("prompt", help="Generate a codex-harness-setup prompt.")
     prompt.add_argument("--mode", default="Setup", choices=["Audit only", "Setup", "Targeted upgrade", "Recovery", "Ambiguity profiling"])

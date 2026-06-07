@@ -1,7 +1,7 @@
 {
   "name": "repo-harness-tuner",
-  "version": "0.2.0+codex.20260607114613",
-  "description": "Run one-command Codex harness doctor/loop workflows and generate project team/skill plans.",
+  "version": "0.3.0+codex.20260607122305",
+  "description": "Run fixture-tested Codex harness doctor/loop workflows and generate project team/skill plans.",
   "author": {
     "name": "Local developer"
   },
@@ -10,13 +10,14 @@
   "interface": {
     "displayName": "Repo Harness Tuner",
     "shortDescription": "Generate Codex team/skill plans and improve repo harnesses.",
-    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The 0.2 loop adds a one-command doctor and run-loop so a repo can be inspected, diagnosed, designed, factory-planned, tuned, evaluated, and history-tracked from a single CLI entry point before any writes happen. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, copyable Codex SKILL.md drafts, confirmed skill installs, and Codex plugin team presets. The engine side runs analyze, diagnose, design, tune, restructure, evaluate, and history feedback loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
+    "longDescription": "Repo Harness Tuner combines a team/skill factory with an adaptive harness engine. The one-command doctor and run-loop inspect, diagnose, design, factory-plan, tune, evaluate, and history-track a repo from a single CLI entry point before any writes happen. The 0.3 fixture suite adds golden tests across empty, Vite/Node, Unity, Codex plugin, and already-harnessed project shapes so later changes have regression coverage. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, copyable Codex SKILL.md drafts, confirmed skill installs, and Codex plugin team presets. The engine side runs analyze, diagnose, design, tune, restructure, evaluate, and history feedback loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
       "Analyze-diagnose-design-tune-restructure-evaluate loop",
       "One-command harness doctor",
       "One-command run-loop planning",
+      "Fixture golden-test suite",
       "Recommended next-action execution",
       "Project-type harness presets",
       "Codex plugin project preset",
@@ -43,6 +44,7 @@
     "defaultPrompt": [
       "Run the one-command harness doctor",
       "Run the full harness loop",
+      "Run fixture golden tests",
       "Run the harness improvement loop",
       "Bootstrap this repo's Codex harness",
       "Design the next harness tuning step",

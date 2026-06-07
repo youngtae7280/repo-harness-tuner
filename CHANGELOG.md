@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 - 2026-06-07
+
+Fixture golden-test release.
+
+### Added
+
+- `fixture-test` command for running fixture-based golden tests from the unified CLI.
+- Fixture corpus covering empty/new project, Vite/Node project, Unity project, Codex plugin project, and already-harnessed Vite project.
+- Golden assertions for project type, readiness range, loop status, next action, evaluation task count, factory team label, high-risk write guard behavior, and read-only fixture stability.
+- `Docs/fixture-tests.md` with fixture authoring rules and safety constraints.
+- GitHub Actions coverage for `fixture-test`.
+
+### Changed
+
+- Validation docs, contributor docs, handoff docs, and roadmap now include fixture-test as the regression safety net for later milestones.
+- Roadmap current priority now moves to v0.5.0 factory output quality after the v0.3.0 fixture suite.
+
 ## 0.2.0 - 2026-06-07
 
 One-command loop release.

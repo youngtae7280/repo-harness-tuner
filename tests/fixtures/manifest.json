@@ -1,0 +1,80 @@
+{
+  "schema": "repo-harness-tuner.fixture-manifest.v1",
+  "fixtures": [
+    {
+      "id": "empty-new-project",
+      "path": "empty-new-project",
+      "phase": "new-project",
+      "domain": "new project",
+      "expected": {
+        "project_type": "unknown",
+        "status": "needs-bootstrap",
+        "readiness_min": 0,
+        "readiness_max": 40,
+        "next_action": "bootstrap",
+        "eval_tasks": 2,
+        "factory_label": "General Project Team"
+      }
+    },
+    {
+      "id": "vite-node-existing",
+      "path": "vite-node-existing",
+      "phase": "active-development",
+      "domain": "Vite website",
+      "expected": {
+        "project_type": "vite-node",
+        "status": "needs-bootstrap",
+        "readiness_min": 0,
+        "readiness_max": 60,
+        "next_action": "bootstrap",
+        "eval_tasks": 3,
+        "factory_label": "Website Development Team"
+      }
+    },
+    {
+      "id": "unity-minimal",
+      "path": "unity-minimal",
+      "phase": "active-development",
+      "domain": "Unity game",
+      "expected": {
+        "project_type": "unity",
+        "status": "needs-bootstrap",
+        "readiness_min": 0,
+        "readiness_max": 60,
+        "next_action": "bootstrap",
+        "eval_tasks": 3,
+        "factory_label": "Game Development Team"
+      }
+    },
+    {
+      "id": "codex-plugin-minimal",
+      "path": "codex-plugin-minimal",
+      "phase": "active-development",
+      "domain": "Codex plugin harness factory",
+      "expected": {
+        "project_type": "codex-plugin",
+        "status": "needs-bootstrap",
+        "readiness_min": 0,
+        "readiness_max": 60,
+        "next_action": "bootstrap",
+        "eval_tasks": 3,
+        "factory_label": "Codex Plugin Team"
+      }
+    },
+    {
+      "id": "harnessed-vite",
+      "path": "harnessed-vite",
+      "phase": "active-development",
+      "domain": "Vite website",
+      "expected": {
+        "project_type": "vite-node",
+        "status": "fit",
+        "readiness_min": 90,
+        "readiness_max": 100,
+        "next_action": "record-history",
+        "eval_tasks": 3,
+        "factory_label": "Website Development Team"
+      }
+    }
+  ]
+}

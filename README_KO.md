@@ -22,6 +22,7 @@ v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정
 - 현재 저장소의 `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, `package.json` scripts, 일반 문서를 스캔합니다.
 - `doctor`로 파일을 수정하지 않고 하네스 건강 상태, 준비도, 루프 요약, 다음 추천 작업을 한 번에 확인합니다.
 - `run-loop` 또는 `loop`로 analyze -> diagnose -> design -> factory -> tune -> evaluate -> history 계획 루프를 한 번에 실행합니다.
+- `fixture-test`로 empty, Vite/Node, Unity, Codex plugin, 기존 하네스 fixture를 대상으로 golden test를 실행합니다.
 - Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, unknown 프로젝트 프리셋을 적용합니다.
 - `diagnose`로 하네스 준비도, 검증 drift, 과한 프로세스 규칙, 사람 개입 enforcement gap을 진단합니다.
 - `design`으로 다음에 손댈 파일, 워커 구조, 평가 단계, 다음 리뷰 시점을 설계합니다.
@@ -42,6 +43,7 @@ python scripts\console.py overview --repo C:\path\to\repo
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
+python scripts\console.py fixture-test
 python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py design --repo C:\path\to\repo --phase active-development
 python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --phase active-development
@@ -140,6 +142,16 @@ python scripts\console.py run-loop --repo C:\path\to\repo --record-history --not
 ```
 
 각각 `Docs/AI/harness-loop-plan.md`, 다음 추천 bootstrap/tune/factory artifact 작업, `Docs/AI/harness-history.jsonl`을 씁니다. `loop`는 `run-loop`의 alias입니다.
+
+## Fixture Golden Tests
+
+0.3.0부터는 fixture 기반 golden test가 포함됩니다.
+
+```powershell
+python scripts\console.py fixture-test
+```
+
+이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
 
 ## 사람 개입 레벨
 

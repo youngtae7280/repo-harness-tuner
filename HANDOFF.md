@@ -72,6 +72,7 @@ The CLI scripts can run directly from the cloned repository:
 ```powershell
 python scripts\console.py doctor --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
+python scripts\console.py fixture-test
 ```
 
 This is enough for development, CI checks, and fixture-test work.
@@ -81,7 +82,8 @@ This is enough for development, CI checks, and fixture-test work.
 Run these before pushing changes:
 
 ```powershell
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python scripts\console.py fixture-test
 python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\repo-harness-tuner
 python %USERPROFILE%\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py .
 python skills\codex-harness-setup\scripts\check_harness.py .
@@ -95,9 +97,15 @@ GitHub Actions also runs the broad smoke suite on push and pull request:
 .github/workflows/validate.yml
 ```
 
-## Continue v0.3.0 Work
+## Fixture Tests And Next Work
 
-Use the GitHub milestone as the active task board:
+The v0.3.0 fixture golden-test suite is implemented. Use this command before pushing changes:
+
+```powershell
+python scripts\console.py fixture-test
+```
+
+The v0.3.0 milestone remains useful as historical context:
 
 - Issue #2: add fixture repository corpus.
 - Issue #3: implement fixture golden-test runner.
@@ -105,13 +113,7 @@ Use the GitHub milestone as the active task board:
 - Issue #5: document fixture authoring and release criteria.
 - Issue #6: release checklist.
 
-Recommended order:
-
-1. Build the fixture corpus.
-2. Implement the runner.
-3. Add CI coverage.
-4. Document fixture authoring.
-5. Release v0.3.0 after local and GitHub validation pass.
+The next active implementation target after v0.3.0 is v0.5.0: improving factory output quality.
 
 ## Local-Only State
 

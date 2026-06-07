@@ -16,6 +16,7 @@ python scripts\console.py factory --repo C:\path\to\repo --domain "project domai
 python scripts\console.py factory --repo C:\path\to\repo --domain "project domain" --write-codex-skills
 python scripts\console.py factory --repo C:\path\to\repo --domain "project domain" --install-codex-skills --confirm-install --skill-install-root C:\path\to\skills
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development
+python scripts\console.py fixture-test
 ```
 
 ## Validation
@@ -24,7 +25,8 @@ Before opening a PR or sharing a change, run:
 
 ```powershell
 $env:PYTHONPYCACHEPREFIX = Join-Path $env:TEMP 'repo-harness-tuner-pycache'
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python scripts\console.py fixture-test
 python C:\Users\<you>\.codex\skills\.system\skill-creator\scripts\quick_validate.py C:\path\to\repo-harness-tuner\skills\repo-harness-tuner
 python C:\Users\<you>\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py C:\path\to\repo-harness-tuner
 ```

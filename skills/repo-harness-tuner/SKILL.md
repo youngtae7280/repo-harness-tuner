@@ -27,6 +27,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Score harness readiness and recommend concrete tuning changes.
 - Run `doctor` for a read-only one-command health check, loop summary, and recommended next action.
 - Run `run-loop` or `loop` for the full analyze -> diagnose -> design -> factory -> tune -> evaluate -> history planning pass.
+- Run `fixture-test` to validate project detection, readiness bands, next actions, eval golden tasks, factory labels, write guards, and read-only behavior across fixture repositories.
 - Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Apply Codex plugin-specific presets for plugin.json, bundled skill validation, cachebuster, and CLI smoke-test workflows.
@@ -77,14 +78,15 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 6. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
 7. For team/skill factory planning, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For repo-local docs, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-artifacts`. For Codex skill drafts, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-codex-skills`. For confirmed installation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --install-codex-skills --confirm-install`.
 8. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`.
-9. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
-10. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
-11. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
-12. For installed skills, run `scripts/console.py skills --json`.
-13. For installed plugins, run `scripts/console.py plugins --json`.
-14. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-15. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-16. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+9. For fixture regression coverage before release-facing changes, run `scripts/console.py fixture-test`.
+10. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
+11. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
+12. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
+13. For installed skills, run `scripts/console.py skills --json`.
+14. For installed plugins, run `scripts/console.py plugins --json`.
+15. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+16. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+17. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
@@ -124,6 +126,10 @@ Use `eval` when the user asks whether the tuner is actually improving results. T
 
 Promote a harness change only when the evaluation suggests it improves correctness, reviewability, evidence quality, or overhead. Do not overfit the harness to one prompt.
 
+## Fixture Test Policy
+
+Use `fixture-test` before changing scanners, diagnosis scoring, loop next-action selection, factory presets, evaluation golden tasks, write guards, or read-only behavior. Fixtures live under `tests/fixtures` and are documented in `Docs/fixture-tests.md`. Keep fixtures small and free of dependency folders, Unity generated folders, secrets, logs, private data, or large generated artifacts.
+
 ## Factory Policy
 
 Use `factory` when the user asks to generate a project-specific team, skill set, or harness like `revfactory/harness` style agent-team design. The first output should be a plan: roles, planned skills, orchestration, visible/background policy, and evaluation hooks. Use `--write-artifacts` to create repo-local markdown artifacts after the user wants files written. Use `--write-codex-skills` to create copyable Codex `SKILL.md` draft folders under `Docs/AI/codex-skills`. Use `--install-codex-skills --confirm-install` only after the user wants installation; default installs to `$CODEX_HOME/skills` or `~/.codex/skills`, and `--skill-install-root` may redirect installs for testing or team workflows.
@@ -161,6 +167,7 @@ For scans, report:
 - worker architecture, selected pattern, and evaluation steps,
 - factory plan roles, planned skills, orchestration, and planned outputs when requested,
 - eval plan golden tasks and assertions when requested,
+- fixture-test pass/fail summary when requested,
 - bootstrap dry-run or write results,
 - tune diff proposals and write results,
 - harness history summary or written event path,

@@ -21,6 +21,7 @@ See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tes
 - Embedded `codex-harness-setup` skill for creating and tuning repo-local harness files.
 - A `doctor` command for a read-only one-command health check, readiness score, loop summary, and recommended next action.
 - A `run-loop` command, also available as `loop`, that executes the full analyze -> diagnose -> design -> factory -> tune -> evaluate -> history planning pass and can optionally write a loop plan, apply the next recommended write action, or record history.
+- A `fixture-test` command that runs golden tests across empty, Vite/Node, Unity, Codex plugin, and harnessed-project fixtures.
 - Read-only scanners for installed skills and plugins as supporting evidence.
 - A repo harness scanner for `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, and package scripts.
 - A `diagnose` command that scores harness readiness and recommends tuning changes.
@@ -74,6 +75,7 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --record-history --note "after first feature"
+python scripts\console.py fixture-test
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project --human-involvement 3 --emit-prompt
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
@@ -111,6 +113,7 @@ JSON output is available for the scan commands:
 python scripts\console.py overview --repo C:\path\to\repo --json
 python scripts\console.py doctor --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py run-loop --repo C:\path\to\repo --phase prototype --json
+python scripts\console.py fixture-test --json
 python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --json
@@ -158,6 +161,18 @@ Docs/AI/harness-history.jsonl
 ```
 
 `loop` is an alias for `run-loop`. At human involvement 4 or 5, every file-writing loop command also requires `--confirm-write`.
+
+## Fixture Golden Tests
+
+Run `fixture-test` before changing detection, diagnosis, loop planning, factory presets, evaluation tasks, or write safety:
+
+```powershell
+python scripts\console.py fixture-test
+```
+
+The fixture suite currently covers empty/new projects, Vite/Node projects, Unity projects, Codex plugin projects, and an already-harnessed Vite project. It checks project type, readiness range, next action, golden task count, factory label, high-risk write guards, and read-only command behavior.
+
+See [Docs/fixture-tests.md](Docs/fixture-tests.md) for fixture authoring rules.
 
 ## Project Phases
 
@@ -473,6 +488,7 @@ File-writing commands require `--write`. When human involvement is 4 or 5, file-
 - Korean README: `README_KO.md`
 - Changelog: `CHANGELOG.md`
 - Contributing guide: `CONTRIBUTING.md`
+- Fixture test guide: `Docs/fixture-tests.md`
 - Security policy: `SECURITY.md`
 - License: `LICENSE`
 - Notices: `NOTICE.md`

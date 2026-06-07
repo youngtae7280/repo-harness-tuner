@@ -1,0 +1,6 @@
+{
+  "name": "fixture-plugin",
+  "version": "0.1.0",
+  "description": "Fixture Codex plugin.",
+  "skills": "./skills/"
+}
