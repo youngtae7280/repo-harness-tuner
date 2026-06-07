@@ -13,6 +13,8 @@ Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
 
 It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guidance, target files, human-involvement policy, visible/background worker policy, and repo-local team/skill artifacts as the project evolves.
 
+See [ROADMAP.md](ROADMAP.md) for the release plan from v0.3.0 fixture golden tests through v1.0.0.
+
 ## What It Provides
 
 - `repo-harness-tuner` skill for the analyze/diagnose/design/tune/restructure/evaluate loop.
