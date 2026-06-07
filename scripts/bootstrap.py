@@ -24,6 +24,7 @@ def load_local_module(name: str):
 
 scan_repo_harness = load_local_module("scan_repo_harness")
 diagnose_module = load_local_module("diagnose")
+write_policy = load_local_module("write_policy")
 
 
 def package_scripts_text(repo_scan: dict[str, Any]) -> list[str]:
@@ -49,6 +50,18 @@ def generate_files(
     worker = design["worker_architecture"]
     involvement = diagnosis["human_involvement"]
     scripts = package_scripts_text(repo_scan)
+    history_feedback = diagnosis.get("history_feedback", {})
+    history_lines: list[str] = []
+    if history_feedback.get("signals"):
+        history_lines = [
+            "",
+            "## History Feedback",
+            f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}.",
+            *[f"- {signal['type']}: {signal['detail']}" for signal in history_feedback["signals"]],
+        ]
+        if history_feedback.get("recommendations"):
+            history_lines.extend(["", "History-informed tuning:"])
+            history_lines.extend(f"- {item}" for item in history_feedback["recommendations"])
 
     agents = "\n".join(
         [
@@ -103,6 +116,7 @@ def generate_files(
             "",
             "Selection reasons:",
             *[f"- {item}" for item in worker.get("selection_reasons", [])],
+            *history_lines,
             "",
             "## Usually Skip",
             "- New CI gates, release blockers, dependencies, or destructive scripts unless repeated evidence justifies them and the user approves.",
@@ -230,6 +244,7 @@ def main() -> int:
     parser.add_argument("--repo-type", default="unknown")
     parser.add_argument("--write", action="store_true", help="Write files. Default is dry-run.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing harness files when --write is set.")
+    parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--show-content", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -237,6 +252,16 @@ def main() -> int:
     root = Path(args.repo)
     plan = plan_bootstrap(root, args.phase, args.human_involvement, args.repo_type, args.module, args.force)
     if args.write:
+        guard = write_policy.write_guard("bootstrap", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            plan["write_blocked"] = guard
+            if args.json:
+                print(json.dumps(plan, indent=2, ensure_ascii=False))
+            else:
+                print_plan(plan, args.show_content)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         plan["results"] = apply_bootstrap(plan, root)
     if args.json:
         print(json.dumps(plan, indent=2, ensure_ascii=False))

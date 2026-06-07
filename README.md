@@ -19,12 +19,15 @@ It focuses on designing and improving `AGENTS.md`, `Docs/AI/*`, validation guida
 - A `design` command that turns diagnosis into target files, worker architecture, evaluation steps, and next review triggers.
 - A Codex worker-pattern catalog inspired by team-architecture harnesses, translated into practical Codex modes.
 - An `eval` command that creates a plan-only with-harness vs baseline evaluation with golden tasks and assertions.
+- An `eval --score` mode that scores recorded baseline vs with-harness assertion results.
 - A safe `bootstrap`/`apply` flow that generates initial harness files in dry-run mode by default.
 - A `tune` command that turns diagnosis into reviewable unified diffs before writing files.
-- A `history` command that records diagnosis snapshots and summarizes harness evolution.
+- A `history` command that records diagnosis snapshots, summarizes harness evolution, and feeds recurring signals back into diagnosis.
 - Phase-aware tuning cadence for new projects, prototypes, active development, pre-release, maintenance, and high-risk work.
 - Drift checks between package scripts and validation guidance.
 - Human-involvement and worker-visibility matrix generation.
+- Human-involvement write guards: levels 4 and 5 require `--confirm-write` for file-writing commands.
+- Worker assignment prompt generation for visible/background Codex worker patterns.
 - A prompt generator for `codex-harness-setup`.
 - A standalone HTML prototype for human-involvement and worker-visibility prompt building.
 
@@ -59,12 +62,16 @@ python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project
 python scripts\console.py diagnose --repo C:\path\to\repo --phase new-project --human-involvement 3 --emit-prompt
 python scripts\console.py design --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py patterns
+python scripts\console.py patterns --prompt background-review --repo C:\path\to\repo --phase active-development --scope "validation drift"
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --human-involvement 3
 python scripts\console.py eval --repo C:\path\to\repo --phase active-development --write-plan
+python scripts\console.py eval --score C:\path\to\eval-results.json
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 5 --write --confirm-write
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --write
+python scripts\console.py tune --repo C:\path\to\repo --phase active-development --human-involvement 4 --write --confirm-write
 python scripts\console.py apply --repo C:\path\to\repo --phase new-project --write --force
 python scripts\console.py history --repo C:\path\to\repo
 python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
@@ -85,6 +92,7 @@ python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --js
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py patterns --json
 python scripts\console.py eval --repo C:\path\to\repo --phase prototype --json
+python scripts\console.py eval --score C:\path\to\eval-results.json --json
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --json
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --json
 python scripts\console.py history --repo C:\path\to\repo --record --json
@@ -119,6 +127,7 @@ The diagnose command returns a recommended harness tuning cadence for the select
 - recommended worker architecture,
 - worker-pattern selection reason,
 - evaluation steps and next review trigger,
+- history feedback from `Docs/AI/harness-history.jsonl`, including readiness regression, repeated drift, repeated overhead, repeated human-involvement gaps, or recent failure notes,
 - bootstrap actions for missing or existing harness files,
 - generated tuning diffs for missing or stale harness sections,
 - history snapshot summaries when requested,
@@ -177,6 +186,12 @@ Current patterns are:
 - `supervisor-cycle`: staged multi-slice harness improvement coordinated by the main thread.
 - `phase-handoff`: persistent artifacts support later phases or future sessions.
 
+Use `patterns --prompt <pattern-id>` to create a bounded assignment prompt for a visible or background worker:
+
+```powershell
+python scripts\console.py patterns --prompt producer-reviewer --repo C:\path\to\repo --phase active-development --scope "review harness validation drift"
+```
+
 Use `eval` to create a safe evaluation plan for comparing normal Codex behavior against repo-harness-tuner-guided behavior:
 
 ```powershell
@@ -195,6 +210,14 @@ This writes:
 Docs/AI/harness-eval-plan.md
 ```
 
+After recording assertion results, score them:
+
+```powershell
+python scripts\console.py eval --score C:\path\to\eval-results.json
+```
+
+Accepted result files can contain either `{"results": [...]}` or a list of task results using the eval result schema. The scorer reports improved, regressed, unchanged pass, unchanged fail, and a keep/revise recommendation.
+
 Use `bootstrap` to generate the smallest useful initial harness. It is dry-run by default:
 
 ```powershell
@@ -205,6 +228,12 @@ Write files only after reviewing the dry-run:
 
 ```powershell
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
+```
+
+When human involvement is 4 or 5, writing commands require `--confirm-write` after the dry-run/diff has been reviewed:
+
+```powershell
+python scripts\console.py tune --repo C:\path\to\repo --phase high-risk --write --confirm-write
 ```
 
 Existing files are skipped unless `--force` is used together with `--write`.
@@ -247,6 +276,8 @@ This appends JSONL records to:
 ```text
 Docs/AI/harness-history.jsonl
 ```
+
+Future `diagnose` and `tune` runs read this history and raise review pressure when readiness regresses or the same drift, overhead, human-involvement gap, or failure note repeats.
 
 ## Human Involvement
 
@@ -313,7 +344,7 @@ Use a single agent for small, low-risk tasks.
 
 This plugin is read-first. Install, uninstall, enable, disable, delete, and marketplace edits should be explicit user-requested actions. Do not delete skills, plugins, marketplace entries, or repo harness files without direct approval.
 
-File-writing commands require `--write`. Existing harness files are skipped by default for `bootstrap`/`apply` and require `--force` to overwrite. `tune` updates only managed sections or creates missing files.
+File-writing commands require `--write`. When human involvement is 4 or 5, file-writing commands also require `--confirm-write`. Existing harness files are skipped by default for `bootstrap`/`apply` and require `--force` to overwrite. `tune` updates only managed sections or creates missing files.
 
 ## Additional Docs
 

@@ -32,6 +32,7 @@ evaluate_module = load_module("evaluate")
 bootstrap_module = load_module("bootstrap")
 history_module = load_module("history")
 tune_module = load_module("tune")
+write_policy = load_module("write_policy")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -147,6 +148,15 @@ def cmd_prompt(args: argparse.Namespace) -> int:
 def cmd_diagnose(args: argparse.Namespace) -> int:
     repo_scan = scan_repo_harness.scan(Path(args.repo))
     payload = diagnose_module.diagnose(Path(args.repo), repo_scan, args.phase, args.module, args.human_involvement, args.repo_type)
+    if args.write_status or args.write_plan:
+        guard = write_policy.write_guard("diagnose", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                print(write_policy.format_guard(guard))
+            return 2
     if args.emit_prompt:
         payload["tuning_prompt"] = diagnose_module.build_tuning_prompt(payload, args.repo_type, args.module)
     if args.write_status:
@@ -175,6 +185,14 @@ def cmd_design(args: argparse.Namespace) -> int:
     payload = diagnose_module.diagnose(Path(args.repo), repo_scan, args.phase, args.module, args.human_involvement, args.repo_type)
     design = payload["harness_design"]
     if args.write_plan:
+        guard = write_policy.write_guard("design", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                print(write_policy.format_guard(guard))
+            return 2
         payload["plan_path"] = str(diagnose_module.write_design_plan(Path(args.repo).resolve(), payload))
         design = dict(design)
         design["plan_path"] = payload["plan_path"]
@@ -189,6 +207,20 @@ def cmd_design(args: argparse.Namespace) -> int:
 
 
 def cmd_patterns(args: argparse.Namespace) -> int:
+    if args.prompt:
+        prompt = worker_patterns.build_worker_prompt(
+            args.prompt,
+            args.repo,
+            args.phase,
+            args.scope,
+            args.human_involvement,
+        )
+        payload = {"pattern": worker_patterns.get_pattern(args.prompt), "prompt": prompt}
+        if args.json:
+            emit_json(payload)
+        else:
+            print(prompt)
+        return 0
     payload = {"patterns": worker_patterns.list_patterns(), "count": len(worker_patterns.PATTERNS)}
     if args.json:
         emit_json(payload)
@@ -201,8 +233,25 @@ def cmd_patterns(args: argparse.Namespace) -> int:
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
+    if args.score:
+        payload = evaluate_module.score_eval_results(Path(args.score))
+        if args.json:
+            emit_json(payload)
+        else:
+            evaluate_module.print_eval_score(payload)
+        return 0
     payload = evaluate_module.build_eval_plan(Path(args.repo), args.phase, args.module, args.human_involvement, args.repo_type)
     if args.write_plan:
+        guard = write_policy.write_guard("eval", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                evaluate_module.print_eval_plan(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         payload["plan_path"] = str(evaluate_module.write_eval_plan(Path(args.repo).resolve(), payload))
     if args.json:
         emit_json(payload)
@@ -224,6 +273,16 @@ def cmd_bootstrap(args: argparse.Namespace) -> int:
         args.force,
     )
     if args.write:
+        guard = write_policy.write_guard("bootstrap", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            plan["write_blocked"] = guard
+            if args.json:
+                emit_json(plan)
+            else:
+                bootstrap_module.print_plan(plan, args.show_content)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         plan["results"] = bootstrap_module.apply_bootstrap(plan, Path(args.repo))
     if args.json:
         emit_json(plan)
@@ -277,6 +336,16 @@ def cmd_tune(args: argparse.Namespace) -> int:
         args.force,
     )
     if args.write:
+        guard = write_policy.write_guard("tune", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                tune_module.print_summary(payload, args.diff)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         payload["results"] = tune_module.apply_proposals(payload, Path(args.repo), args.force)
     if args.json:
         emit_json(payload)
@@ -302,7 +371,12 @@ def build_parser() -> argparse.ArgumentParser:
     plugins.add_argument("--json", action="store_true")
     plugins.set_defaults(func=cmd_plugins)
 
-    patterns = sub.add_parser("patterns", help="List Codex worker architecture patterns.")
+    patterns = sub.add_parser("patterns", help="List Codex worker architecture patterns or build a worker prompt.")
+    patterns.add_argument("--prompt", help="Build an assignment prompt for a specific pattern id.")
+    patterns.add_argument("--repo", default=".")
+    patterns.add_argument("--phase", default="active-development")
+    patterns.add_argument("--scope", default="repo harness tuning")
+    patterns.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
     patterns.add_argument("--json", action="store_true")
     patterns.set_defaults(func=cmd_patterns)
 
@@ -337,6 +411,7 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--emit-prompt", action="store_true", help="Append a codex-harness-setup prompt based on the diagnosis.")
     diagnose.add_argument("--write-status", action="store_true", help="Write Docs/AI/harness-status.md in the target repo.")
     diagnose.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-design-plan.md in the target repo.")
+    diagnose.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     diagnose.add_argument("--json", action="store_true")
     diagnose.set_defaults(func=cmd_diagnose)
 
@@ -347,6 +422,7 @@ def build_parser() -> argparse.ArgumentParser:
     design.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
     design.add_argument("--repo-type", default="unknown")
     design.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-design-plan.md in the target repo.")
+    design.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     design.add_argument("--json", action="store_true")
     design.set_defaults(func=cmd_design)
 
@@ -357,6 +433,8 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
     eval_parser.add_argument("--repo-type", default="unknown")
     eval_parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-eval-plan.md in the target repo.")
+    eval_parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    eval_parser.add_argument("--score", help="Score a JSON result file created from the eval result_schema.")
     eval_parser.add_argument("--json", action="store_true")
     eval_parser.set_defaults(func=cmd_eval)
 
@@ -368,6 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--repo-type", default="unknown")
     bootstrap.add_argument("--write", action="store_true", help="Write files. Default is dry-run.")
     bootstrap.add_argument("--force", action="store_true", help="Overwrite existing harness files when --write is set.")
+    bootstrap.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     bootstrap.add_argument("--show-content", action="store_true")
     bootstrap.add_argument("--json", action="store_true")
     bootstrap.set_defaults(func=cmd_bootstrap)
@@ -380,6 +459,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_parser.add_argument("--repo-type", default="unknown")
     apply_parser.add_argument("--write", action="store_true", help="Write files. Default is dry-run.")
     apply_parser.add_argument("--force", action="store_true", help="Overwrite existing harness files when --write is set.")
+    apply_parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     apply_parser.add_argument("--show-content", action="store_true")
     apply_parser.add_argument("--json", action="store_true")
     apply_parser.set_defaults(func=cmd_bootstrap)
@@ -407,6 +487,7 @@ def build_parser() -> argparse.ArgumentParser:
     tune.add_argument("--diff", action="store_true", help="Print unified diff.")
     tune.add_argument("--write", action="store_true", help="Write proposed changes. Default is dry-run.")
     tune.add_argument("--force", action="store_true", help="Apply even when files changed since diff generation.")
+    tune.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     tune.add_argument("--json", action="store_true")
     tune.set_defaults(func=cmd_tune)
 

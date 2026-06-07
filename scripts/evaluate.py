@@ -25,6 +25,7 @@ def load_local_module(name: str):
 
 scan_repo_harness = load_local_module("scan_repo_harness")
 diagnose_module = load_local_module("diagnose")
+write_policy = load_local_module("write_policy")
 
 
 def golden_tasks(project_type: str, phase: str) -> list[dict[str, Any]]:
@@ -201,6 +202,166 @@ def print_eval_plan(payload: dict[str, Any]) -> None:
         print(f"- {item}")
 
 
+def normalize_status(value: Any) -> str:
+    normalized = str(value or "n/a").strip().lower()
+    if normalized in {"pass", "passed", "ok", "true", "yes", "y", "1"}:
+        return "pass"
+    if normalized in {"fail", "failed", "no", "false", "x", "0"}:
+        return "fail"
+    return "n/a"
+
+
+def normalize_results_payload(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, dict) and isinstance(payload.get("results"), list):
+        return [item for item in payload["results"] if isinstance(item, dict)]
+    if isinstance(payload, dict) and isinstance(payload.get("tasks"), list):
+        return [item for item in payload["tasks"] if isinstance(item, dict)]
+    if isinstance(payload, dict) and "task_id" in payload:
+        return [payload]
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    return []
+
+
+def score_eval_results(result_path: Path) -> dict[str, Any]:
+    raw = json.loads(result_path.read_text(encoding="utf-8-sig"))
+    results = normalize_results_payload(raw)
+    scored_tasks: list[dict[str, Any]] = []
+    totals = {
+        "tasks": len(results),
+        "assertions": 0,
+        "baseline_pass": 0,
+        "with_harness_pass": 0,
+        "improved": 0,
+        "regressed": 0,
+        "unchanged_pass": 0,
+        "unchanged_fail": 0,
+        "not_applicable": 0,
+    }
+
+    for index, result in enumerate(results, start=1):
+        assertions = result.get("assertions", [])
+        if not isinstance(assertions, list):
+            assertions = []
+        task_stats = {
+            "assertions": 0,
+            "baseline_pass": 0,
+            "with_harness_pass": 0,
+            "improved": 0,
+            "regressed": 0,
+            "unchanged_pass": 0,
+            "unchanged_fail": 0,
+            "not_applicable": 0,
+        }
+        scored_assertions = []
+        for assertion in assertions:
+            if isinstance(assertion, str):
+                assertion = {"text": assertion}
+            if not isinstance(assertion, dict):
+                continue
+            baseline = normalize_status(assertion.get("baseline"))
+            with_harness = normalize_status(assertion.get("with_harness", assertion.get("harness")))
+            task_stats["assertions"] += 1
+            totals["assertions"] += 1
+            if baseline == "pass":
+                task_stats["baseline_pass"] += 1
+                totals["baseline_pass"] += 1
+            if with_harness == "pass":
+                task_stats["with_harness_pass"] += 1
+                totals["with_harness_pass"] += 1
+            if baseline == "n/a" or with_harness == "n/a":
+                task_stats["not_applicable"] += 1
+                totals["not_applicable"] += 1
+                outcome = "n/a"
+            elif baseline != "pass" and with_harness == "pass":
+                task_stats["improved"] += 1
+                totals["improved"] += 1
+                outcome = "improved"
+            elif baseline == "pass" and with_harness != "pass":
+                task_stats["regressed"] += 1
+                totals["regressed"] += 1
+                outcome = "regressed"
+            elif baseline == "pass" and with_harness == "pass":
+                task_stats["unchanged_pass"] += 1
+                totals["unchanged_pass"] += 1
+                outcome = "unchanged-pass"
+            else:
+                task_stats["unchanged_fail"] += 1
+                totals["unchanged_fail"] += 1
+                outcome = "unchanged-fail"
+            scored_assertions.append(
+                {
+                    "text": assertion.get("text", assertion.get("assertion", "")),
+                    "baseline": baseline,
+                    "with_harness": with_harness,
+                    "outcome": outcome,
+                    "evidence": assertion.get("evidence", ""),
+                }
+            )
+
+        if task_stats["regressed"]:
+            recommendation = "revise"
+        elif task_stats["improved"] and not task_stats["unchanged_fail"]:
+            recommendation = "keep"
+        elif task_stats["unchanged_fail"]:
+            recommendation = "revise"
+        else:
+            recommendation = str(result.get("decision") or "keep")
+        scored_tasks.append(
+            {
+                "task_id": result.get("task_id", result.get("id", f"task-{index}")),
+                "baseline_summary": result.get("baseline_summary", ""),
+                "with_harness_summary": result.get("with_harness_summary", ""),
+                "stats": task_stats,
+                "assertions": scored_assertions,
+                "recommended_decision": recommendation,
+                "recorded_decision": result.get("decision", ""),
+            }
+        )
+
+    if totals["regressed"]:
+        recommendation = "revise the harness before promoting this change"
+    elif totals["improved"] and not totals["unchanged_fail"]:
+        recommendation = "keep or promote this harness change"
+    elif totals["unchanged_fail"]:
+        recommendation = "revise the harness; it did not fix known failures"
+    else:
+        recommendation = "keep the harness stable and gather more evidence"
+
+    return {
+        "schema": "repo-harness-tuner.eval-score.v1",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "evaluation_mode": "score",
+        "result_file": str(result_path.resolve()),
+        "totals": totals,
+        "net_improvement": totals["improved"] - totals["regressed"],
+        "recommendation": recommendation,
+        "tasks": scored_tasks,
+    }
+
+
+def print_eval_score(payload: dict[str, Any]) -> None:
+    totals = payload["totals"]
+    print("Eval mode: score")
+    print(f"Result file: {payload['result_file']}")
+    print(f"Tasks: {totals['tasks']}")
+    print(f"Assertions: {totals['assertions']}")
+    print(f"Baseline pass: {totals['baseline_pass']}")
+    print(f"With harness pass: {totals['with_harness_pass']}")
+    print(f"Improved: {totals['improved']}")
+    print(f"Regressed: {totals['regressed']}")
+    print(f"Net improvement: {payload['net_improvement']}")
+    print(f"Recommendation: {payload['recommendation']}")
+    print("")
+    print("Tasks:")
+    for task in payload["tasks"]:
+        stats = task["stats"]
+        print(
+            f"- {task['task_id']}: {task['recommended_decision']} "
+            f"(improved {stats['improved']}, regressed {stats['regressed']}, unchanged fail {stats['unchanged_fail']})"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=".")
@@ -209,12 +370,32 @@ def main() -> int:
     parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
     parser.add_argument("--repo-type", default="unknown")
     parser.add_argument("--write-plan", action="store_true")
+    parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
+    parser.add_argument("--score", help="Score a JSON result file created from the eval result_schema.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.repo)
+    if args.score:
+        payload = score_eval_results(Path(args.score))
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print_eval_score(payload)
+        return 0
+
     payload = build_eval_plan(root, args.phase, args.module, args.human_involvement, args.repo_type)
     if args.write_plan:
+        guard = write_policy.write_guard("eval", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print_eval_plan(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         payload["plan_path"] = str(write_eval_plan(root.resolve(), payload))
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))

@@ -106,6 +106,53 @@ def list_patterns() -> list[dict[str, Any]]:
     return [{"id": key, **value} for key, value in PATTERNS.items()]
 
 
+def get_pattern(pattern_id: str) -> dict[str, Any]:
+    if pattern_id not in PATTERNS:
+        choices = ", ".join(sorted(PATTERNS))
+        raise ValueError(f"Unknown worker pattern: {pattern_id}. Choices: {choices}")
+    return {"id": pattern_id, **PATTERNS[pattern_id]}
+
+
+def build_worker_prompt(
+    pattern_id: str,
+    repo: str = ".",
+    phase: str = "active-development",
+    scope: str = "repo harness tuning",
+    human_involvement: int | None = None,
+) -> str:
+    pattern = get_pattern(pattern_id)
+    lines = [
+        "You are a Codex worker participating in repo harness tuning.",
+        "",
+        f"Repository: {repo}",
+        f"Project phase: {phase}",
+        f"Worker pattern: {pattern['label']} (`{pattern['id']}`)",
+        f"Visibility: {pattern['visibility']}",
+        f"Coordination: {pattern['coordination']}",
+        f"Scope: {scope}",
+    ]
+    if human_involvement is not None:
+        lines.append(f"Human involvement: {max(1, min(5, human_involvement))}/5")
+    lines.extend(
+        [
+            "",
+            "Instructions:",
+            "- Stay within the assigned scope and avoid broad repo rewrites.",
+            "- Prefer read-only analysis unless this prompt explicitly asks you to edit.",
+            "- Return concise findings, decisions, or evidence that the main thread can merge.",
+            "- If your work touches product direction, release gates, destructive operations, dependencies, secrets, or privacy-sensitive areas, stop and mark it as needing visible user approval.",
+            "",
+            "Use when:",
+        ]
+    )
+    lines.extend(f"- {item}" for item in pattern["use_when"])
+    lines.extend(["", "Expected evidence:"])
+    lines.extend(f"- {item}" for item in pattern["evidence"])
+    lines.extend(["", "Avoid this pattern when:"])
+    lines.extend(f"- {item}" for item in pattern["avoid_when"])
+    return "\n".join(lines)
+
+
 def select_pattern(
     *,
     phase: str,
@@ -166,8 +213,21 @@ def fallback_patterns(pattern_id: str, human_involvement: int, needs_restructure
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--prompt", help="Build an assignment prompt for a specific pattern id.")
+    parser.add_argument("--repo", default=".")
+    parser.add_argument("--phase", default="active-development")
+    parser.add_argument("--scope", default="repo harness tuning")
+    parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+    if args.prompt:
+        prompt = build_worker_prompt(args.prompt, args.repo, args.phase, args.scope, args.human_involvement)
+        payload = {"pattern": get_pattern(args.prompt), "prompt": prompt}
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(prompt)
+        return 0
     payload = {"patterns": list_patterns(), "count": len(PATTERNS)}
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))

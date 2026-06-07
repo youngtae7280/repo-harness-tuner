@@ -28,6 +28,7 @@ def load_local_module(name: str):
 scan_repo_harness = load_local_module("scan_repo_harness")
 diagnose_module = load_local_module("diagnose")
 bootstrap_module = load_local_module("bootstrap")
+write_policy = load_local_module("write_policy")
 
 
 MANAGED_START = "<!-- repo-harness-tuner:start:{name} -->"
@@ -122,6 +123,7 @@ def involvement_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
 def harness_profile_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
     design = diagnosis["harness_design"]
     worker = design["worker_architecture"]
+    history_feedback = diagnosis.get("history_feedback", {})
     lines = [
         f"Phase: `{diagnosis['phase']}`.",
         f"Readiness: {diagnosis['readiness']['score']}/{diagnosis['readiness']['max_score']}.",
@@ -135,6 +137,13 @@ def harness_profile_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
     if worker.get("selection_reasons"):
         lines.extend(["", "Pattern selection:"])
         lines.extend(f"- {item}" for item in worker["selection_reasons"])
+    if history_feedback.get("signals"):
+        lines.extend(["", "History feedback:"])
+        lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}.")
+        lines.extend(f"- {signal['type']}: {signal['detail']}" for signal in history_feedback["signals"])
+        if history_feedback.get("recommendations"):
+            lines.extend(["", "History-informed tuning:"])
+            lines.extend(f"- {item}" for item in history_feedback["recommendations"])
     return lines
 
 
@@ -205,10 +214,11 @@ def build_proposals(
     has_drift = bool(diagnosis.get("drift"))
     has_involvement_gaps = bool(diagnosis.get("human_involvement_enforcement"))
     has_overhead = bool(diagnosis.get("process_overhead"))
+    has_history_pressure = bool(diagnosis.get("history_feedback", {}).get("recommendations"))
     needs_profile = "Docs/AI/harness-profile.md" in missing or any(
         finding["status"] == "gap" and finding["title"] in {"Harness profile", "Worker visibility", "Human involvement policy"}
         for finding in diagnosis["readiness"]["findings"]
-    )
+    ) or has_history_pressure
     needs_validation = "Docs/AI/validation.md" in missing or has_drift or any(
         finding["status"] == "gap" and finding["title"] in {"Validation guide", "Script coverage"}
         for finding in diagnosis["readiness"]["findings"]
@@ -274,6 +284,8 @@ def build_proposals(
             "drift_count": len(diagnosis.get("drift", [])),
             "process_overhead_count": len(diagnosis.get("process_overhead", [])),
             "human_involvement_gap_count": len(diagnosis.get("human_involvement_enforcement", [])),
+            "history_signal_count": len(diagnosis.get("history_feedback", {}).get("signals", [])),
+            "history_review_pressure": diagnosis.get("history_feedback", {}).get("review_pressure", "normal"),
         },
         "proposals": proposals,
         "notes": notes,
@@ -338,12 +350,23 @@ def main() -> int:
     parser.add_argument("--diff", action="store_true", help="Print unified diff.")
     parser.add_argument("--write", action="store_true", help="Write proposed changes. Default is dry-run.")
     parser.add_argument("--force", action="store_true", help="Apply even when files changed since diff generation.")
+    parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.repo)
     payload = build_proposals(root, args.phase, args.module, args.human_involvement, args.repo_type, args.force)
     if args.write:
+        guard = write_policy.write_guard("tune", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print_summary(payload, args.diff)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
         payload["results"] = apply_proposals(payload, root, args.force)
     if args.json:
         print(json.dumps(payload, indent=2, ensure_ascii=False))

@@ -25,6 +25,8 @@ def load_local_module(name: str):
 
 
 worker_patterns = load_local_module("worker_patterns")
+history_store = load_local_module("history_store")
+write_policy = load_local_module("write_policy")
 
 
 PHASES = {
@@ -678,7 +680,12 @@ def worker_architecture(
     }
 
 
-def next_review_trigger(phase: str, readiness_score: int) -> str:
+def next_review_trigger(phase: str, readiness_score: int, history_feedback: dict[str, Any] | None = None) -> str:
+    signal_types = {signal.get("type") for signal in (history_feedback or {}).get("signals", [])}
+    if {"readiness-regression", "declining-readiness-trend", "recent-failure-note"} & signal_types:
+        return "after the next meaningful task, then again after the repair is validated"
+    if signal_types:
+        return "after the next 1-2 meaningful cycles, or sooner if the same harness issue repeats"
     if phase == "new-project":
         return "after the first working feature, then every 3-5 meaningful cycles until the harness stabilizes"
     if phase == "prototype":
@@ -692,6 +699,21 @@ def next_review_trigger(phase: str, readiness_score: int) -> str:
     return "every 3-5 meaningful cycles, or sooner after repeated mistakes or validation drift"
 
 
+def merge_target_files(items: list[dict[str, str]]) -> list[dict[str, str]]:
+    merged: dict[str, dict[str, str]] = {}
+    for item in items:
+        path = item["path"]
+        if path not in merged:
+            merged[path] = dict(item)
+            continue
+        current = merged[path]
+        if current["action"] != item["action"] and current["action"] != "create":
+            current["action"] = f"{current['action']}/{item['action']}"
+        if item["reason"] not in current["reason"]:
+            current["reason"] = f"{current['reason']}; {item['reason']}"
+    return list(merged.values())
+
+
 def build_harness_design(
     root: Path,
     repo_scan: dict[str, Any],
@@ -702,6 +724,7 @@ def build_harness_design(
     involvement_enforcement: list[dict[str, str]],
     human_involvement: int,
     repo_type: str | None = None,
+    history_feedback: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     preset = project_preset(repo_scan, repo_type)
     missing = list(repo_scan.get("missing_recommended", []))
@@ -746,6 +769,17 @@ def build_harness_design(
                 "reason": "overbroad process rules are increasing task overhead",
             }
         )
+    if history_feedback and history_feedback.get("recommendations"):
+        if not any(item["path"] == "Docs/AI/harness-profile.md" for item in target_files):
+            target_files.append(
+                {
+                    "path": "Docs/AI/harness-profile.md",
+                    "action": "update",
+                    "reason": "recent harness history shows recurring issues or readiness pressure",
+                }
+            )
+
+    target_files = merge_target_files(target_files)
 
     if not target_files:
         target_files.append(
@@ -766,6 +800,7 @@ def build_harness_design(
         "diagnose": [
             "score readiness",
             "detect drift, overbroad process, and human-involvement enforcement gaps",
+            "read recent harness history and identify recurring misses when present",
             "choose the smallest reversible harness change",
         ],
         "design": [
@@ -799,7 +834,8 @@ def build_harness_design(
         ),
         "loop": loop,
         "evaluation_steps": build_evaluation_steps(root, repo_scan, phase),
-        "next_review_trigger": next_review_trigger(phase, score_value),
+        "history_feedback": history_feedback or {},
+        "next_review_trigger": next_review_trigger(phase, score_value, history_feedback),
     }
 
 
@@ -849,6 +885,22 @@ def diagnose(
                 "Add or strengthen Docs/AI/ambiguity-profile.md so high human-involvement areas force ask-before-edit behavior and low human-involvement areas allow inference."
             ]
         )
+    history_feedback = history_store.build_feedback(root.resolve())
+    if history_feedback.get("signals"):
+        score["findings"].append(
+            {
+                "status": "gap" if history_feedback.get("review_pressure") == "high" else "warn",
+                "title": "Harness history feedback",
+                "detail": (
+                    f"{history_feedback['count']} history snapshot(s), "
+                    f"{len(history_feedback['signals'])} signal(s), "
+                    f"review pressure {history_feedback['review_pressure']}."
+                ),
+            }
+        )
+        score["recommendations"] = dedupe(
+            list(score["recommendations"]) + list(history_feedback.get("recommendations", []))
+        )
     phase_info = PHASES[phase]
     resolved_human_involvement = (
         human_involvement
@@ -868,6 +920,7 @@ def diagnose(
         involvement_enforcement,
         resolved_human_involvement,
         repo_type,
+        history_feedback,
     )
     return {
         "phase": phase,
@@ -878,6 +931,7 @@ def diagnose(
         "drift": drift,
         "process_overhead": overhead,
         "human_involvement_enforcement": involvement_enforcement,
+        "history_feedback": history_feedback,
         "human_involvement_matrix": public_matrix,
         "harness_design": design,
         "internal": {
@@ -894,6 +948,7 @@ def build_tuning_prompt(payload: dict[str, Any], repo_type: str, modules: list[s
     drift = payload.get("drift", [])
     overhead = payload.get("process_overhead", [])
     involvement_enforcement = payload.get("human_involvement_enforcement", [])
+    history_feedback = payload.get("history_feedback", {})
     design = payload.get("harness_design", {})
     effective_repo_type = repo_type
     if not effective_repo_type or effective_repo_type == "unknown":
@@ -940,6 +995,17 @@ def build_tuning_prompt(payload: dict[str, Any], repo_type: str, modules: list[s
         lines.append("Human involvement enforcement gaps to address:")
         for item in involvement_enforcement:
             lines.append(f"- {item['item']}: {item['detail']}")
+
+    if history_feedback.get("signals"):
+        lines.append("")
+        lines.append("Harness history feedback:")
+        lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        for signal in history_feedback["signals"]:
+            lines.append(f"- {signal['type']}: {signal['detail']}")
+        if history_feedback.get("recommendations"):
+            lines.append("History-informed recommendations:")
+            for item in history_feedback["recommendations"]:
+                lines.append(f"- {item}")
 
     if design:
         lines.append("")
@@ -1048,6 +1114,15 @@ def write_status(root: Path, payload: dict[str, Any]) -> Path:
     else:
         lines.append("- Ask/decide enforcement is present.")
     lines.append("")
+    lines.append("## Harness History Feedback")
+    history_feedback = payload.get("history_feedback", {})
+    if history_feedback.get("signals"):
+        lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        for signal in history_feedback["signals"]:
+            lines.append(f"- {signal['type']}: {signal['detail']}")
+    else:
+        lines.append("- No history pressure detected.")
+    lines.append("")
     lines.append("## Harness Design")
     for item in payload["harness_design"]["target_files"]:
         lines.append(f"- {item['action']}: {item['path']} - {item['reason']}")
@@ -1124,6 +1199,15 @@ def write_design_plan(root: Path, payload: dict[str, Any]) -> Path:
     lines.append("## Evaluation Steps")
     for step in design["evaluation_steps"]:
         lines.append(f"- {step['when']}: `{step['command']}`")
+    history_feedback = payload.get("history_feedback", {})
+    lines.append("")
+    lines.append("## Harness History Feedback")
+    if history_feedback.get("signals"):
+        lines.append(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        for signal in history_feedback["signals"]:
+            lines.append(f"- {signal['type']}: {signal['detail']}")
+    else:
+        lines.append("- No history pressure detected.")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path
 
@@ -1193,6 +1277,15 @@ def print_diagnosis(payload: dict[str, Any]) -> None:
     else:
         print("- Ask/decide enforcement is present.")
     print("")
+    print("Harness history feedback:")
+    history_feedback = payload.get("history_feedback", {})
+    if history_feedback.get("signals"):
+        print(f"- Review pressure: {history_feedback.get('review_pressure', 'normal')}")
+        for signal in history_feedback["signals"]:
+            print(f"- {signal['type']}: {signal['detail']}")
+    else:
+        print("- No history pressure detected.")
+    print("")
     print_harness_design(payload["harness_design"])
     print("")
     print("Human involvement matrix:")
@@ -1213,6 +1306,7 @@ def main() -> int:
     parser.add_argument("--emit-prompt", action="store_true")
     parser.add_argument("--write-status", action="store_true")
     parser.add_argument("--write-plan", action="store_true")
+    parser.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -1221,6 +1315,15 @@ def main() -> int:
     root = Path(args.repo_root)
     repo_scan = scan_repo_harness.scan(root)
     payload = diagnose(root, repo_scan, args.phase, args.module, args.human_involvement, args.repo_type)
+    if args.write_status or args.write_plan:
+        guard = write_policy.write_guard("diagnose", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(write_policy.format_guard(guard))
+            return 2
     if args.emit_prompt:
         payload["tuning_prompt"] = build_tuning_prompt(payload, args.repo_type, args.module)
     if args.write_status:

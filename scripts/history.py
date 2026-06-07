@@ -25,25 +25,12 @@ def load_local_module(name: str):
 
 scan_repo_harness = load_local_module("scan_repo_harness")
 diagnose_module = load_local_module("diagnose")
+history_store = load_local_module("history_store")
 
 
-def history_path(root: Path) -> Path:
-    return root / "Docs" / "AI" / "harness-history.jsonl"
-
-
-def load_history(root: Path) -> list[dict[str, Any]]:
-    path = history_path(root)
-    if not path.exists():
-        return []
-    entries: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        if not line.strip():
-            continue
-        try:
-            entries.append(json.loads(line))
-        except json.JSONDecodeError:
-            entries.append({"type": "parse-error", "raw": line})
-    return entries
+history_path = history_store.history_path
+load_history = history_store.load_history
+summarize = history_store.summarize
 
 
 def build_event(
@@ -88,29 +75,6 @@ def append_event(root: Path, event: dict[str, Any]) -> Path:
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
     return path
-
-
-def summarize(entries: list[dict[str, Any]]) -> dict[str, Any]:
-    valid = [entry for entry in entries if entry.get("schema") == "repo-harness-tuner.history.v1"]
-    latest = valid[-1] if valid else None
-    by_type: dict[str, int] = {}
-    by_pattern: dict[str, int] = {}
-    readiness_values: list[int] = []
-    for entry in valid:
-        by_type[str(entry.get("type", "unknown"))] = by_type.get(str(entry.get("type", "unknown")), 0) + 1
-        by_pattern[str(entry.get("worker_pattern", "unknown"))] = by_pattern.get(str(entry.get("worker_pattern", "unknown")), 0) + 1
-        if isinstance(entry.get("readiness"), int):
-            readiness_values.append(int(entry["readiness"]))
-    return {
-        "count": len(valid),
-        "parse_errors": len(entries) - len(valid),
-        "by_type": by_type,
-        "by_worker_pattern": by_pattern,
-        "latest": latest,
-        "readiness_min": min(readiness_values) if readiness_values else None,
-        "readiness_max": max(readiness_values) if readiness_values else None,
-        "readiness_latest": readiness_values[-1] if readiness_values else None,
-    }
 
 
 def print_summary(root: Path, payload: dict[str, Any]) -> None:

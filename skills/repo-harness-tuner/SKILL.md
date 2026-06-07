@@ -24,15 +24,17 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
+- Score recorded with-harness vs baseline evaluation JSON using `eval --score`.
 - Generate a minimal initial harness with `bootstrap` or `apply`, dry-run by default and write-gated by `--write`.
 - Generate reviewable tuning diffs with `tune --dry-run --diff`, using managed sections instead of whole-file rewrites.
-- Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`.
+- Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`, then feed recurring history signals back into diagnosis and tuning.
 - Recommend phase-aware harness review cadence.
 - Detect drift between `package.json` scripts and validation docs.
 - Detect overbroad process rules that require full QA, detailed reports, visible chats, or plans for every small task.
 - Detect human-involvement enforcement gaps where ask-before-edit rules are missing or not linked from the repo entrypoint.
 - Generate a human-involvement and worker visibility matrix.
 - Emit a diagnosis-based `codex-harness-setup` prompt.
+- Generate bounded worker assignment prompts with `patterns --prompt <pattern-id>`.
 - Write `Docs/AI/harness-status.md` only when the user explicitly asks for a durable status record.
 - Generate harness-design prompts for `codex-harness-setup`.
 - Explain whether parallel work should be hidden/backgrounded or exposed as visible user-facing chats.
@@ -45,8 +47,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
-5. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. Existing bootstrap files require `--force` to overwrite.
-6. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
+5. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. When human involvement is 4 or 5, add `--confirm-write` after reviewing the dry-run/diff. Existing bootstrap files require `--force` to overwrite.
+6. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/harness-eval-plan.md`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
 
 ## Recommended Workflow
 
@@ -56,8 +58,8 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
    - Add `--write-status` only when the user wants a durable `Docs/AI/harness-status.md` record.
    - Add `--write-plan` only when the user wants a durable `Docs/AI/harness-design-plan.md` record.
 3. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
-4. For available worker architectures, run `scripts/console.py patterns --json`.
-5. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`.
+4. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
+5. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`.
 6. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
 7. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
 8. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
@@ -113,10 +115,13 @@ Use `tune` for projects with existing harness files. It should generate a review
 
 Use `history` after meaningful harness changes, repeated mistakes, evaluation runs, or user feedback. The history record should stay concise: readiness, worker pattern, drift counts, target actions, next review trigger, and a short note.
 
+Future `diagnose` and `tune` runs should treat repeated history signals as design evidence: readiness regression, repeated validation drift, repeated process overhead, repeated human-involvement gaps, and recent failure notes raise review pressure and can justify a harness-profile update.
+
 ## Safety
 
 - Treat install, uninstall, enable, disable, and marketplace edits as explicit actions. Prefer inspection and generated instructions unless the user asks for changes.
 - Do not delete skills, plugins, marketplace entries, repo docs, or harness files without direct user approval.
+- For file-writing commands at human involvement 4 or 5, require `--confirm-write` after the dry-run or diff has been inspected.
 - Do not show secrets from environment files, credentials, logs, or private configuration.
 
 ## Output

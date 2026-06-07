@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "0.1.0+codex.20260607072345",
+  "version": "0.1.0+codex.20260607074041",
   "description": "Continuously design and improve repo-local Codex harnesses.",
   "author": {
     "name": "Local developer"
@@ -10,7 +10,7 @@
   "interface": {
     "displayName": "Repo Harness Tuner",
     "shortDescription": "Continuously improve repo-local Codex working rules.",
-    "longDescription": "Repo Harness Tuner runs a repeatable analyze, diagnose, design, tune, restructure, and evaluate loop for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, and track AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
+    "longDescription": "Repo Harness Tuner runs a repeatable analyze, diagnose, design, tune, restructure, and evaluate loop for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score evaluation results, track history feedback, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [
@@ -19,13 +19,16 @@
       "Harness design plan generation",
       "Codex worker pattern selection",
       "With-harness evaluation planning",
+      "Evaluation result scoring",
       "Dry-run harness bootstrap",
       "Reviewable tuning diffs",
-      "Harness history tracking",
+      "History-informed diagnosis and tuning",
       "Repo harness diagnosis",
       "Human involvement policy",
+      "Human involvement write guards",
       "Validation guide tuning",
       "Worker visibility policy",
+      "Worker assignment prompt generation",
       "Embedded codex-harness-setup"
     ],
     "defaultPrompt": [

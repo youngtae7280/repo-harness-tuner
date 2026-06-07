@@ -18,7 +18,7 @@ Before opening a PR or sharing a change, run:
 
 ```powershell
 $env:PYTHONPYCACHEPREFIX = Join-Path $env:TEMP 'repo-harness-tuner-pycache'
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\bootstrap.py scripts\history.py scripts\tune.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
 python C:\Users\김영태\.codex\skills\.system\skill-creator\scripts\quick_validate.py C:\Users\김영태\plugins\repo-harness-tuner\skills\repo-harness-tuner
 python C:\Users\김영태\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py C:\Users\김영태\plugins\repo-harness-tuner
 ```
@@ -28,6 +28,7 @@ When validating outside the original development machine, use the equivalent loc
 ## Design Rules
 
 - Keep file writes opt-in. Commands that can change target repositories should default to dry-run.
+- Require `--confirm-write` for file-writing commands when human involvement is 4 or 5.
 - Do not overwrite existing harness files unless the user passes an explicit overwrite flag.
 - Prefer advisory repo-local docs before scripts, hooks, CI gates, or release blockers.
 - Add new process only when it reduces real risk, improves reviewability, improves evidence, or records a project-specific decision.
