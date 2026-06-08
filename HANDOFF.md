@@ -7,8 +7,8 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - GitHub: https://github.com/youngtae7280/repo-harness-tuner
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
-- Current milestone: v1.5.0 continuous harness curator direction, after the v1.0/v1.1 onboarding and adaptive passes.
-- Next implementation target: release validation, fresh-clone verification, and polishing the adapter-only skill recommendation flow.
+- Current milestone: v1.5.1 assistant UX stabilization, after the v1.0/v1.1 onboarding and adaptive passes.
+- Next implementation target: release validation, fresh-clone verification, and polishing the one-command assistant documentation flow.
 
 ## Clone On A New PC
 
@@ -146,7 +146,7 @@ The `#18`, `#19`, and `#20` documentation entry points are:
 - `Docs/install.md` for first-time install, refresh, validation, and troubleshooting.
 - `Docs/commands.md` for the full command reference moved out of the README.
 - `Docs/versioning.md` for version format, breaking-change classification, deprecation policy, changelog rules, and release checklist.
-- `README.md` / `README_KO.md` for slim one-request onboarding and the product-level safety/adaptive-loop explanation.
+- `README.md` / `README_EN.md` for slim one-request onboarding and the product-level safety/adaptive-loop explanation. `README_KO.md` is a compatibility pointer to the Korean default README.
 
 Product direction:
 

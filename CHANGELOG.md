@@ -18,11 +18,12 @@
 - `summary.next_action.category`, `category_label`, and `category_summary` for one-command assistant work types.
 - `release-check` for fresh-copy release validation, including manifest, compile, fixture/user-journey, JSON, console, and bootstrap smoke checks.
 - User-journey fixture coverage for fresh repo bootstrap and fit repo history recording.
-- Mermaid one-command flow diagrams in README and README_KO.
+- Vertical Mermaid one-command flow diagrams in the Korean default README and the English README.
+- `README_EN.md` for the English README after making `README.md` Korean by default.
 
 ### Changed
 
-- README and README_KO are now slimmer one-request onboarding docs focused on `next`/`doctor`/`run-loop`, the approval-based safety model, adaptive review cadence, and human-involvement defaults.
+- `README.md` is now the Korean default README with a softer one-request onboarding tone; `README_KO.md` remains as a compatibility pointer.
 - `doctor`, `run-loop`, and `next` text output now highlights what Codex found, what it can do next, the next command, approval boundaries, and validation hints.
 - `bootstrap`, `tune`, and `factory` outputs now write the standard harness contract into generated or tuned harness docs.
 - CLI JSON output is now ASCII-safe by default, and console output is configured to avoid `UnicodeEncodeError` crashes on legacy Windows console encodings.

@@ -1,128 +1,146 @@
 # Repo Harness Tuner
 
-Repo Harness Tuner is a Codex workspace tuner.
-
-Run `next` once to inspect a repo, diagnose its agent workflow, choose the next safe action, suggest validation, and recommend only the smallest useful skills or worker patterns. It plans and recommends automatically. It writes files, changes policy, or installs external skills only after explicit approval.
-
-It is not a silent autonomous product developer. It is the layer that helps Codex keep planning, development, review, validation, and repo-local harness guidance organized as the project moves.
-
-## Start Here
-
-In Codex, start with one request:
+Codex로 프로젝트를 계속 작업하다 보면 이런 순간이 자주 옵니다.
 
 ```text
-Use repo-harness-tuner on this repo. Tell me what Codex should do next, what validation to run, and what needs approval before any file write or install.
+이제 뭘 해야 하지?
+검증은 뭘 돌려야 하지?
+어디까지 Codex에게 맡겨도 되지?
+skill이나 agent를 더 붙여야 하나?
 ```
 
-From the command line, start with `next`. Treat every other command as something the output may recommend later:
+Repo Harness Tuner는 이 질문에 답해주는 Codex 작업장 튜너입니다.
+
+처음에는 명령 하나만 기억하면 됩니다.
 
 ```powershell
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-`next` is the main entry point. Use `doctor` only when you want a shorter health check:
+`next`는 repo를 살펴보고, 지금 Codex가 해야 할 다음 일을 하나로 좁혀줍니다. 분석과 추천은 자동으로 하지만, 파일 쓰기, 정책 변경, 외부 skill 설치는 명시 승인 후에만 합니다.
+
+이 플러그인은 조용히 모든 기획/개발/출시를 대신하는 자동 개발자가 아닙니다. Codex가 기획, 개발, 검수, 문서화, 하네스 정리를 계속 이어가기 좋도록 작업장을 정리해주는 층입니다.
+
+[English README](README_EN.md)
+
+## 한눈에 보는 흐름
+
+```mermaid
+flowchart TD
+    A["1. next 실행<br/>지금 할 일 묻기"] --> B["2. repo 확인<br/>파일 / 스크립트 / 기록"]
+    B --> C["3. 작업 타입 선택<br/>기획 / 개발 / 검수<br/>튜닝 / skill / history"]
+    C --> D["4. 다음 명령 하나 제안<br/>메뉴 대신 한 가지"]
+    D --> E["5. 승인 경계 확인<br/>쓰기 / 설치 / 정책 변경은 멈춤"]
+    E --> F["6. 검증 실행<br/>증거와 남은 위험 기록"]
+```
+
+`next`가 보여주는 핵심은 다섯 가지입니다.
+
+- Codex가 repo에서 발견한 것
+- 지금 작업 타입
+- 바로 실행할 다음 명령 하나
+- 사람이 승인해야 하는 것
+- 실행하거나 기록해야 할 검증
+
+작업 타입은 아래 중 하나로 나옵니다.
+
+| 작업 타입 | 의미 |
+| --- | --- |
+| `planning` | 방향, 범위, 작업 계약을 잡는 단계 |
+| `development-support` | 개발을 더 반복 가능하게 돕는 단계 |
+| `review-validation` | 검수, 실패, 증거를 확인하는 단계 |
+| `harness-tuning` | repo-local Codex 지침을 조정하는 단계 |
+| `skill-recommendation` | 필요한 skill/agent 후보만 좁혀보는 단계 |
+| `history` | 다음 실행이 나아지도록 기록을 남기는 단계 |
+
+처음부터 `bootstrap`, `tune`, `factory`, `recommend-skills`, `history`를 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 확인한 뒤 추천된 다음 명령만 따라가면 됩니다.
+
+## Codex에서는 이렇게 요청하세요
+
+```text
+repo-harness-tuner로 이 repo를 봐줘.
+Codex가 다음에 뭘 해야 하는지,
+어떤 검증을 해야 하는지,
+파일 쓰기나 설치 전에 무엇을 승인해야 하는지 알려줘.
+```
+
+CLI에서 짧은 건강 상태만 보고 싶다면 `doctor`를 쓰면 됩니다.
 
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-## One-Command Flow
+## 하네스 계약
 
-```mermaid
-flowchart LR
-    A["1. Run next"] --> B["2. Inspect repo"]
-    B --> C["3. Pick work type<br/>planning / development / review / tuning / skills / history"]
-    C --> D["4. Print one next command"]
-    D --> E{"5. Needs approval?"}
-    E -->|"No"| F["Run safe next step"]
-    E -->|"Yes"| G["Review diff, write flag, install, or policy boundary"]
-    F --> H["Validate and record evidence"]
-    G --> H
-```
+하네스를 만든다는 건 Codex에게 “어디까지 맡길지”를 정하는 일입니다. Repo Harness Tuner는 생성하거나 튜닝하는 문서에 네 가지 경계를 남깁니다.
 
-`next` prints five things:
+- **Scope**: Codex에게 어디까지 맡길지, 어디부터 맡기지 않을지
+- **Access & Actions**: 무엇을 볼 수 있고, 무엇을 할 수 있고, 무엇은 금지되는지
+- **Definition of Done**: 무엇을 통과해야 완료로 볼지
+- **Human Approval Points**: 언제 사람이 개입해야 하는지
 
-- what Codex found,
-- the current work type,
-- the one next command,
-- what needs approval,
-- validation to run.
+`next`, `doctor`, `run-loop`는 이 내용을 `harness_contract`로 출력하고, `bootstrap`, `tune`, `factory`는 생성 문서에 이 섹션을 씁니다.
 
-The work type is explicit: `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`. That keeps the output from feeling like a raw engine dump: you can see whether Codex is setting direction, supporting implementation, checking evidence, tuning the harness, recommending skills, or recording learning for the next cycle.
+## 안전 모델
 
-You do not need to choose `bootstrap`, `tune`, `factory`, `recommend-skills`, or `history` up front. Start with `next`; use the recommended action after reviewing the approval boundary.
+기본은 read-first입니다.
 
-## Harness Contract
+- `next`, `doctor`, 기본 `run-loop`는 파일을 수정하지 않습니다.
+- 파일 쓰기는 `--write`, `--write-plan`, `--write-recommended`, `--write-artifacts` 같은 명시 플래그가 필요합니다.
+- skill 설치는 `--install --confirm-install`이 필요합니다.
+- human involvement 4 또는 5에서는 `--confirm-write`도 필요합니다.
+- dependency, release, CI, secret, credential, marketplace, migration, destructive 변경은 명시 승인 없이는 진행하지 않습니다.
+- ECC 후보는 대량 설치하지 않고, 승인된 경우 작은 Codex adapter skill로만 설치합니다.
 
-Every generated or tuned harness should make four boundaries explicit:
+## 언제 쓰면 좋나
 
-- **Scope**: what Codex may own, and what it must not take over.
-- **Access & Actions**: what Codex can see, what it can do, what it must not do, and what requires approval.
-- **Definition of Done**: validation, changed-file summary, skipped-check reason, remaining risk, and closeout evidence.
-- **Human Approval Points**: release, deployment, dependencies, CI, secrets, customer/user-facing sends, destructive changes, policy changes, and high human-involvement areas.
+이럴 때 특히 좋습니다.
 
-`next`, `doctor`, and `run-loop` expose this as `harness_contract`; `bootstrap`, `tune`, and `factory` write those sections into generated harness docs.
+- 새 repo에 `AGENTS.md`나 `Docs/AI/*`가 필요할 때
+- Codex가 너무 자주 묻거나, 반대로 위험한 일을 너무 알아서 하려 할 때
+- 검증 명령, ask-before-edit 규칙, worker visibility를 repo에 맞게 정리하고 싶을 때
+- 프로젝트별 Codex 팀/skill 설계가 필요할 때
+- ECC처럼 큰 외부 세트를 통째로 붙이지 않고, 필요한 skill/agent 후보만 1-3개 보고 싶을 때
+- history/eval 기록을 보고 하네스를 계속 조정하고 싶을 때
 
-## Safety Model
+일반적인 작은 코딩, 디버깅, 리뷰는 repo 하네스가 이미 잘 맞으면 굳이 이 플러그인을 매번 켤 필요는 없습니다.
 
-The plugin is read-first.
+## 프로젝트가 진행되면
 
-- `next`, `doctor`, and default `run-loop` do not edit files.
-- File writes require explicit flags such as `--write`, `--write-plan`, `--write-recommended`, or `--write-artifacts`.
-- Skill installs require explicit `--install --confirm-install`.
-- Human involvement levels 4 and 5 also require `--confirm-write`.
-- Dependency, release, CI, secret, credential, marketplace, install/uninstall, migration, privacy-sensitive, and destructive changes require explicit approval.
-- `tune` updates managed markdown sections instead of rewriting whole files.
-- `bootstrap` and factory artifact writes preserve existing files unless an explicit force path is used.
+프로젝트가 바뀌면 하네스도 조금씩 바뀌어야 합니다. Repo Harness Tuner는 다음 신호를 봅니다.
 
-## When To Use It
+- phase별 review cadence
+- readiness score 변화
+- 반복되는 validation drift
+- 반복되는 process overhead
+- 반복되는 human-involvement gap
+- eval regression 또는 unchanged failure
 
-Use this plugin when:
+이 신호가 쌓이면 다음 `next`에서 `tune`, `eval-review`, 더 짧은 review interval, 또는 skill 추천 조정을 제안할 수 있습니다. 다만 cadence나 human-involvement 정책은 자동으로 바꾸지 않고 추천만 합니다.
 
-- a repo needs `AGENTS.md` or `Docs/AI/*`,
-- Codex is using too much or too little process,
-- validation guidance, ask-before-edit rules, or worker visibility needs to be made repo-specific,
-- a project would benefit from repo-specific Codex team or skill planning,
-- a project should get only the smallest useful skill/agent recommendations instead of a broad external pack,
-- you want history/eval evidence to guide future harness tuning.
+## Skill 추천
 
-You usually do not need it for ordinary coding, debugging, or review when the repo harness is already fit.
-
-## Adaptive Harness Loop
-
-Repo Harness Tuner is designed for projects that keep changing.
-
-It tracks:
-
-- phase-specific review cadence,
-- next review triggers,
-- readiness score movement,
-- repeated validation drift,
-- repeated process overhead,
-- repeated human-involvement gaps,
-- eval regressions and unchanged failures.
-
-Those signals raise review pressure and can make the next `next` / `run-loop` pass recommend `tune`, `eval-review`, or a shorter review interval.
-
-`next`, `doctor`, and `run-loop` also emit structured `adaptive` recommendations for cadence and human involvement. There is no background scheduler yet. Re-run `next` at the recommended trigger, after meaningful project changes, after repeated Codex misses, or before high-risk/release work.
-
-## Skill Recommendations
-
-`next` / `run-loop` includes minimal skill recommendations. The standalone command is:
+`next`에는 최소 skill 추천도 포함됩니다. 따로 보고 싶으면:
 
 ```powershell
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project" --source builtin,ecc
 ```
 
-The command ranks repo-fit capabilities such as code review, TDD, security, docs, build repair, frontend UI, and release checks. It can use the built-in factory or the ECC seed catalog, but it never bulk-installs ECC. External candidates are installed only as small Codex adapter skills after `--install --confirm-install`; hooks, MCP servers, slash commands, marketplace edits, and policy changes stay out of the automatic path.
+추천 대상은 code review, TDD, security, docs, build-fix, frontend-ui, release-check 같은 역량입니다. 추천은 repo 증거 기반으로 1-3개만 보여줍니다.
+
+설치하려면 별도 승인이 필요합니다.
+
+```powershell
+python scripts\console.py recommend-skills --repo C:\path\to\repo --install --confirm-install
+```
+
+이 설치도 Codex adapter skill만 만듭니다. ECC hooks, MCP 서버, slash command, native agent, marketplace 설정은 자동으로 설치하지 않습니다.
 
 ## Human Involvement
 
-Human involvement controls how much Codex should ask before acting.
+human involvement는 Codex가 얼마나 자주 사람에게 물어봐야 하는지를 정합니다.
 
-By default, the plugin chooses a level from the project phase:
-
-| Phase | Default |
+| Phase | 기본값 |
 | --- | ---: |
 | `prototype` | 2 |
 | `new-project` | 3 |
@@ -131,26 +149,22 @@ By default, the plugin chooses a level from the project phase:
 | `pre-release` | 4 |
 | `high-risk` | 5 |
 
-You can override it:
+직접 조정할 수도 있습니다.
 
 ```powershell
 python scripts\console.py run-loop --repo C:\path\to\repo --human-involvement 4
 python scripts\console.py run-loop --repo C:\path\to\repo --module "Release flow: 5"
 ```
 
-Level guide:
+간단히 보면:
 
-- `1`: Codex can move autonomously unless a protected area appears.
-- `2`: Codex follows repo patterns and reports assumptions.
-- `3`: Codex infers from context but asks before hard-to-reverse or user-visible direction changes.
-- `4`: Codex asks focused questions before edits unless the repo already answers them.
-- `5`: Codex needs explicit approval before edits.
+- `1`: 보호 영역이 아니면 거의 알아서 진행
+- `2`: repo 패턴을 따르고 가정만 보고
+- `3`: 일반 작업은 추론, 되돌리기 어렵거나 사용자에게 보이는 방향은 질문
+- `4`: 편집 전 짧게 질문
+- `5`: 명시 승인 전에는 읽기 중심
 
-Current behavior detects human-involvement gaps and can recommend keeping, raising, or lowering the default level from history/eval evidence. It never applies that policy change silently; changing repo-local policy requires review and explicit approval.
-
-## Core Commands
-
-Run from this plugin directory:
+## 자주 쓰는 명령
 
 ```powershell
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
@@ -163,25 +177,25 @@ python scripts\console.py fixture-test
 python scripts\console.py release-check
 ```
 
-Full command details and JSON examples are in [Docs/commands.md](Docs/commands.md).
+전체 명령과 JSON 예시는 [Docs/commands.md](Docs/commands.md)에 있습니다.
 
-## Install
+## 설치
 
-For first-time install, clone to `$HOME\plugins\repo-harness-tuner`, add the personal marketplace entry, then run:
+처음 설치할 때는 `$HOME\plugins\repo-harness-tuner`에 clone하고 personal marketplace entry를 추가한 뒤 실행합니다.
 
 ```powershell
 codex plugin add repo-harness-tuner@personal
 ```
 
-See [Docs/install.md](Docs/install.md) for fresh-clone setup, refresh, troubleshooting, Windows `codex.exe` shim issues, PyYAML validator setup, and validation.
+fresh clone, 갱신, 문제 해결, Windows `codex.exe` shim, PyYAML validator, 검증 절차는 [Docs/install.md](Docs/install.md)를 보세요.
 
-## More Docs
+## 관련 문서
 
-- Korean README: [README_KO.md](README_KO.md)
-- Install and troubleshooting: [Docs/install.md](Docs/install.md)
-- Full command reference: [Docs/commands.md](Docs/commands.md)
-- CLI contracts: [Docs/cli-contracts.md](Docs/cli-contracts.md)
-- Versioning and breaking changes: [Docs/versioning.md](Docs/versioning.md)
+- English README: [README_EN.md](README_EN.md)
+- 설치와 문제 해결: [Docs/install.md](Docs/install.md)
+- 전체 명령: [Docs/commands.md](Docs/commands.md)
+- CLI 계약: [Docs/cli-contracts.md](Docs/cli-contracts.md)
+- 버전/변경 정책: [Docs/versioning.md](Docs/versioning.md)
 - Fixture tests: [Docs/fixture-tests.md](Docs/fixture-tests.md)
-- Roadmap: [ROADMAP.md](ROADMAP.md)
-- Handoff for another PC/thread: [HANDOFF.md](HANDOFF.md)
+- 로드맵: [ROADMAP.md](ROADMAP.md)
+- 다른 PC/thread에서 이어가기: [HANDOFF.md](HANDOFF.md)

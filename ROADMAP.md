@@ -53,7 +53,7 @@ Done when:
 - `factory` reports stale generated artifacts, conflicting planned skill ids, existing installed/generated skill overlap, and a recommended update path.
 - `factory --write-artifacts` and `factory --write-codex-skills` update their generated outputs without silently overwriting unrelated user-authored content.
 - Fixture coverage includes at least one assertion that guards against generic factory output for a project with concrete markers.
-- README, README_KO, and the skill instructions explain when to use factory planning, repo-local artifacts, Codex skill drafts, and confirmed skill install.
+- README.md, README_EN.md, and the skill instructions explain when to use factory planning, repo-local artifacts, Codex skill drafts, and confirmed skill install.
 
 ## v0.8.0 - Stronger Closed Loop
 
@@ -214,7 +214,7 @@ Done when:
 - `next` text output shows the work type and plain-language meaning of the recommended action.
 - `fixture-test` covers both functional fixtures and temp-copy user journeys.
 - `release-check` validates a fresh-copy simulation, JSON contracts, fixture journeys, Windows-console tolerance, and bootstrap/harness-check behavior.
-- README and README_KO make the one-command flow visually scannable.
+- README.md and README_EN.md make the one-command flow visually scannable.
 
 ## Current Priority
 
@@ -235,7 +235,7 @@ Implemented documentation anchors for this pass:
 - `Docs/install.md`: `#19` install, refresh, and troubleshooting flow.
 - `Docs/commands.md`: full command reference split out of README.
 - `Docs/versioning.md`: `#20` versioning, breaking-change classification, deprecation, changelog, and release checklist policy.
-- `README.md` / `README_KO.md`: slim one-request onboarding, safety model, adaptive-loop explanation, and links to detailed docs.
+- `README.md` / `README_EN.md`: slim one-request onboarding, safety model, adaptive-loop explanation, and links to detailed docs. `README_KO.md` remains as a compatibility pointer to the Korean default README.
 - `next` / `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
 - `harness_contract`: standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections for generated/tuned harness docs.
 - `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.
