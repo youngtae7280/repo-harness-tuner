@@ -32,7 +32,10 @@
         "factory_evidence_min": 6,
         "factory_skills_with_evidence_min": 3,
         "factory_generic_output": false,
-        "factory_evidence_contains": ["vite", "package.json", "script:build"]
+        "factory_evidence_contains": ["vite", "package.json", "script:build"],
+        "skill_recommendations_min": 1,
+        "skill_recommendation_source_contains": ["ecc"],
+        "skill_curator_action": "baseline"
       }
     },
     {
@@ -116,7 +119,11 @@
         "adaptive_cadence_severity": "high",
         "adaptive_human_involvement_direction": "raise",
         "adaptive_human_involvement_recommended": 4,
-        "adaptive_human_involvement_approval_required": true
+        "adaptive_human_involvement_approval_required": true,
+        "skill_recommendations_min": 3,
+        "skill_recommendation_source_contains": ["ecc"],
+        "skill_recommendation_capability_contains": ["harness-curation"],
+        "skill_curator_action": "repair"
       }
     },
     {
@@ -142,7 +149,11 @@
         "adaptive_cadence_severity": "high",
         "adaptive_human_involvement_direction": "raise",
         "adaptive_human_involvement_recommended": 4,
-        "adaptive_human_involvement_approval_required": true
+        "adaptive_human_involvement_approval_required": true,
+        "skill_recommendations_min": 3,
+        "skill_recommendation_source_contains": ["ecc"],
+        "skill_recommendation_capability_contains": ["code-review", "tdd"],
+        "skill_curator_action": "repair"
       }
     }
   ]

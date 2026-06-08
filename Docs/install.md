@@ -78,10 +78,23 @@ The CLI scripts can run directly from the cloned repository:
 ```powershell
 python scripts\console.py doctor --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
+python scripts\console.py recommend-skills --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py fixture-test
 ```
 
 This is enough for development, CI checks, and fixture-test work.
+
+## Skill Recommendation Installs
+
+`recommend-skills` is read-only by default. It may recommend built-in factory candidates or ECC seed catalog candidates, but it does not install ECC itself.
+
+Confirmed installs use small Codex adapter skills only:
+
+```powershell
+python scripts\console.py recommend-skills --repo C:\path\to\repo --install --confirm-install
+```
+
+This never bulk-installs external hooks, MCP servers, slash commands, native agents, marketplace entries, or human-involvement policy changes.
 
 ## Refresh After Local Changes
 
@@ -101,7 +114,7 @@ Open a new Codex thread after reinstalling.
 Run these before pushing:
 
 ```powershell
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\skill_recommender.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
 python scripts\console.py fixture-test
 python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\repo-harness-tuner
 python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\codex-harness-setup

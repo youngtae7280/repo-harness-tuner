@@ -43,6 +43,7 @@ history_module = load_module("history")
 tune_module = load_module("tune")
 write_policy = load_module("write_policy")
 factory_module = load_module("factory")
+skill_recommender = load_module("skill_recommender")
 loop_module = load_module("loop")
 fixture_test_module = load_module("fixture_test")
 
@@ -366,6 +367,69 @@ def cmd_factory(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_recommend_skills(args: argparse.Namespace) -> int:
+    catalog_root = Path(args.catalog_root) if args.catalog_root else None
+    payload = skill_recommender.build_recommendation_plan(
+        Path(args.repo),
+        args.domain,
+        args.phase,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.team_size,
+        args.source,
+        args.limit,
+        catalog_root,
+    )
+    if args.write_plan or args.install:
+        guard = write_policy.write_guard("recommend-skills", args.phase, args.human_involvement, args.confirm_write)
+        if guard:
+            payload["write_blocked"] = guard
+            if args.json:
+                emit_json(payload)
+            else:
+                skill_recommender.print_recommendations(payload)
+                print("")
+                print(write_policy.format_guard(guard))
+            return 2
+    if args.install and not args.confirm_install:
+        payload["install_blocked"] = {
+            "blocked": True,
+            "required_flag": "--confirm-install",
+            "reason": "Installing recommended adapter skills writes outside the target repo and must be explicitly confirmed.",
+        }
+        if args.json:
+            emit_json(payload)
+        else:
+            skill_recommender.print_recommendations(payload)
+            print("")
+            print("Install blocked: pass --confirm-install after reviewing the recommendation plan.")
+        return 2
+    if args.write_plan:
+        payload["plan_path"] = str(skill_recommender.write_recommendation_plan(Path(args.repo).resolve(), payload))
+    if args.install:
+        install_root = Path(args.skill_install_root) if args.skill_install_root else None
+        payload["install_results"] = skill_recommender.install_recommended_adapters(
+            payload,
+            install_root,
+            args.force,
+            args.replace_unmanaged,
+        )
+    if args.json:
+        emit_json(payload)
+    else:
+        skill_recommender.print_recommendations(payload)
+        if args.write_plan:
+            print("")
+            print(f"Recommendation plan written: {payload['plan_path']}")
+        if args.install:
+            print("")
+            print("Installed adapter skills:")
+            for result in payload["install_results"]:
+                print(f"- {result['status']}: {result['skill']} -> {result['path']}")
+    return 0
+
+
 def cmd_bootstrap(args: argparse.Namespace) -> int:
     plan = bootstrap_module.plan_bootstrap(
         Path(args.repo),
@@ -463,6 +527,7 @@ def cmd_tune(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
+    catalog_root = Path(args.catalog_root) if args.catalog_root else None
     payload = loop_module.build_loop_plan(
         Path(args.repo),
         args.phase,
@@ -471,12 +536,16 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         args.human_involvement,
         args.repo_type,
         args.team_size,
+        args.skill_source,
+        args.skill_limit,
+        catalog_root,
     )
     emit_json(payload) if args.json else loop_module.print_doctor(payload)
     return 0
 
 
 def cmd_run_loop(args: argparse.Namespace) -> int:
+    catalog_root = Path(args.catalog_root) if args.catalog_root else None
     payload = loop_module.build_loop_plan(
         Path(args.repo),
         args.phase,
@@ -485,6 +554,9 @@ def cmd_run_loop(args: argparse.Namespace) -> int:
         args.human_involvement,
         args.repo_type,
         args.team_size,
+        args.skill_source,
+        args.skill_limit,
+        catalog_root,
     )
     if args.write_plan or args.write_recommended or args.record_history:
         guard = write_policy.write_guard("run-loop", args.phase, args.human_involvement, args.confirm_write)
@@ -574,6 +646,9 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
     doctor.add_argument("--repo-type", default="unknown")
     doctor.add_argument("--team-size", type=int, default=3)
+    doctor.add_argument("--skill-source", default="builtin,ecc", help="Comma-separated skill recommendation sources: builtin,ecc,all.")
+    doctor.add_argument("--skill-limit", type=int, default=3, help="Maximum skill recommendations to show, capped at 3.")
+    doctor.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
     doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(func=cmd_doctor)
 
@@ -585,6 +660,9 @@ def build_parser() -> argparse.ArgumentParser:
     run_loop.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
     run_loop.add_argument("--repo-type", default="unknown")
     run_loop.add_argument("--team-size", type=int, default=3)
+    run_loop.add_argument("--skill-source", default="builtin,ecc", help="Comma-separated skill recommendation sources: builtin,ecc,all.")
+    run_loop.add_argument("--skill-limit", type=int, default=3, help="Maximum skill recommendations to show, capped at 3.")
+    run_loop.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
     run_loop.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
     run_loop.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
     run_loop.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
@@ -602,6 +680,9 @@ def build_parser() -> argparse.ArgumentParser:
     loop_alias.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5], help="User-facing intervention level: 1=minimal, 5=maximum.")
     loop_alias.add_argument("--repo-type", default="unknown")
     loop_alias.add_argument("--team-size", type=int, default=3)
+    loop_alias.add_argument("--skill-source", default="builtin,ecc", help="Comma-separated skill recommendation sources: builtin,ecc,all.")
+    loop_alias.add_argument("--skill-limit", type=int, default=3, help="Maximum skill recommendations to show, capped at 3.")
+    loop_alias.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
     loop_alias.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
     loop_alias.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
     loop_alias.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
@@ -687,6 +768,48 @@ def build_parser() -> argparse.ArgumentParser:
     factory.add_argument("--confirm-write", action="store_true", help="Confirm file writes when human involvement is 4 or 5.")
     factory.add_argument("--json", action="store_true")
     factory.set_defaults(func=cmd_factory)
+
+    recommend = sub.add_parser("recommend-skills", help="Recommend minimal repo-fit skills/agents and optional external catalog adapters.")
+    recommend.add_argument("--repo", default=".")
+    recommend.add_argument("--domain", default="current repository")
+    recommend.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    recommend.add_argument("--module", action="append", help="Module human-involvement override, for example 'Release flow: 5'.")
+    recommend.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
+    recommend.add_argument("--repo-type", default="unknown")
+    recommend.add_argument("--team-size", type=int, default=3)
+    recommend.add_argument("--source", default="builtin,ecc", help="Comma-separated sources: builtin,ecc,all.")
+    recommend.add_argument("--limit", type=int, default=3, help="Maximum recommendations, capped at 3.")
+    recommend.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
+    recommend.add_argument("--write-plan", action="store_true", help="Write Docs/AI/skill-recommendations.md.")
+    recommend.add_argument("--install", action="store_true", help="Install recommended Codex adapter skills.")
+    recommend.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
+    recommend.add_argument("--confirm-install", action="store_true", help="Required with --install.")
+    recommend.add_argument("--force", action="store_true")
+    recommend.add_argument("--replace-unmanaged", action="store_true")
+    recommend.add_argument("--confirm-write", action="store_true", help="Confirm writes when human involvement is 4 or 5.")
+    recommend.add_argument("--json", action="store_true")
+    recommend.set_defaults(func=cmd_recommend_skills)
+
+    catalog = sub.add_parser("catalog", help="Alias for recommend-skills.")
+    catalog.add_argument("--repo", default=".")
+    catalog.add_argument("--domain", default="current repository")
+    catalog.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
+    catalog.add_argument("--module", action="append", help="Module human-involvement override, for example 'Release flow: 5'.")
+    catalog.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
+    catalog.add_argument("--repo-type", default="unknown")
+    catalog.add_argument("--team-size", type=int, default=3)
+    catalog.add_argument("--source", default="builtin,ecc", help="Comma-separated sources: builtin,ecc,all.")
+    catalog.add_argument("--limit", type=int, default=3, help="Maximum recommendations, capped at 3.")
+    catalog.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
+    catalog.add_argument("--write-plan", action="store_true", help="Write Docs/AI/skill-recommendations.md.")
+    catalog.add_argument("--install", action="store_true", help="Install recommended Codex adapter skills.")
+    catalog.add_argument("--skill-install-root", help="Destination skills directory. Defaults to $CODEX_HOME/skills or ~/.codex/skills.")
+    catalog.add_argument("--confirm-install", action="store_true", help="Required with --install.")
+    catalog.add_argument("--force", action="store_true")
+    catalog.add_argument("--replace-unmanaged", action="store_true")
+    catalog.add_argument("--confirm-write", action="store_true", help="Confirm writes when human involvement is 4 or 5.")
+    catalog.add_argument("--json", action="store_true")
+    catalog.set_defaults(func=cmd_recommend_skills)
 
     bootstrap = sub.add_parser("bootstrap", help="Dry-run or write a minimal repo Codex harness.")
     bootstrap.add_argument("--repo", default=".")

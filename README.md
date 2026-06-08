@@ -29,7 +29,7 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 The loop does the harness work in order:
 
 ```text
-Analyze -> Diagnose -> Design -> Factory -> Tune -> Evaluate
+Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 ```
 
 It decides whether the repo needs:
@@ -38,6 +38,7 @@ It decides whether the repo needs:
 - a minimal first harness with `bootstrap`,
 - a focused update to stale harness docs with `tune`,
 - a project-specific team/skill plan with `factory`,
+- a minimal skill/agent recommendation with `recommend-skills`,
 - an evaluation or history record so future runs can learn from the result.
 
 You do not need to choose all of those commands up front. Start with `run-loop` or `doctor`; use the recommended next action after reviewing it.
@@ -48,6 +49,7 @@ The plugin is read-first.
 
 - `doctor` and default `run-loop` do not edit files.
 - File writes require explicit flags such as `--write`, `--write-plan`, `--write-recommended`, or `--write-artifacts`.
+- Skill installs require explicit `--install --confirm-install`.
 - Human involvement levels 4 and 5 also require `--confirm-write`.
 - Dependency, release, CI, secret, credential, marketplace, install/uninstall, migration, privacy-sensitive, and destructive changes require explicit approval.
 - `tune` updates managed markdown sections instead of rewriting whole files.
@@ -61,6 +63,7 @@ Use this plugin when:
 - Codex is using too much or too little process,
 - validation guidance, ask-before-edit rules, or worker visibility needs to be made repo-specific,
 - a project would benefit from repo-specific Codex team or skill planning,
+- a project should get only the smallest useful skill/agent recommendations instead of a broad external pack,
 - you want history/eval evidence to guide future harness tuning.
 
 You usually do not need it for ordinary coding, debugging, or review when the repo harness is already fit.
@@ -82,6 +85,16 @@ It tracks:
 Those signals raise review pressure and can make the next `run-loop` recommend `tune`, `eval-review`, or a shorter review interval.
 
 `doctor` and `run-loop` also emit structured `adaptive` recommendations for cadence and human involvement. There is no background scheduler yet. Re-run `doctor` or `run-loop` at the recommended trigger, after meaningful project changes, after repeated Codex misses, or before high-risk/release work.
+
+## Skill Recommendations
+
+`run-loop` includes minimal skill recommendations. The standalone command is:
+
+```powershell
+python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project" --source builtin,ecc
+```
+
+The command ranks repo-fit capabilities such as code review, TDD, security, docs, build repair, frontend UI, and release checks. It can use the built-in factory or the ECC seed catalog, but it never bulk-installs ECC. External candidates are installed only as small Codex adapter skills after `--install --confirm-install`; hooks, MCP servers, slash commands, marketplace edits, and policy changes stay out of the automatic path.
 
 ## Human Involvement
 
@@ -122,6 +135,7 @@ Run from this plugin directory:
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
+python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project
 python scripts\console.py fixture-test

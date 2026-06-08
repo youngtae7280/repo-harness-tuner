@@ -41,6 +41,7 @@ tune_module = load_local_module("tune")
 history_module = load_local_module("history")
 write_policy = load_local_module("write_policy")
 bootstrap_module = load_local_module("bootstrap")
+skill_recommender = load_local_module("skill_recommender")
 
 
 def quote_cli(value: str | Path) -> str:
@@ -90,7 +91,7 @@ def write_target_exists(root: Path, rel: str) -> bool:
     return any((root / variant).exists() for variant in variants)
 
 
-SAFE_AUTO_APPLY_KINDS = {"bootstrap", "tune", "factory-artifacts"}
+SAFE_AUTO_APPLY_KINDS = {"bootstrap", "tune", "factory-artifacts", "skill-recommendations-plan"}
 SAFE_AUTO_APPLY_FILES = {"AGENTS.md"}
 SAFE_AUTO_APPLY_PREFIXES = ("Docs/AI/", "docs/AI/", "docs/ai/")
 BLOCKED_AUTO_APPLY_FRAGMENTS = (
@@ -284,6 +285,9 @@ def build_loop_plan(
     human_involvement: int | None = None,
     repo_type: str | None = None,
     team_size: int = 3,
+    skill_sources: str | None = "builtin,ecc",
+    skill_limit: int = 3,
+    catalog_root: Path | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     repo_scan = scan_repo_harness.scan(root)
@@ -292,6 +296,18 @@ def build_loop_plan(
     tune_payload = tune_module.build_proposals(root, phase, modules, human_involvement, repo_type)
     eval_payload = evaluate_module.build_eval_plan(root, phase, modules, human_involvement, repo_type)
     factory_payload = factory_module.build_factory_plan(root, domain, phase, modules, human_involvement, repo_type, team_size)
+    skill_payload = skill_recommender.build_recommendation_plan(
+        root,
+        domain,
+        phase,
+        modules,
+        human_involvement,
+        repo_type,
+        team_size,
+        skill_sources,
+        skill_limit,
+        catalog_root,
+    )
     history_summary = history_module.summarize(history_module.load_history(root))
     history_feedback = diagnosis.get("history_feedback", {})
     closed_loop = history_feedback.get("closed_loop", {})
@@ -310,6 +326,22 @@ def build_loop_plan(
         tune_payload,
         history_summary,
     )
+    if next_action.get("id") == "observe" and skill_payload["summary"].get("recommendation_count", 0):
+        next_action = {
+            "id": "skill-recommendations",
+            "label": "Review minimal skill and external catalog recommendations",
+            "reason": "the harness is stable enough to review optional skills without changing files or installing anything",
+            "command": skill_recommender.recommendation_command(
+                root,
+                phase,
+                domain,
+                skill_payload["options"]["sources"],
+                int(skill_payload["options"]["limit"]),
+                catalog_root,
+                ["--write-plan"],
+            ),
+            "write_kind": "skill-recommendations-plan",
+        }
     status = "fit"
     if int(diagnosis["readiness"]["score"]) < 60:
         status = "needs-bootstrap"
@@ -331,6 +363,9 @@ def build_loop_plan(
             "human_involvement": human_involvement,
             "repo_type": repo_type or "unknown",
             "team_size": team_size,
+            "skill_sources": skill_payload["options"]["sources"],
+            "skill_limit": skill_payload["options"]["limit"],
+            "catalog_root": str(catalog_root.resolve()) if catalog_root else None,
         },
         "status": status,
         "summary": {
@@ -350,6 +385,9 @@ def build_loop_plan(
             "closed_loop_evidence_note": closed_loop_evidence_note(history_feedback, next_action),
             "adaptive_cadence_severity": adaptive_cadence.get("severity", "normal"),
             "adaptive_human_involvement_direction": adaptive_involvement.get("direction", "keep"),
+            "skill_recommendations": int(skill_payload["summary"].get("recommendation_count", 0) or 0),
+            "external_skill_recommendations": int(skill_payload["summary"].get("external_recommendation_count", 0) or 0),
+            "skill_curator_action": skill_payload["curator"].get("action", "baseline"),
             "next_action": next_action,
         },
         "analyze": {
@@ -388,6 +426,7 @@ def build_loop_plan(
             "skills": factory_payload["team_factory"]["skills"],
             "planned_outputs": factory_payload["team_factory"]["planned_outputs"],
         },
+        "skill_recommendations": skill_payload,
         "tune": {
             "proposals": tune_payload.get("proposals", []),
             "notes": tune_payload.get("notes", []),
@@ -401,6 +440,14 @@ def build_loop_plan(
         "commands": [
             command_line("doctor", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
             command_line("run-loop", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
+            skill_recommender.recommendation_command(
+                root,
+                phase,
+                domain,
+                skill_payload["options"]["sources"],
+                int(skill_payload["options"]["limit"]),
+                catalog_root,
+            ),
             next_action["command"],
         ],
     }
@@ -456,8 +503,9 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
             f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s), {len(payload['analyze']['missing_recommended'])} missing recommended file(s).",
             f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s).",
             f"- Design: {len(payload['design']['target_files'])} target action(s), next review `{payload['design']['next_review_trigger']}`.",
-            f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
-            f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
+        f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
+        f"- Skill recommendations: {summary['skill_recommendations']} candidate(s), {summary['external_skill_recommendations']} external, curator `{summary['skill_curator_action']}`.",
+        f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
             f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
             f"- History: {summary['history_entries']} recorded event(s).",
             f"- Closed loop: {summary['closed_loop_signals']} signal(s), review pressure `{summary['review_pressure']}`.",
@@ -472,6 +520,19 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
     lines.extend(["", "## Factory Roles"])
     for role in payload["factory"]["roles"]:
         lines.append(f"- `{role['id']}`: {role['purpose']}")
+    lines.extend(["", "## Skill Recommendations"])
+    skill_payload = payload.get("skill_recommendations", {})
+    if skill_payload.get("recommendations"):
+        for item in skill_payload["recommendations"]:
+            lines.append(
+                f"- `{item['id']}` ({item['source']}): {item['capability_label']} via `{item['name']}` - {item['reason']}"
+            )
+    else:
+        lines.append("- No additional skill or external catalog recommendation is needed right now.")
+    if skill_payload.get("curator"):
+        curator = skill_payload["curator"]
+        lines.append(f"- Curator: `{curator.get('action', 'baseline')}` - {curator.get('reason', '')}")
+    lines.append("- Install boundary: adapter-only installs require explicit `--install --confirm-install`; no external hooks, MCP servers, slash commands, or agents are installed.")
     lines.extend(["", "## Evaluation Tasks"])
     for task in payload["evaluate"]["golden_tasks"]:
         lines.append(f"- `{task['id']}`: {task['purpose']}")
@@ -521,6 +582,17 @@ def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) 
         if not guard["allowed"]:
             return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
         return {"action": action, "results": factory_module.write_factory_artifacts(root, factory_payload, force), "auto_apply_guard": guard}
+    if kind == "skill-recommendations-plan":
+        planned = [{"path": "Docs/AI/skill-recommendations.md", "action": "create"}]
+        guard = auto_apply_guard(action, planned)
+        if not guard["allowed"]:
+            return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
+        path = skill_recommender.write_recommendation_plan(root, payload["skill_recommendations"])
+        return {
+            "action": action,
+            "results": [{"status": "create", "path": str(path.relative_to(root))}],
+            "auto_apply_guard": guard,
+        }
     return {"action": action, "results": [], "note": "No file changes were recommended for this action."}
 
 
@@ -561,6 +633,10 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print(f"- History: {summary['history_entries']} event(s)")
     print(f"- Closed loop: {summary['closed_loop_signals']} signal(s), {summary['eval_score_records']} eval score record(s), pressure={summary['review_pressure']}")
     print(f"- Evidence note: {summary['closed_loop_evidence_note']}")
+    print(
+        f"- Skills: {summary['skill_recommendations']} recommendation(s), "
+        f"{summary['external_skill_recommendations']} external, curator={summary['skill_curator_action']}"
+    )
     adaptive = payload.get("adaptive", {})
     cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
     involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
@@ -579,6 +655,15 @@ def print_doctor(payload: dict[str, Any]) -> None:
         )
         if involvement.get("approval_required"):
             print("- Approval required before changing human-involvement policy.")
+    skill_payload = payload.get("skill_recommendations", {})
+    print("")
+    print("Skill Recommendations:")
+    if skill_payload.get("recommendations"):
+        for item in skill_payload["recommendations"]:
+            print(f"- {item['id']}: {item['capability_label']} via {item['name']} [{item['source']}]")
+        print("- Install boundary: adapter-only, explicit --install --confirm-install required.")
+    else:
+        print("- None needed right now.")
     print("")
     if payload["status"] == "fit":
         print("Optional next action:")
@@ -600,6 +685,9 @@ def main() -> int:
     parser.add_argument("--human-involvement", type=int, choices=[1, 2, 3, 4, 5])
     parser.add_argument("--repo-type", default="unknown")
     parser.add_argument("--team-size", type=int, default=3)
+    parser.add_argument("--skill-source", default="builtin,ecc", help="Comma-separated skill recommendation sources: builtin,ecc,all.")
+    parser.add_argument("--skill-limit", type=int, default=3, help="Maximum skill recommendations to show, capped at 3.")
+    parser.add_argument("--catalog-root", help="Optional local checkout for an external catalog such as ECC.")
     parser.add_argument("--write-plan", action="store_true", help="Write Docs/AI/harness-loop-plan.md.")
     parser.add_argument("--write-recommended", action="store_true", help="Apply the next recommended file-writing action.")
     parser.add_argument("--record-history", action="store_true", help="Append a run-loop snapshot to Docs/AI/harness-history.jsonl.")
@@ -610,7 +698,19 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.repo)
-    payload = build_loop_plan(root, args.phase, args.domain, args.module, args.human_involvement, args.repo_type, args.team_size)
+    catalog_root = Path(args.catalog_root) if args.catalog_root else None
+    payload = build_loop_plan(
+        root,
+        args.phase,
+        args.domain,
+        args.module,
+        args.human_involvement,
+        args.repo_type,
+        args.team_size,
+        args.skill_source,
+        args.skill_limit,
+        catalog_root,
+    )
     if args.write_plan or args.write_recommended or args.record_history:
         guard = write_policy.write_guard("run-loop", args.phase, args.human_involvement, args.confirm_write)
         if guard:

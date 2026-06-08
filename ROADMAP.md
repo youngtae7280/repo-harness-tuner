@@ -78,6 +78,8 @@ Done when:
 
 ## v1.0.0 - Stable Public Release
 
+Status: implemented for CLI contracts, onboarding docs, install docs, and validation docs; release tagging and independent fresh-clone verification remain release checklist work.
+
 Goal: make the plugin reliable enough for other users to install, understand, and repeat across projects.
 
 Scope:
@@ -120,18 +122,88 @@ Done when:
 - Applying cadence or human-involvement changes remains explicit, reviewable, and documented in repo-local harness files.
 - Fixture tests cover closed-loop adaptive cadence and human-involvement recommendations.
 
+## v1.2.0 - Skill/Agent Recommendation
+
+Status: implemented for minimal capability recommendations.
+
+Goal: recommend only the smallest useful skill/agent capability set from repo evidence.
+
+Scope:
+
+- Rank repo-fit capabilities such as code review, TDD, security, docs, build repair, frontend UI, release checks, and harness curation.
+- Decide whether built-in factory output is enough before suggesting an external catalog candidate.
+- Cap recommendations at 1-3 and suppress low-evidence external suggestions.
+- Include recommendations in `doctor` and `run-loop`.
+
+Done when:
+
+- `recommend-skills` emits a read-only recommendation plan with capabilities, reasons, evidence, and safety boundaries.
+- Fixture tests cover recommendation count/source/capability and curator behavior.
+
+## v1.3.0 - External Catalog Adapter
+
+Status: implemented with ECC as an adapter-only seed catalog.
+
+Goal: support ECC-style skill/agent candidates without turning this plugin into an ECC bulk installer.
+
+Scope:
+
+- Add ECC seed candidates for code review, TDD, security, build repair, E2E/front-end evidence, test coverage, and docs.
+- Support optional `--catalog-root` discovery for a local ECC checkout.
+- Keep native ECC hooks, MCP servers, slash commands, agents, marketplace edits, and external repo mutation outside the automatic path.
+
+Done when:
+
+- `--source ecc` can recommend specific ECC seed candidates.
+- Missing local ECC checkout still works as a seed catalog plan without pretending native ECC is installed.
+
+## v1.4.0 - Approved Install Flow
+
+Status: implemented for Codex adapter skill installs.
+
+Goal: make installation explicit, reviewable, and reversible.
+
+Scope:
+
+- Add `recommend-skills --write-plan` for `Docs/AI/skill-recommendations.md`.
+- Add `recommend-skills --install --confirm-install` for generated Codex adapter skills.
+- Preserve existing installed skills unless `--force` is used; require `--replace-unmanaged` for non-generated targets.
+- Keep human-involvement 4/5 guarded by `--confirm-write`.
+
+Done when:
+
+- Install attempts without `--confirm-install` refuse with exit code 2.
+- Confirmed installs write only small adapter `SKILL.md` folders under the selected skill root.
+
+## v1.5.0 - Continuous Harness Curator
+
+Status: implemented for history/eval-informed recommendation mode.
+
+Goal: use history and eval evidence to decide whether to add, repair, keep, watch, or reduce skill guidance.
+
+Scope:
+
+- Add `skill_recommendations.curator` with baseline, repair, reduce, keep, and watch actions.
+- Feed eval regressions, unchanged failures, readiness regression, process overhead, and human-involvement gaps into skill recommendation pressure.
+- Make `run-loop` show skill recommendations and optionally write only the recommendation plan through `--write-recommended`.
+
+Done when:
+
+- Closed-loop fixture scenarios recommend repair-oriented skill candidates.
+- Process-overhead signals can steer the curator toward reduction instead of more installs.
+- No curator action silently installs skills or changes policy.
+
 ## Current Priority
 
-The next implementation milestone is **v1.0.0 - Stable Public Release**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, and v0.8.0 closed-loop history/eval fixtures as the regression safety net for every later milestone.
+The next implementation priority is **release validation and fresh-clone verification**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, v0.8.0 closed-loop history/eval fixtures, and v1.2-v1.5 recommendation assertions as the regression safety net.
 
 Current working agreement:
 
-1. Finish `#18` first: stabilize command names, JSON schemas, exit codes, write-safety behavior, and console-safe CLI output before rewriting onboarding docs around them.
-2. Then finish `#19`: tighten first-time install, refresh, troubleshooting, and README onboarding from the stabilized CLI contract. README should stay slim and point users to one request or one command first.
-3. Use `Docs/versioning.md` for `#20`, then continue with `#21` and `#22` in order: CI/release validation matrix, then fresh-clone verification.
-4. Treat the audit report's README/onboarding findings as accepted input for `#19`, not as a reason to skip or postpone the CLI contract pass.
-5. Include Windows PowerShell compatibility in the `#18` contract pass, especially avoiding default-console `UnicodeEncodeError` failures and documenting PowerShell-safe validation commands.
-6. Treat v1.1 structured adaptive recommendations as implemented in `doctor`/`run-loop`; do not silently auto-change policy or run a background scheduler.
+1. Keep README slim: one request or one command first, then safety and links.
+2. Keep `doctor` and `run-loop` as the one-command assistant surface.
+3. Keep `recommend-skills` / `catalog` as adapter-only; do not bulk-install ECC.
+4. Keep cadence, human-involvement, and install changes approval-based.
+5. Finish release validation, fresh-clone verification, cachebuster refresh, and GitHub release/tag alignment before calling the public release done.
 
 Implemented documentation anchors for this pass:
 
@@ -141,3 +213,4 @@ Implemented documentation anchors for this pass:
 - `Docs/versioning.md`: `#20` versioning, breaking-change classification, deprecation, changelog, and release checklist policy.
 - `README.md` / `README_KO.md`: slim one-request onboarding, safety model, adaptive-loop explanation, and links to detailed docs.
 - `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
+- `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.

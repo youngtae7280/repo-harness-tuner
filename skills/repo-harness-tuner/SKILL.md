@@ -1,6 +1,6 @@
 ---
 name: repo-harness-tuner
-description: Continuously analyze, diagnose, design, generate, tune, restructure, and evaluate repo-local Codex harnesses and project-specific Codex team/skill plans, including AGENTS.md, Docs/AI/*, validation guidance, target files, human-involvement policy, prompt templates, visible/background worker policy, agent roles, skill plans, orchestration docs, Codex SKILL.md drafts, and confirmed skill installs. Use when the user asks whether a project has the right Codex harness, wants to bootstrap a first project, wants to generate a project-specific agent team/skill plan or skill drafts, wants to install generated skill drafts, or wants to reduce/strengthen project-specific agent process over time.
+description: Continuously analyze, diagnose, design, generate, tune, restructure, and evaluate repo-local Codex harnesses and project-specific Codex team/skill plans, including AGENTS.md, Docs/AI/*, validation guidance, target files, human-involvement policy, prompt templates, visible/background worker policy, agent roles, skill plans, orchestration docs, Codex SKILL.md drafts, minimal skill/agent recommendations, ECC seed catalog adapters, approved adapter skill installs, and continuous history/eval-based curator recommendations. Use when the user asks whether a project has the right Codex harness, wants to bootstrap a first project, wants to generate a project-specific agent team/skill plan or skill drafts, wants to recommend or install only the smallest useful skills/agents, or wants to reduce/strengthen project-specific agent process over time.
 ---
 
 # Repo Harness Tuner
@@ -15,7 +15,7 @@ Final product goal:
 - **Engine**: analyze, diagnose, tune, evaluate, and keep those generated harnesses right-sized over time.
 
 ```text
-Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
+Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Restructure -> Evaluate
 ```
 
 This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather evidence and decide what should change; use the embedded `codex-harness-setup` skill as the implementation engine when harness files need to be created, shortened, split, or tuned.
@@ -35,6 +35,9 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Generate repo-local factory artifacts with `factory --write-artifacts`: `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and `Docs/AI/skills/*.md`.
 - Generate copyable Codex skill draft folders with `factory --write-codex-skills`: `Docs/AI/codex-skills/<skill-id>/SKILL.md`.
 - Install generated Codex skill drafts with `factory --install-codex-skills --confirm-install` into `$CODEX_HOME/skills` or `~/.codex/skills`.
+- Recommend minimal skill/agent capabilities with `recommend-skills` or `catalog`, including built-in factory candidates and ECC seed catalog candidates.
+- Install only small Codex adapter skills from recommendations with `recommend-skills --install --confirm-install`; do not bulk-install ECC hooks, MCP servers, slash commands, native agents, or marketplace entries.
+- Curate prior skill recommendations from history/eval evidence through `skill_recommendations.curator`, including baseline, repair, reduce, keep, and watch actions.
 - Detect generic factory output, stale/unmanaged factory artifacts, planned skill conflicts, installed/generated skill overlap, and safe update paths.
 - Select a Codex worker pattern such as single-agent, background-review, visible-decision-thread, producer-reviewer, fanout-review, supervisor-cycle, or phase-handoff.
 - Generate a plan-only with-harness vs baseline evaluation with golden tasks and assertion scoring.
@@ -64,9 +67,10 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, adaptive cadence, and human-involvement recommendations.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, evidence-backed triggers, artifact inventory, update paths, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
-5. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
-6. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. When human involvement is 4 or 5, add `--confirm-write` after reviewing the dry-run/diff. Existing bootstrap files require `--force` to overwrite.
-7. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Add `--repo <repo-root> --write-score --note "<why>"` when the score should influence future loops. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/factory-plan.md`, `Docs/AI/harness-eval-plan.md`, `Docs/AI/harness-eval-results.jsonl`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
+5. **Recommend skills**: run `scripts/console.py recommend-skills --repo <repo-root> --domain "<domain>" --phase <phase>` to rank only the smallest useful built-in or ECC-seed skill/agent candidates. Add `--write-plan` only for `Docs/AI/skill-recommendations.md`. Add `--install --confirm-install` only when the user explicitly approves adapter skill installation.
+6. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
+7. **Restructure or Bootstrap**: for new projects, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project` first as a dry-run. For existing harnesses, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`. Add `--write` only after the user wants files written. When human involvement is 4 or 5, add `--confirm-write` after reviewing the dry-run/diff. Existing bootstrap files require `--force` to overwrite.
+8. **Evaluate**: run the embedded `codex-harness-setup/scripts/check_harness.py <repo-root>` when harness files changed, then rerun `diagnose`. Use `scripts/console.py eval --repo <repo-root> --phase <phase>` when the user wants with-harness vs baseline evidence, and `scripts/console.py eval --score <results.json>` after assertion results are recorded. Add `--repo <repo-root> --write-score --note "<why>"` when the score should influence future loops. Write `Docs/AI/harness-status.md`, `Docs/AI/harness-design-plan.md`, `Docs/AI/factory-plan.md`, `Docs/AI/skill-recommendations.md`, `Docs/AI/harness-eval-plan.md`, `Docs/AI/harness-eval-results.jsonl`, or `Docs/AI/harness-history.jsonl` only when durable status is useful or requested.
 
 ## Recommended Workflow
 
@@ -80,16 +84,17 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 5. For the next design only, run `scripts/console.py design --repo <repo-root> --phase <phase>`.
 6. For available worker architectures, run `scripts/console.py patterns --json`. For a bounded worker prompt, run `scripts/console.py patterns --prompt <pattern-id> --repo <repo-root> --scope "<scope>"`.
 7. For team/skill factory planning, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For repo-local docs, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-artifacts`. For Codex skill drafts, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --write-codex-skills`. For confirmed installation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --install-codex-skills --confirm-install`.
-8. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`. To feed the next loop, run `scripts/console.py eval --repo <repo-root> --score <results.json> --write-score --note "<why>"`.
-9. For fixture regression coverage before release-facing changes, run `scripts/console.py fixture-test`.
-10. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
-11. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
-12. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
-13. For installed skills, run `scripts/console.py skills --json`.
-14. For installed plugins, run `scripts/console.py plugins --json`.
-15. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
-16. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
-17. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
+8. For minimal skill/agent recommendations, run `scripts/console.py recommend-skills --repo <repo-root> --domain "<domain>" --phase <phase> --json`. For a repo-local plan, add `--write-plan`. For confirmed adapter installation, add `--install --confirm-install`.
+9. For evaluation planning, run `scripts/console.py eval --repo <repo-root> --phase <phase> --json`. For scoring recorded results, run `scripts/console.py eval --score <results.json> --json`. To feed the next loop, run `scripts/console.py eval --repo <repo-root> --score <results.json> --write-score --note "<why>"`.
+10. For fixture regression coverage before release-facing changes, run `scripts/console.py fixture-test`.
+11. For safe initial harness generation, run `scripts/console.py bootstrap --repo <repo-root> --phase new-project --json`.
+12. For existing harness tuning diffs, run `scripts/console.py tune --repo <repo-root> --phase <phase> --dry-run --diff`.
+13. For durable history, run `scripts/console.py history --repo <repo-root> --record --write --note "<why>"`.
+14. For installed skills, run `scripts/console.py skills --json`.
+15. For installed plugins, run `scripts/console.py plugins --json`.
+16. For the active repo, run `scripts/console.py repo --repo <repo-root> --json`.
+17. For a setup prompt, run `scripts/console.py prompt --repo-type "<type>" --mode Setup --human-involvement 3`.
+18. When the user wants actual repo harness changes, invoke the embedded `codex-harness-setup` after inspection.
 
 ## Project Phases
 
@@ -143,6 +148,14 @@ Factory writes preserve existing files by default. Generated files contain the `
 
 The factory side and engine side must stay linked: generated teams and skills should be evaluated with `eval`, recorded in `history`, and tuned by `diagnose`/`tune` as the project evolves.
 
+## Skill Recommendation Policy
+
+Use `recommend-skills` when the user wants the plugin to decide which skills or agents would help, including whether ECC-style assets are worth considering. The command should start read-only and recommend at most three candidates. It should prefer existing repo evidence and local factory output before external candidates, and it should suppress low-evidence external recommendations.
+
+External catalog support is adapter-only in this plugin. `--source ecc` can recommend ECC seed candidates, but the approved install path creates small Codex adapter skills rather than copying or enabling ECC hooks, MCP servers, slash commands, native agents, or marketplace entries. Use `--catalog-root <path>` only to check whether a local ECC checkout has matching files; absence of a local checkout should not imply that native ECC is installed.
+
+Use `skill_recommendations.curator` to decide whether the next cycle should baseline, repair, reduce, keep, or watch the skill set. Eval regressions, unchanged failures, readiness regression, and failure notes should bias toward repair. Repeated process overhead should bias toward reduction instead of adding more skills. No curator action may silently install skills or change human-involvement policy.
+
 ## Bootstrap And History Policy
 
 Use `bootstrap` for first-project setup or empty harnesses. It is dry-run by default and should show actions before writing files. Use `apply` as an alias only when the user clearly wants generated files applied.
@@ -159,6 +172,7 @@ Future `diagnose`, `tune`, `factory`, and `run-loop` runs should treat repeated 
 - Do not delete skills, plugins, marketplace entries, repo docs, or harness files without direct user approval.
 - For file-writing commands at human involvement 4 or 5, require `--confirm-write` after the dry-run or diff has been inspected.
 - `run-loop --write-recommended` may only apply low-risk managed harness writes under `AGENTS.md` or `Docs/AI/*`; it must refuse deletion, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside those managed harness surfaces.
+- `run-loop --write-recommended` may write `Docs/AI/skill-recommendations.md`, but it must not install adapter skills. Adapter installs require `recommend-skills --install --confirm-install`.
 - Do not show secrets from environment files, credentials, logs, or private configuration.
 
 ## Output
@@ -174,6 +188,7 @@ For scans, report:
 - target files and reasons from the harness design,
 - worker architecture, selected pattern, and evaluation steps,
 - factory plan repo evidence, roles, planned skills, orchestration, artifact inventory, update paths, and planned outputs when requested,
+- skill recommendation capabilities, sources, install strategy, curator action, and adapter-only install boundary when requested,
 - eval plan golden tasks and assertions when requested,
 - fixture-test pass/fail summary when requested,
 - bootstrap dry-run or write results,

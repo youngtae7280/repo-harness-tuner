@@ -33,9 +33,17 @@ jobs:
           python scripts/console.py doctor --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py loop --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py recommend-skills --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py catalog --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase high-risk --write-plan && exit 1 || test "$?" -eq 2
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --write-plan
           test -f "$tmp/Docs/AI/harness-loop-plan.md"
+          python scripts/console.py recommend-skills --repo "$tmp" --domain "technical documentation" --phase new-project --write-plan
+          test -f "$tmp/Docs/AI/skill-recommendations.md"
+          python scripts/console.py recommend-skills --repo "$tmp" --domain "technical documentation" --phase new-project --install && exit 1 || test "$?" -eq 2
+          rec_install_root="$(mktemp -d)"
+          python scripts/console.py recommend-skills --repo "$tmp" --domain "technical documentation" --phase new-project --install --confirm-install --skill-install-root "$rec_install_root"
+          find "$rec_install_root" -name SKILL.md | grep .
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --record-history --note "ci smoke"
           test -f "$tmp/Docs/AI/harness-history.jsonl"
           cat > "$tmp/eval-results.json" <<'JSON'

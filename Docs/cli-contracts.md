@@ -18,6 +18,8 @@ These command names are treated as public:
 | `design` | Stable | Build the next harness design plan from diagnosis. |
 | `eval` | Stable | Build an evaluation plan or score recorded eval results. |
 | `factory` | Stable | Build project-specific team and skill factory plans and optional artifacts. |
+| `recommend-skills` | Stable | Recommend minimal repo-fit skill/agent capabilities and optional Codex adapter skill installs. |
+| `catalog` | Stable alias | Alias for `recommend-skills`. |
 | `bootstrap` | Stable | Dry-run or write a minimal repo harness. |
 | `apply` | Stable alias | Alias for `bootstrap`; still requires `--write` to modify files. |
 | `tune` | Stable | Generate dry-run tuning proposals and optional reviewed writes. |
@@ -52,6 +54,8 @@ Read-only is the default. The following commands must not modify target files un
 - `design`
 - `eval`
 - `factory`
+- `recommend-skills`
+- `catalog`
 - `bootstrap`
 - `apply`
 - `tune`
@@ -62,18 +66,19 @@ Stable write flags:
 | Flag | Commands | Contract |
 | --- | --- | --- |
 | `--write` | `bootstrap`, `apply`, `tune`, `history` | Enables file writes for the command's bounded target files. |
-| `--write-plan` | `run-loop`, `diagnose`, `design`, `eval`, `factory` | Writes a durable plan document only. |
+| `--write-plan` | `run-loop`, `diagnose`, `design`, `eval`, `factory`, `recommend-skills`, `catalog` | Writes a durable plan document only. |
 | `--write-recommended` | `run-loop`, `loop` | Applies only the bounded recommended low-risk harness action. |
 | `--record-history` | `run-loop`, `loop` | Appends a harness history snapshot. |
 | `--write-score` | `eval` | Appends eval score history after `--score`. |
 | `--write-artifacts` | `factory` | Writes missing repo-local team and skill artifacts. |
 | `--write-codex-skills` | `factory` | Writes generated Codex skill drafts under the configured output directory. |
 | `--install-codex-skills` | `factory` | Installs generated Codex skills outside the target repo only with `--confirm-install`. |
+| `--install` | `recommend-skills`, `catalog` | Installs only recommended Codex adapter skills outside the target repo; requires `--confirm-install`. |
 | `--force` | write-capable commands | Allows overwriting generated or existing target files within the command's policy. |
-| `--replace-unmanaged` | `factory` | Allows replacement of unmanaged files only together with the documented force path. |
+| `--replace-unmanaged` | `factory`, `recommend-skills`, `catalog` | Allows replacement of unmanaged files only together with the documented force path. |
 | `--confirm-write` | write-capable commands | Required when human involvement is 4 or 5. |
 
-Write commands must keep refusing destructive operations, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside their documented scope unless the command explicitly exists for that action and requires explicit confirmation.
+Write commands must keep refusing destructive operations, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside their documented scope unless the command explicitly exists for that action and requires explicit confirmation. `recommend-skills` never bulk-installs external catalogs; external ECC candidates are adapter-only unless a future explicitly documented command changes that contract.
 
 ## JSON Output
 
@@ -83,10 +88,11 @@ Stable top-level JSON fields:
 
 | Command | Stable top-level fields |
 | --- | --- |
-| `doctor` | `schema`, `created_at`, `repo`, `phase`, `domain`, `options`, `status`, `summary`, `analyze`, `diagnose`, `closed_loop`, `adaptive`, `design`, `factory`, `tune`, `evaluate`, `history`, `commands` |
+| `doctor` | `schema`, `created_at`, `repo`, `phase`, `domain`, `options`, `status`, `summary`, `analyze`, `diagnose`, `closed_loop`, `adaptive`, `design`, `factory`, `skill_recommendations`, `tune`, `evaluate`, `history`, `commands` |
 | `run-loop` / `loop` | Same top-level envelope as `doctor`, plus any write-result fields when write flags are used. |
 | `diagnose` | `phase`, `cadence`, `human_involvement`, `human_involvement_policy`, `readiness`, `drift`, `process_overhead`, `human_involvement_enforcement`, `history_feedback`, `human_involvement_matrix`, `harness_design`, `adaptive` |
 | `factory` | `schema`, `created_at`, `repo`, `domain`, `phase`, `project_type`, `factory_goal`, `harness_engine`, `repo_evidence`, `artifact_inventory`, `factory_quality`, `team_factory` |
+| `recommend-skills` / `catalog` | `schema`, `created_at`, `repo`, `domain`, `phase`, `options`, `summary`, `capabilities`, `recommendations`, `curator`, `safety`, `commands` |
 | `eval` | `schema`, `created_at`, `repo`, `phase`, `project_type`, `harness_readiness`, `human_involvement`, `worker_pattern`, `evaluation_mode`, `golden_tasks`, `runbook`, `result_schema` |
 | `tune` | `schema`, `created_at`, `repo`, `phase`, `force`, `readiness`, `diagnosis`, `proposals`, `notes` |
 | `bootstrap` / `apply` | `repo`, `phase`, `force`, `actions`, plus `results` when `--write` is used. |
@@ -109,6 +115,7 @@ Text output is user-facing and may evolve for readability, but it must preserve 
 - refusal reason and required flag for write guards
 - fixture pass/fail summary for `fixture-test`
 - install/write target paths when commands write outside the current repo
+- skill recommendation count, source, curator action, and adapter-only install boundary for `recommend-skills`
 
 Text output must not crash in a default Windows PowerShell console. If a terminal cannot encode a character, the CLI should degrade gracefully instead of raising `UnicodeEncodeError`.
 

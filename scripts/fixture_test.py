@@ -116,6 +116,12 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     adaptive = loop_payload.get("adaptive", {})
     adaptive_cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
     adaptive_involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
+    skill_payload = loop_payload.get("skill_recommendations", {})
+    skill_summary = skill_payload.get("summary", {}) if isinstance(skill_payload, dict) else {}
+    skill_recommendations = skill_payload.get("recommendations", []) if isinstance(skill_payload, dict) else []
+    skill_sources = sorted({str(item.get("source")) for item in skill_recommendations if isinstance(item, dict)})
+    skill_capabilities = sorted({str(item.get("capability")) for item in skill_recommendations if isinstance(item, dict)})
+    skill_curator = skill_payload.get("curator", {}) if isinstance(skill_payload, dict) else {}
     if "factory_evidence_min" in expected:
         assert_minimum(failures, "factory_evidence_refs", int(factory_quality.get("evidence_ref_count", 0)), int(expected["factory_evidence_min"]))
     if "factory_skills_with_evidence_min" in expected:
@@ -164,6 +170,29 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             bool(adaptive_involvement.get("approval_required")),
             bool(expected["adaptive_human_involvement_approval_required"]),
         )
+    if "skill_recommendations_min" in expected:
+        assert_minimum(
+            failures,
+            "skill_recommendations",
+            int(skill_summary.get("recommendation_count", 0) or 0),
+            int(expected["skill_recommendations_min"]),
+        )
+    if "skill_recommendation_source_contains" in expected:
+        assert_contains_all(
+            failures,
+            "skill_recommendation_sources",
+            skill_sources,
+            list(expected["skill_recommendation_source_contains"]),
+        )
+    if "skill_recommendation_capability_contains" in expected:
+        assert_contains_all(
+            failures,
+            "skill_recommendation_capabilities",
+            skill_capabilities,
+            list(expected["skill_recommendation_capability_contains"]),
+        )
+    if "skill_curator_action" in expected:
+        assert_equal(failures, "skill_curator_action", skill_curator.get("action"), expected["skill_curator_action"])
     assert_range(
         failures,
         "readiness",
@@ -205,6 +234,10 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "adaptive_cadence_severity": adaptive_cadence.get("severity", "normal"),
             "adaptive_human_involvement_direction": adaptive_involvement.get("direction", "keep"),
             "adaptive_human_involvement_recommended": adaptive_involvement.get("recommended_default"),
+            "skill_recommendations": skill_summary.get("recommendation_count", 0),
+            "skill_recommendation_sources": skill_sources,
+            "skill_recommendation_capabilities": skill_capabilities,
+            "skill_curator_action": skill_curator.get("action"),
             "diagnosis_findings": len(diagnosis["readiness"]["findings"]),
             "harness_files": len(repo_scan.get("files", [])),
             "eval_mode": eval_payload.get("evaluation_mode", ""),
@@ -259,7 +292,9 @@ def print_report(payload: dict[str, Any]) -> None:
                 f"signals={observed.get('history_signals', 0)} "
                 f"pressure={observed.get('review_pressure', 'normal')} "
                 f"adaptive={observed.get('adaptive_cadence_severity', 'normal')}/"
-                f"{observed.get('adaptive_human_involvement_direction', 'keep')}"
+                f"{observed.get('adaptive_human_involvement_direction', 'keep')} "
+                f"skills={observed.get('skill_recommendations', 0)}/"
+                f"{observed.get('skill_curator_action', 'baseline')}"
             )
         for failure in result.get("failures", []):
             print(f"  failure: {failure}")

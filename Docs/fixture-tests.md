@@ -41,6 +41,7 @@ Each fixture checks:
 - factory evidence quality,
 - stale or conflicting factory artifact signals,
 - history/eval closed-loop signal handling,
+- minimal skill recommendation source/capability and curator behavior,
 - high-risk write guard behavior,
 - read-only commands do not modify fixture files.
 
@@ -72,3 +73,7 @@ Closed-loop fixtures can also assert:
 - `adaptive_human_involvement_recommended`
 - `adaptive_human_involvement_approval_required`
 - `closed_loop_signal_contains`
+- `skill_recommendations_min`
+- `skill_recommendation_source_contains`
+- `skill_recommendation_capability_contains`
+- `skill_curator_action`

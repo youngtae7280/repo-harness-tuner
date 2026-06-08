@@ -7,8 +7,8 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - GitHub: https://github.com/youngtae7280/repo-harness-tuner
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
-- Current milestone: v1.0.0 stable public release, after the v0.8.0 closed-loop release.
-- Next implementation target: `v1.0.0 - Stable Public Release`
+- Current milestone: v1.5.0 continuous harness curator direction, after the v1.0/v1.1 onboarding and adaptive passes.
+- Next implementation target: release validation, fresh-clone verification, and polishing the adapter-only skill recommendation flow.
 
 ## Clone On A New PC
 
@@ -72,6 +72,7 @@ The CLI scripts can run directly from the cloned repository:
 ```powershell
 python scripts\console.py doctor --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
+python scripts\console.py recommend-skills --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py fixture-test
 ```
 
@@ -82,7 +83,7 @@ This is enough for development, CI checks, and fixture-test work.
 Run these before pushing changes:
 
 ```powershell
-python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
+python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\skill_recommender.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py
 python scripts\console.py fixture-test
 python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\repo-harness-tuner
 python %USERPROFILE%\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py .
@@ -117,13 +118,15 @@ The v0.5.0 factory output quality milestone is implemented. It added repo eviden
 
 The v0.8.0 stronger closed-loop milestone is implemented. It added durable eval score records, eval/history feedback into diagnose/tune/factory/run-loop, closed-loop fixture scenarios, and a bounded low-risk auto-apply guard for recommended writes.
 
-Start with the GitHub `v1.0.0 - Stable Public Release` milestone. The expected work is:
+The v1.2-v1.5 skill recommendation direction is implemented as an adapter-only flow. `recommend-skills` / `catalog` ranks repo-fit capabilities, can consider the ECC seed catalog, writes `Docs/AI/skill-recommendations.md`, and installs only small Codex adapter skills with `--install --confirm-install`. It does not bulk-install ECC hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.
 
-1. Stabilize CLI names, JSON schemas, exit codes, and write-safety behavior.
-2. Finish first-time install, upgrade, reinstall, and troubleshooting docs.
-3. Define versioning and breaking-change policy.
-4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, and broad CLI smoke tests.
-5. Confirm a fresh clone on a different PC can run `doctor`, `run-loop`, `fixture-test`, and plugin install from docs only.
+Start with release validation and fresh-clone verification. The expected work is:
+
+1. Keep CLI names, JSON schemas, exit codes, and write-safety behavior stable.
+2. Confirm first-time install, upgrade, reinstall, and troubleshooting docs from a fresh clone.
+3. Keep versioning and breaking-change policy aligned with `Docs/versioning.md`.
+4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, recommendation adapter installs, and broad CLI smoke tests.
+5. Confirm a fresh clone on a different PC can run `doctor`, `run-loop`, `recommend-skills`, `fixture-test`, and plugin install from docs only.
 
 Agreed development order after the 2026-06-08 audit review:
 
@@ -132,8 +135,9 @@ Agreed development order after the 2026-06-08 audit review:
 3. Use `Docs/versioning.md` for `#20`, then do `#21` and `#22`: CI/release validation matrix and fresh-clone continuation verification.
 4. Keep PowerShell-safe commands in docs. Prefer explicit script file lists over `scripts/*.py` in Windows instructions.
 5. Track the Windows CP949 `UnicodeEncodeError` seen in `overview` as a `#18` compatibility issue, because it is part of the public CLI contract rather than only an onboarding problem.
-6. Treat "one-command assistant" as a v1.0 documentation/user-experience commitment around `doctor` and `run-loop`; do not add a new automation surface before the CLI contract and fresh-clone flow are stable.
+6. Treat "one-command assistant" as a user-experience commitment around `doctor` and `run-loop`; `recommend-skills` is a supporting command, not a new required first step.
 7. v1.1 structured adaptive recommendations are implemented in `doctor`/`run-loop`. They recommend cadence and human-involvement changes from closed-loop evidence, but do not run a scheduler or silently change policy.
+8. v1.2-v1.5 skill recommendations are implemented in `recommend-skills` / `catalog` and surfaced in `doctor` / `run-loop`. They remain recommendation-only unless the user passes explicit write/install flags.
 
 The `#18`, `#19`, and `#20` documentation entry points are:
 
@@ -143,11 +147,12 @@ The `#18`, `#19`, and `#20` documentation entry points are:
 - `Docs/versioning.md` for version format, breaking-change classification, deprecation policy, changelog rules, and release checklist.
 - `README.md` / `README_KO.md` for slim one-request onboarding and the product-level safety/adaptive-loop explanation.
 
-Post-v1.0 product direction:
+Product direction:
 
 - Keep the first user action to one request in Codex or one `run-loop` command in CLI.
 - Keep structured adaptive cadence recommendations in `adaptive.cadence` before considering any scheduler-like automation.
 - Keep human-involvement adjustment suggestions in `adaptive.human_involvement`; require explicit approval before changing repo-local policy.
+- Keep skill/catalog recommendations minimal, adapter-only, and approval-based.
 
 ## Local-Only State
 

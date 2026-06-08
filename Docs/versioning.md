@@ -23,7 +23,7 @@ MAJOR.MINOR.PATCH
 The Codex plugin manifest may include build metadata for local cache busting:
 
 ```text
-0.8.0+codex.20260607133103
+1.5.0+codex.20260607133103
 ```
 
 Treat the part before `+` as the release version. The `+codex.<timestamp>` suffix is only for refreshing the local Codex plugin cache and must not be used to imply a new semantic release.
@@ -46,6 +46,7 @@ The public stability surface is the behavior users, docs, CI, and downstream aut
 - plugin and skill entry points, including `repo-harness-tuner` and `codex-harness-setup`
 - install, refresh, and local plugin cachebuster expectations documented in `Docs/install.md`
 - stored harness history and eval score formats when later commands are expected to read them
+- stored or emitted skill recommendation plans and adapter skill install boundaries
 - default Windows PowerShell compatibility for normal text output
 
 Internal helper functions, private nested fields, text formatting, fixture internals, and wording in human-readable output may evolve unless they are explicitly documented as stable.
@@ -66,6 +67,7 @@ Breaking changes include:
 - changing managed marker names so existing generated sections cannot be updated safely
 - changing plugin name, skill IDs, install assumptions, or local refresh expectations
 - making stored history or eval result files unreadable without a migration
+- changing `recommend-skills` from adapter-only to external bulk install without a new documented approval path
 - introducing text output that crashes in a default Windows PowerShell console
 
 Breaking changes must be called out in `CHANGELOG.md` with `BREAKING:` and should update the relevant contract document.

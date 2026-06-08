@@ -3,9 +3,9 @@
 Use the cheapest check that gives meaningful evidence for the change.
 
 ## Detected Commands
-- Focused Python script check: `python -m py_compile scripts\console.py scripts\factory.py scripts\diagnose.py scripts\loop.py scripts\fixture_test.py`.
+- Focused Python script check: `python -m py_compile scripts\console.py scripts\factory.py scripts\diagnose.py scripts\loop.py scripts\skill_recommender.py scripts\fixture_test.py`.
 - Fixture golden test check: `python scripts\console.py fixture-test`.
-- Broad script check: `python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py`.
+- Broad script check: `python -m py_compile scripts\console.py scripts\diagnose.py scripts\evaluate.py scripts\factory.py scripts\bootstrap.py scripts\history.py scripts\history_store.py scripts\loop.py scripts\skill_recommender.py scripts\fixture_test.py scripts\tune.py scripts\write_policy.py scripts\generate_prompt.py scripts\scan_plugins.py scripts\scan_repo_harness.py scripts\scan_skills.py scripts\worker_patterns.py`.
 - Skill validation on Windows: `python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\repo-harness-tuner`.
 - Plugin validation on Windows: `python %USERPROFILE%\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py .`.
 - Use the equivalent `$HOME/.codex/skills/.system/...` paths on Unix-like machines.
