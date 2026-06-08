@@ -12,16 +12,26 @@ Harness Tuner는 Codex에게 “이 프로젝트에서 다음에 뭘 해야 하�
 
 > 제품 표시 이름은 **Harness Tuner**로 줄였습니다. GitHub repo, plugin id, 설치 명령은 호환성을 위해 당분간 `repo-harness-tuner`를 유지합니다.
 
-처음부터 명령어를 외울 필요는 없습니다. Codex에서 repo를 열고 이렇게 말하면 됩니다.
+## 채팅에서 먼저 이렇게 말하세요
+
+처음부터 명령어를 외울 필요는 없습니다. Codex에서 repo를 열고 이렇게 말하세요.
 
 ```text
-다음에 뭐해?
-기획해줘.
-구조 잡아줘.
-검수해줘.
-완료 기준이랑 승인 지점 잡아줘.
-알아서 해줘. 단, 파일 쓰기나 설치는 승인 받고 해.
+Harness Tuner로 이 repo에서 다음에 뭐할지 읽기 전용으로 안내해줘.
+창 열기, 테스트 실행, 파일 쓰기, 설치는 하지 말고 preview/apply 경계만 보여줘.
 ```
+
+짧게 말하고 싶다면 이렇게 붙이면 됩니다.
+
+```text
+다음에 뭐해? Harness Tuner로 읽기 전용으로만 봐줘.
+기획해줘. Harness Tuner로 범위, 완료 기준, 승인 지점부터 잡아줘.
+검수해줘. Harness Tuner로 검증 루프만 먼저 정리해줘.
+```
+
+채팅에서 `next`만 단독으로 치는 것은 권장하지 않습니다. `next`는 CLI 명령 이름이기도 하고 일반 대화이기도 해서, Codex가 다른 skill이나 이전 작업 맥락으로 해석할 수 있습니다.
+
+WindowsUtility처럼 프로젝트 전용 skill이 강하게 걸린 repo에서는 특히 Harness Tuner를 명시하세요. Harness Tuner가 먼저 작업 타입과 승인 경계를 정리하고, 그 다음에 필요한 경우 프로젝트 전용 skill을 추천하는 흐름이 맞습니다.
 
 그러면 Harness Tuner는 먼저 읽기 전용으로 repo를 살펴보고, 지금 단계가 기획인지, 개발 지원인지, 검수인지, 하네스 튜닝인지, skill 추천인지 판단한 뒤 다음 안전한 행동 하나를 제안합니다.
 
@@ -29,7 +39,7 @@ Harness Tuner는 Codex에게 “이 프로젝트에서 다음에 뭘 해야 하�
 
 [English README](README_EN.md)
 
-## 한 줄로 시작
+## CLI에서 한 줄로 시작
 
 CLI에서 직접 실행할 때는 이것만 기억하면 됩니다.
 
@@ -68,7 +78,7 @@ Harness Tuner는 네 가지 원칙으로 움직입니다.
 
 ```mermaid
 flowchart TD
-    A["1. 자연어 또는 next 실행"] --> B["2. repo 읽기<br/>파일 / 스크립트 / 기록"]
+    A["1. Harness Tuner 요청<br/>또는 CLI next 실행"] --> B["2. repo 읽기<br/>파일 / 스크립트 / 기록"]
     B --> C["3. 작업 타입 판단<br/>기획 / 개발 / 검수 / 튜닝 / skill / history"]
     C --> D["4. preview 명령 제안<br/>먼저 확인"]
     D --> E["5. apply 명령 분리<br/>승인 후 실행"]
@@ -86,7 +96,7 @@ flowchart TD
 | `skill-recommendation` | 필요한 skill/agent 후보만 좁혀보는 단계 |
 | `history` | 다음 실행이 나아지도록 기록을 남기는 단계 |
 
-처음부터 `bootstrap`, `tune`, `factory`, `recommend-skills`, `history`를 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 확인한 뒤 추천된 다음 단계만 따라가면 됩니다.
+처음부터 `bootstrap`, `tune`, `factory`, `recommend-skills`, `history`를 고를 필요는 없습니다. CLI에서는 `next`로 시작하고, 채팅에서는 Harness Tuner를 명시해서 읽기 전용 안내를 요청하세요. 출력된 승인 경계를 확인한 뒤 추천된 다음 단계만 따라가면 됩니다.
 
 ## 안전 모델
 

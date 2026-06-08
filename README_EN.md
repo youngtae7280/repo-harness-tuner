@@ -18,22 +18,24 @@ When a write is useful, `next` now separates the safe preview command from the a
 
 ## Start Here
 
-In Codex, start with one request:
+In Codex chat, start with one explicit request:
 
 ```text
-Use repo-harness-tuner on this repo. Tell me what Codex should do next, what validation to run, and what needs approval before any file write or install.
+Use $repo-harness-tuner to inspect this repo read-only and tell me the next safe step.
+Do not open apps, run tests, write files, or install anything; show preview/apply boundaries.
 ```
 
-Natural-language prompts should also enter the same read-only `next` flow when a repo is open:
+Short natural-language prompts are fine when you name Harness Tuner:
 
 ```text
-What should I do next?
-Plan this project.
-Set up the structure.
-Set the review and validation loop.
-Define completion criteria and approval points.
-Handle the next step for me, but ask before writing files or installing anything.
+What should I do next? Use Harness Tuner read-only first.
+Plan this project with Harness Tuner: scope, definition of done, and approval points first.
+Review this repo with Harness Tuner, but only summarize the validation loop.
 ```
+
+Do not rely on a bare chat message like `next`. In chat, `next` is ambiguous and can be interpreted as continuing prior work. The CLI command is still named `next`; the chat prompt should explicitly invoke Harness Tuner.
+
+In repos with strong project-specific skills, explicitly naming Harness Tuner matters. Harness Tuner should route the work type and approval boundary first, then recommend a project-specific skill only when that is the right next step.
 
 These prompts do not mean "silently edit everything." The plugin should inspect first, label whether the work is planning, development support, review, harness tuning, skill recommendation, or history, then propose one safe next action.
 
@@ -53,7 +55,7 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 
 ```mermaid
 flowchart TD
-    A["1. Run next<br/>Ask what Codex should do now"] --> B["2. Inspect repo<br/>Files, scripts, harness docs, history"]
+    A["1. Ask Harness Tuner<br/>or run CLI next"] --> B["2. Inspect repo<br/>Files, scripts, harness docs, history"]
     B --> C["3. Pick work type<br/>planning / development-support / review-validation<br/>harness-tuning / skill-recommendation / history"]
     C --> D["4. Print preview command<br/>Inspect before changing files"]
     D --> E["5. Show apply command<br/>Only after approval"]

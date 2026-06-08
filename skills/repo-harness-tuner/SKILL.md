@@ -1,6 +1,6 @@
 ---
 name: repo-harness-tuner
-description: "Analyze, diagnose, tune, and evaluate repo-local Codex harnesses and project-specific team/skill plans. Use in a repository context for natural-language direction prompts such as \"what next?\", \"plan this project\", \"set up the structure/workflow\", \"review/validation loop\", \"completion criteria\", \"approval points\", \"handle it for me\", \"\ub2e4\uc74c\uc5d0 \ubb50\ud574?\", \"\uae30\ud68d\ud574\uc918\", \"\uad6c\uc870 \uc7a1\uc544\uc918\", \"\uac80\uc218\ud574\uc918\", or \"\uc54c\uc544\uc11c \ud574\uc918\"; start with the read-only next flow before suggesting writes. Also use for harness bootstrap/tuning, project-specific agent team or skill plans, minimal skill/agent recommendations, validation gates, and human-approval boundaries. Do not use for ordinary coding, debugging, or generic reviews unless the request is about project direction, Codex workflow, harness design, validation gates, approval boundaries, or skill recommendations."
+description: "Use $repo-harness-tuner / Harness Tuner in a repository when the user asks for project direction, next steps, planning, structure, review/validation, completion criteria, approval points, harness tuning, or skill/agent recommendations, including Korean prompts like '\ubb50\ud574\uc57c \ud560\uc9c0 \uc548\ub0b4\ud574\uc918', '\ub2e4\uc74c \uc791\uc5c5', '\ub2e4\uc74c\uc5d0 \ubb50\ud574?', '\uae30\ud68d\ud574\uc918', '\uad6c\uc870 \uc7a1\uc544\uc918', '\uac80\uc218 \uae30\uc900 \uc7a1\uc544\uc918', or '\uc2b9\uc778 \uc9c0\uc810 \uc7a1\uc544\uc918'. Also use when the user explicitly says Harness Tuner or repo-harness-tuner. First entry is read-only: inspect repo evidence and report one safe next action with preview/apply boundaries. If the user only says 'next', treat it as ambiguous chat unless project-direction intent is clear. Do not open apps, browsers, or windows; run builds, UI tests, or hardware checks; write files; install skills; or switch to domain-specific project skills before the read-only next pass."
 ---
 
 # Harness Tuner
@@ -25,6 +25,14 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 ## Natural Language Entry
 
 When the user asks a broad project-direction prompt in a repository context, treat it as an entry into the read-only `next` flow before doing implementation work.
+
+Chat-safe entry rules:
+
+- A bare chat message like `next` is ambiguous. If project-direction intent is not clear, ask a one-line clarification or interpret it only as a read-only Harness Tuner preview. Do not continue unrelated work from prior context.
+- The first pass may inspect repo files and may run Harness Tuner read-only commands. It must not open browsers, apps, device windows, or UI test windows.
+- Do not run builds, UI tests, hardware checks, long test suites, or external tools during the entry pass. Recommend validation as a next step instead.
+- Do not write files, install skills, change policies, change dependencies, create releases, deploy, delete, or perform destructive actions during the entry pass.
+- If a domain-specific skill also seems relevant, keep it as a recommended next step. Do not switch to that skill before reporting the Harness Tuner work type, one next action, approval boundary, and validation.
 
 Examples that should trigger this skill when a repo is available:
 

@@ -2,10 +2,23 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 1.5.2 - 2026-06-08
+
+Chat-safe Harness Tuner entry and display-name stabilization.
+
 ### Changed
 
 - Reworked the Korean default README around natural-language entry, role-based onboarding, a vertical first-run flow, and clearer preview/apply safety boundaries.
 - Shortened the user-facing display name to Harness Tuner while keeping the `repo-harness-tuner` technical id for compatibility, and clarified the plugin philosophy around repo-local responsibility boundaries.
+- Reframed chat usage around explicit Harness Tuner prompts instead of relying on a bare `next` message.
+
+### Fixed
+
+- Updated `agents/openai.yaml` so the skill chip shows Harness Tuner with a safe default prompt instead of stale or mojibake text.
+- Strengthened the skill trigger and entry rules so the first pass stays read-only and does not open apps, run tests, write files, install skills, or switch to domain-specific project skills before the Harness Tuner summary.
+- Documented the Windows plugin-cache `Access is denied` reinstall failure mode.
 
 ## 1.5.1 - 2026-06-08
 

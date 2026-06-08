@@ -1,7 +1,7 @@
 {
   "name": "repo-harness-tuner",
-  "version": "1.5.1+codex.20260608025120",
-  "description": "Harness Tuner helps Codex choose the next safe repo step, tune repo harnesses, and recommend minimal adapter skills with approval gates.",
+  "version": "1.5.2+codex.20260608124818",
+  "description": "Harness Tuner helps Codex choose the next safe repo step with a read-only first pass, then tune repo harnesses and recommend minimal adapter skills with approval gates.",
   "author": {
     "name": "youngtae7280"
   },
@@ -9,8 +9,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Harness Tuner",
-    "shortDescription": "Ask \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d or \u201c\uae30\ud68d\ud574\uc918\u201d and get the next safe Codex step.",
-    "longDescription": "Harness Tuner is a Codex workspace tuner for natural-language project direction. Its purpose is not to make Codex silently do everything; it keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. In a repo context, prompts like \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d, \u201c\uae30\ud68d\ud574\uc918\u201d, \u201c\uad6c\uc870 \uc7a1\uc544\uc918\u201d, \u201c\uc54c\uc544\uc11c \ud574\uc918\u201d, or \u201cWhat should Codex do next?\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
+    "shortDescription": "Ask Harness Tuner for a read-only next-step pass with approval boundaries.",
+    "longDescription": "Harness Tuner is a Codex workspace tuner for natural-language project direction. Its purpose is not to make Codex silently do everything; it keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. In a repo context, prompts like \u201cHarness Tuner\ub85c \uc774 repo\uc5d0\uc11c \ub2e4\uc74c\uc5d0 \ubb50\ud560\uc9c0 \uc77d\uae30 \uc804\uc6a9\uc73c\ub85c \uc548\ub0b4\ud574\uc918\u201d or \u201cUse Harness Tuner to inspect this repo read-only and tell me the next safe step\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. A bare chat message like \u201cnext\u201d is ambiguous and should not launch apps, browsers, UI tests, builds, hardware checks, file writes, installs, or domain-specific implementation skills before the read-only Harness Tuner summary. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
     "developerName": "youngtae7280",
     "category": "Productivity",
     "capabilities": [
@@ -59,26 +59,12 @@
       "Embedded codex-harness-setup"
     ],
     "defaultPrompt": [
-      "\ub2e4\uc74c\uc5d0 \ubb50\ud574?",
-      "\uae30\ud68d\ud574\uc918",
-      "\uad6c\uc870 \uc7a1\uc544\uc918",
-      "\uac80\uc218\ud574\uc918",
-      "\uc644\ub8cc \uae30\uc900\uc774\ub791 \uc2b9\uc778 \uc9c0\uc810 \uc7a1\uc544\uc918",
-      "\uc791\uc5c5 \ud750\ub984 \uc7a1\uc544\uc918",
-      "\uc54c\uc544\uc11c \ub2e4\uc74c \uc791\uc5c5 \uc7a1\uc544\uc918. \ud30c\uc77c \uc4f0\uae30\ub098 \uc124\uce58\ub294 \uc2b9\uc778 \ubc1b\uace0 \ud574.",
-      "\uc774 repo\uc5d0\uc11c Codex\uac00 \ub2e4\uc74c\uc5d0 \ud560 \uc77c \uc54c\ub824\uc918",
-      "\uac80\uc218 \uae30\uc900\uacfc \ub2e4\uc74c \uac80\uc99d \ubc29\ubc95 \uc7a1\uc544\uc918",
-      "What should Codex do next?",
-      "Plan this project",
-      "Set up the project structure",
-      "Handle the next step, but ask before writing files or installing anything",
-      "Tell me what Codex should do next",
-      "Run the one-command harness doctor",
-      "Run release and fresh-clone validation",
-      "Recommend minimal skills and agents for this repo",
-      "Bootstrap this repo's Codex harness",
-      "Generate a harness tuning diff",
-      "Record a harness history snapshot"
+      "Use $repo-harness-tuner to inspect this repo read-only and tell me the next safe step. Do not open apps, run tests, write files, or install anything; show preview/apply boundaries.",
+      "Harness Tuner\ub85c \uc774 repo\uc5d0\uc11c \ub2e4\uc74c\uc5d0 \ubb50\ud560\uc9c0 \uc77d\uae30 \uc804\uc6a9\uc73c\ub85c \uc548\ub0b4\ud574\uc918. \ucc3d \uc5f4\uae30, \ud14c\uc2a4\ud2b8 \uc2e4\ud589, \ud30c\uc77c \uc4f0\uae30, \uc124\uce58\ub294 \ud558\uc9c0 \ub9d0\uace0 preview/apply \uacbd\uacc4\ub9cc \ubcf4\uc5ec\uc918.",
+      "Use Harness Tuner to plan this project read-only first, then list what needs approval before any implementation.",
+      "Use Harness Tuner to define scope, access/actions, definition of done, and human approval points for this repo.",
+      "Use Harness Tuner to review the validation loop for this repo without running tests yet.",
+      "Use Harness Tuner to recommend minimal skills or agents for this repo, but do not install anything."
     ]
   },
   "apps": "./.app.json"

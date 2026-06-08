@@ -137,6 +137,12 @@ In Windows PowerShell, prefer explicit file lists. `scripts/*.py` is not expande
 
 Use the `CODEX_CLI_PATH` value in `%USERPROFILE%\.codex\config.toml` instead of the Windows Store shim.
 
+### Plugin Cache Backup Is Access Denied
+
+If `codex plugin add repo-harness-tuner@personal` fails with `failed to back up plugin cache entry: Access is denied`, close all Codex app windows and any running Codex CLI terminals, then run the install command again from a fresh terminal.
+
+The plugin cache can be locked while Codex is running. After reinstalling, open a new Codex thread so the refreshed plugin skills are loaded into the model context.
+
 ### `ModuleNotFoundError: No module named 'yaml'`
 
 Install PyYAML for the validator scripts:

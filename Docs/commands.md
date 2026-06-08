@@ -8,18 +8,26 @@ For the stability contract behind these commands, see `Docs/cli-contracts.md`.
 
 ## One-Command Entry
 
-In Codex chat, natural-language project-direction prompts should enter the same read-only flow when a repo is open:
+In Codex chat, explicitly name Harness Tuner when you want project-direction routing:
 
 ```text
-다음에 뭐해?
-기획해줘.
-구조 잡아줘.
-검수해줘.
-완료 기준이랑 승인 지점 잡아줘.
-알아서 해줘. 단, 파일 쓰기나 설치는 승인 받고 해.
+Use $repo-harness-tuner to inspect this repo read-only and tell me the next safe step.
+Do not open apps, run tests, write files, or install anything; show preview/apply boundaries.
+```
+
+Short prompts are fine when they include the routing intent:
+
+```text
+What should I do next? Use Harness Tuner read-only first.
+Plan this project with Harness Tuner: scope, definition of done, and approval points first.
+Review this repo with Harness Tuner, but only summarize the validation loop.
 ```
 
 The skill should treat those as `next`-style requests first: inspect the repo, label the work type, propose one next action, show approval boundaries, and suggest validation.
+
+Do not rely on a bare chat message like `next`. In chat, `next` is ambiguous and can be interpreted as continuing prior work. The CLI command is still named `next`; chat prompts should explicitly invoke Harness Tuner.
+
+In repos with strong project-specific skills, Harness Tuner should route the work type and approval boundary first. Treat domain-specific skills as recommended next steps, not as the entry pass.
 
 Use `next` when you want the plugin to answer "what should Codex do next?" without writing files:
 

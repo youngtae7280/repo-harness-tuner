@@ -1,4 +1,7 @@
 interface:
-  display_name: "Repo Harness Tuner"
-  short_description: "Ask what Codex should do next, then tune the repo workflow with approval gates."
-  default_prompt: "다음에 뭐해? 이 repo를 먼저 읽기 전용으로 보고, 다음 안전한 작업과 검증, 승인 지점을 알려줘."
+  display_name: "Harness Tuner"
+  short_description: "Read-only next-step routing for repo-local Codex work."
+  default_prompt: "Use $repo-harness-tuner to inspect this repo read-only and tell me the next safe step. Do not open apps, run tests, write files, or install anything; show preview/apply boundaries."
+
+policy:
+  allow_implicit_invocation: true
