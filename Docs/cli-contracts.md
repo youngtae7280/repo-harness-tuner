@@ -84,6 +84,8 @@ Stable write flags:
 
 Write commands must keep refusing destructive operations, dependency changes, CI changes, install/uninstall, marketplace edits, and paths outside their documented scope unless the command explicitly exists for that action and requires explicit confirmation. `recommend-skills` never bulk-installs external catalogs; external ECC candidates are adapter-only unless a future explicitly documented command changes that contract.
 
+For `doctor`, `run-loop`, `loop`, and `next`, `summary.next_action.command` must remain a preview/read-only command or dry-run/diff command. It must not include write, install, or policy-changing flags. When the action can write, record history, or persist a plan, the explicit approved command belongs in `summary.next_action.apply_command`.
+
 ## JSON Output
 
 Commands with `--json` must emit valid JSON on stdout and should avoid non-ASCII console encoding failures by escaping Unicode when needed.
@@ -113,12 +115,14 @@ Nested fields may grow over time. Removing or renaming documented top-level fiel
 
 For `doctor`, `run-loop`, `loop`, and `next`, `summary.next_action` also includes `action_type`, `category`, `category_label`, and `category_summary`. `action_type` and `category` carry the same work-type value: one of `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`.
 
+`summary.next_action.command` and `summary.next_action.preview_command` carry the same safe preview command. `summary.next_action.apply_command` is present only when the recommended action has a write, record, or plan-writing path that should run after user approval. `summary.next_action.approval_required` is `true` for those actions.
+
 ## Text Output
 
 Text output is user-facing and may evolve for readability, but it must preserve these concepts:
 
 - status/readiness/next action for `next`, `doctor`, and `run-loop`
-- "what Codex found", "what Codex can do next", next command, approval boundary, and validation hints for `doctor`, `run-loop`, and `next`
+- "what Codex found", "what Codex can do next", preview command, apply-after-approval command when relevant, approval boundary, and validation hints for `doctor`, `run-loop`, and `next`
 - harness contract visibility for Scope, Access & Actions, Definition of Done, and Human Approval Points
 - dry-run vs write distinction for `bootstrap`, `apply`, and `tune`
 - refusal reason and required flag for write guards

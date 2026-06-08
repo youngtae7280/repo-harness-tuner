@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +38,21 @@ SCRIPT_FILES = [
     "scripts/worker_patterns.py",
     "scripts/release_validation.py",
 ]
+
+WRITE_FLAGS = {
+    "--write",
+    "--write-plan",
+    "--write-recommended",
+    "--write-artifacts",
+    "--write-codex-skills",
+    "--write-score",
+    "--install",
+    "--install-codex-skills",
+}
+
+
+def command_flags(command: str) -> set[str]:
+    return set(re.findall(r"--[A-Za-z0-9-]+", command or ""))
 
 
 def ignore_fresh_copy(directory: str, names: list[str]) -> set[str]:
@@ -126,6 +142,7 @@ def summarize_json(payload: dict[str, Any]) -> dict[str, Any]:
         "next_action": next_action.get("id") if isinstance(next_action, dict) else None,
         "next_action_type": next_action.get("action_type") if isinstance(next_action, dict) else None,
         "next_action_category": next_action.get("category") if isinstance(next_action, dict) else None,
+        "next_action_has_apply": bool(next_action.get("apply_command")) if isinstance(next_action, dict) else False,
     }
 
 
@@ -140,6 +157,17 @@ def validate_loop_json(payload: dict[str, Any]) -> list[str]:
         failures.append("missing summary.next_action.category")
     if not next_action.get("category_label"):
         failures.append("missing summary.next_action.category_label")
+    preview = str(next_action.get("preview_command") or next_action.get("command") or "")
+    apply_command = str(next_action.get("apply_command") or "")
+    if next_action.get("command") != next_action.get("preview_command"):
+        failures.append("summary.next_action.command must match preview_command")
+    if command_flags(preview) & WRITE_FLAGS:
+        failures.append("summary.next_action preview command contains write/install flags")
+    if next_action.get("write_kind") != "none":
+        if not apply_command:
+            failures.append("summary.next_action missing apply_command for write action")
+        elif not (command_flags(apply_command) & WRITE_FLAGS):
+            failures.append("summary.next_action apply_command lacks write/install flag")
     return failures
 
 

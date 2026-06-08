@@ -6,6 +6,8 @@ Run `next` once to inspect a repo, diagnose its agent workflow, choose the next 
 
 It is not a silent autonomous product developer. It is the layer that helps Codex keep planning, development, review, validation, and repo-local harness guidance organized as the project moves.
 
+When a write is useful, `next` now separates the safe preview command from the apply-after-approval command. The first command lets you inspect the plan or diff; the second is the one you run only after approving the change.
+
 ## Start Here
 
 In Codex, start with one request:
@@ -45,8 +47,8 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 flowchart TD
     A["1. Run next<br/>Ask what Codex should do now"] --> B["2. Inspect repo<br/>Files, scripts, harness docs, history"]
     B --> C["3. Pick work type<br/>planning / development-support / review-validation<br/>harness-tuning / skill-recommendation / history"]
-    C --> D["4. Print one next command<br/>No command menu to choose from up front"]
-    D --> E["5. Check approval boundary<br/>writes / installs / policy changes pause here"]
+    C --> D["4. Print preview command<br/>Inspect before changing files"]
+    D --> E["5. Show apply command<br/>Only after approval"]
     E --> F["6. Validate<br/>record evidence and remaining risk"]
 ```
 
@@ -54,7 +56,7 @@ flowchart TD
 
 - what Codex found,
 - the current work type,
-- the one next command,
+- the preview command and, when needed, the apply-after-approval command,
 - what needs approval,
 - validation to run.
 

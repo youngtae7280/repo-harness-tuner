@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import shutil
 import tempfile
 from datetime import datetime, timezone
@@ -78,6 +79,38 @@ def assert_contains_all(failures: list[str], label: str, actual: list[str], expe
             failures.append(f"{label}: expected to contain {item!r}")
 
 
+WRITE_FLAGS = {
+    "--write",
+    "--write-plan",
+    "--write-recommended",
+    "--write-artifacts",
+    "--write-codex-skills",
+    "--write-score",
+    "--install",
+    "--install-codex-skills",
+}
+
+
+def command_flags(command: str) -> set[str]:
+    return set(re.findall(r"--[A-Za-z0-9-]+", command or ""))
+
+
+def assert_preview_apply_split(failures: list[str], next_action: dict[str, Any]) -> None:
+    preview = str(next_action.get("preview_command") or next_action.get("command") or "")
+    apply_command = str(next_action.get("apply_command") or "")
+    preview_flags = command_flags(preview)
+    apply_flags = command_flags(apply_command)
+    if next_action.get("command") != next_action.get("preview_command"):
+        failures.append("next_action command must match preview_command")
+    if preview_flags & WRITE_FLAGS:
+        failures.append(f"next_action preview command contains write/install flag(s): {sorted(preview_flags & WRITE_FLAGS)}")
+    if next_action.get("write_kind") != "none":
+        if not apply_command:
+            failures.append("next_action with write_kind must include apply_command")
+        elif not (apply_flags & WRITE_FLAGS):
+            failures.append("next_action apply_command must contain an explicit write/install flag")
+
+
 def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     fixture_id = str(fixture["id"])
     root = (fixtures_root / str(fixture["path"])).resolve()
@@ -112,6 +145,7 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
         failures.append("next_action action_type and category diverged")
     if "next_action_category" in expected:
         assert_equal(failures, "next_action_category", next_action.get("category"), expected.get("next_action_category"))
+    assert_preview_apply_split(failures, next_action)
     assert_equal(failures, "eval_tasks", summary["eval_tasks"], expected.get("eval_tasks"))
     assert_equal(failures, "factory_label", factory_payload["team_factory"]["label"], expected.get("factory_label"))
     factory_quality = factory_payload.get("factory_quality", {})

@@ -8,7 +8,7 @@ Use this guide when continuing Repo Harness Tuner work from a different PC using
 - Default branch: `main`
 - Current roadmap: [ROADMAP.md](ROADMAP.md)
 - Current milestone: v1.5.1 assistant UX stabilization, after the v1.0/v1.1 onboarding and adaptive passes.
-- Next implementation target: release validation, fresh-clone verification, and polishing the one-command assistant documentation flow.
+- Next implementation target: public preview packaging, Windows CI confidence, and role-based onboarding for developers, planners, and testers.
 
 ## Clone On A New PC
 
@@ -121,13 +121,14 @@ The v0.8.0 stronger closed-loop milestone is implemented. It added durable eval 
 
 The v1.2-v1.5 skill recommendation direction is implemented as an adapter-only flow. `recommend-skills` / `catalog` ranks repo-fit capabilities, can consider the ECC seed catalog, writes `Docs/AI/skill-recommendations.md`, and installs only small Codex adapter skills with `--install --confirm-install`. It does not bulk-install ECC hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.
 
-Start with release validation and fresh-clone verification. The expected work is:
+Start with public preview packaging and Windows CI confidence. The expected work is:
 
 1. Keep CLI names, JSON schemas, exit codes, and write-safety behavior stable.
 2. Confirm first-time install, upgrade, reinstall, and troubleshooting docs from a fresh clone.
 3. Keep versioning and breaking-change policy aligned with `Docs/versioning.md`.
 4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, recommendation adapter installs, and broad CLI smoke tests.
 5. Confirm a fresh clone on a different PC can run `next`, `doctor`, `run-loop`, `recommend-skills`, `fixture-test`, and plugin install from docs only.
+6. Keep `next` preview-first: `summary.next_action.command` / `preview_command` should stay read-only or dry-run, while writes belong in `apply_command`.
 
 Agreed development order after the 2026-06-08 audit review:
 
@@ -147,6 +148,7 @@ The `#18`, `#19`, and `#20` documentation entry points are:
 - `Docs/commands.md` for the full command reference moved out of the README.
 - `Docs/versioning.md` for version format, breaking-change classification, deprecation policy, changelog rules, and release checklist.
 - `README.md` / `README_EN.md` for slim one-request onboarding and the product-level safety/adaptive-loop explanation. `README_KO.md` is a compatibility pointer to the Korean default README.
+- `summary.next_action.preview_command` / `apply_command` for the v1.5.1 preview-first one-command UX contract.
 
 Product direction:
 

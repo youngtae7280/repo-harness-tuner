@@ -25,9 +25,11 @@ Use `next` when you want the plugin to answer "what should Codex do next?" witho
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 ```
 
-`next` is a friendly alias for `run-loop`. It prints what Codex found, what Codex can do next, the next command, what needs approval, and validation to run.
+`next` is a friendly alias for `run-loop`. It prints what Codex found, what Codex can do next, the preview command, the apply-after-approval command when a write is useful, what needs approval, and validation to run.
 
 The recommended next action includes a work type: `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`.
+
+For `next`, `doctor`, and `run-loop`, `summary.next_action.command` is the safe preview command and matches `summary.next_action.preview_command`. If the recommended action can write files, record history, or write a plan, `summary.next_action.apply_command` contains the explicit command to run only after approval.
 
 ## Read-Only First
 
@@ -52,7 +54,7 @@ python scripts\console.py history --repo C:\path\to\repo
 python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
 ```
 
-`--write-recommended` applies only the bounded next action selected by `next` / `run-loop`. It can write managed harness docs, repo-local factory artifacts, skill recommendation plans, or a baseline harness history record when that exact action is recommended.
+`--write-recommended` applies only the bounded next action selected by `next` / `run-loop`. Review `summary.next_action.apply_command` or the text output's "Apply after approval" command first. It can write managed harness docs, repo-local factory artifacts, skill recommendation plans, or a baseline harness history record when that exact action is recommended.
 
 ## Diagnose And Design
 
@@ -181,6 +183,9 @@ python scripts\console.py repo --repo C:\path\to\repo --json
 - `category`: stable slug such as `planning`, `review-validation`, or `history`.
 - `category_label`: user-facing label.
 - `category_summary`: short explanation of what Codex is doing at that step.
+- `command` / `preview_command`: the safe command to inspect before applying changes.
+- `apply_command`: present only when a write, record, or plan-writing command is useful after approval.
+- `approval_required`: `true` when `apply_command` should be reviewed before use.
 
 `next`, `doctor`, and `run-loop` also include `skill_recommendations`. It is recommendation-only:
 

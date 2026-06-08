@@ -21,6 +21,8 @@ python scripts\console.py next --repo C:\path\to\repo --phase active-development
 
 이 플러그인은 조용히 모든 기획/개발/출시를 대신하는 자동 개발자가 아닙니다. Codex가 기획, 개발, 검수, 문서화, 하네스 정리를 계속 이어가기 좋도록 작업장을 정리해주는 층입니다.
 
+쓰기 작업이 필요할 때도 `next`는 먼저 확인용 preview 명령과 승인 후 apply 명령을 나눠서 보여줍니다. 첫 명령은 계획이나 diff를 보는 용도이고, 두 번째 명령은 사람이 변경을 승인한 뒤에만 실행하는 명령입니다.
+
 [English README](README_EN.md)
 
 ## 채팅으로는 이렇게 말하세요
@@ -44,8 +46,8 @@ python scripts\console.py next --repo C:\path\to\repo --phase active-development
 flowchart TD
     A["1. next 실행<br/>지금 할 일 묻기"] --> B["2. repo 확인<br/>파일 / 스크립트 / 기록"]
     B --> C["3. 작업 타입 선택<br/>기획 / 개발 / 검수<br/>튜닝 / skill / history"]
-    C --> D["4. 다음 명령 하나 제안<br/>메뉴 대신 한 가지"]
-    D --> E["5. 승인 경계 확인<br/>쓰기 / 설치 / 정책 변경은 멈춤"]
+    C --> D["4. preview 명령 제안<br/>먼저 확인"]
+    D --> E["5. apply 명령 분리<br/>승인 후 실행"]
     E --> F["6. 검증 실행<br/>증거와 남은 위험 기록"]
 ```
 
@@ -53,7 +55,7 @@ flowchart TD
 
 - Codex가 repo에서 발견한 것
 - 지금 작업 타입
-- 바로 실행할 다음 명령 하나
+- 먼저 확인할 preview 명령과, 필요할 때만 쓰는 승인 후 apply 명령
 - 사람이 승인해야 하는 것
 - 실행하거나 기록해야 할 검증
 

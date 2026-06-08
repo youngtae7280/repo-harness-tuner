@@ -196,7 +196,7 @@ Done when:
 
 ## v1.5.1 - Assistant UX Stabilization
 
-Status: implemented for next-action work types, history recommended writes, user-journey fixtures, release-check, and README visual onboarding.
+Status: implemented for next-action work types, history recommended writes, user-journey fixtures, release-check, README visual onboarding, natural-language entry, and preview/apply command separation.
 
 Goal: make `next` feel like the product's one-command assistant surface rather than a raw harness engine report.
 
@@ -208,17 +208,20 @@ Scope:
 - Add `release-check` for fresh-copy release validation.
 - Simplify README onboarding around `next` and add a visual one-command flow.
 - Clarify factory-artifacts as documenting how Codex should split planning, development, and review work.
+- Let natural-language repo prompts such as "what next?", "plan this", and Korean equivalents start with the read-only `next` flow.
+- Separate `summary.next_action.command` / `preview_command` from `apply_command` so writes are never presented as the first command to run.
 
 Done when:
 
 - `next` text output shows the work type and plain-language meaning of the recommended action.
+- `next` text output shows a safe preview command first and an apply-after-approval command only when a write, record, or plan persistence is useful.
 - `fixture-test` covers both functional fixtures and temp-copy user journeys.
 - `release-check` validates a fresh-copy simulation, JSON contracts, fixture journeys, Windows-console tolerance, and bootstrap/harness-check behavior.
 - README.md and README_EN.md make the one-command flow visually scannable.
 
 ## Current Priority
 
-The next implementation priority is **release validation, fresh-clone verification, and one-command assistant UX stability**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, v0.8.0 closed-loop history/eval fixtures, v1.2-v1.5 recommendation assertions, and v1.5.1 user-journey fixtures as the regression safety net.
+The next implementation priority is **public preview packaging, Windows CI confidence, and role-based onboarding**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, v0.8.0 closed-loop history/eval fixtures, v1.2-v1.5 recommendation assertions, and v1.5.1 user-journey fixtures as the regression safety net.
 
 Current working agreement:
 
@@ -226,8 +229,8 @@ Current working agreement:
 2. Keep `next`, `doctor`, and `run-loop` as the one-command assistant surface.
 3. Keep `recommend-skills` / `catalog` as adapter-only; do not bulk-install ECC.
 4. Keep cadence, human-involvement, and install changes approval-based.
-5. Finish release validation, fresh-clone verification, cachebuster refresh, and GitHub release/tag alignment before calling the public release done.
-6. Keep `next` output centered on a clear work type, one next command, approval boundary, and validation evidence.
+5. Keep release validation, fresh-clone simulation, cachebuster refresh, and release/tag alignment passing before calling the public release done.
+6. Keep `next` output centered on a clear work type, preview command, apply-after-approval command, approval boundary, and validation evidence.
 
 Implemented documentation anchors for this pass:
 
@@ -241,3 +244,4 @@ Implemented documentation anchors for this pass:
 - `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.
 - `release-check`: v1.5.1 fresh-copy validation for release readiness.
 - `summary.next_action.category`: v1.5.1 assistant work type for one-command UX.
+- `summary.next_action.preview_command` / `apply_command`: v1.5.1 preview-first safety contract for one-command UX.

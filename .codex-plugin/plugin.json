@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "1.5.0+codex.20260608023544",
+  "version": "1.5.1+codex.20260608025120",
   "description": "Ask naturally what Codex should do next, then tune repo harnesses and recommend minimal adapter skills with approval gates.",
   "author": {
     "name": "youngtae7280"
@@ -22,6 +22,7 @@
       "Fixture golden-test suite",
       "User journey fixture coverage",
       "Release fresh-copy validation",
+      "Preview/apply next-command separation",
       "Recommended next-action execution",
       "Project-type harness presets",
       "Codex plugin project preset",

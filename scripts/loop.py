@@ -82,6 +82,13 @@ def command_line(
     return " ".join(parts)
 
 
+def confirm_write_extra(command: str, phase: str, human_involvement: int | None) -> list[str]:
+    guard = write_policy.write_guard(command, phase, human_involvement, False)
+    if guard and guard.get("required_flag") == "--confirm-write":
+        return ["--confirm-write"]
+    return []
+
+
 def write_target_exists(root: Path, rel: str) -> bool:
     variants = {
         rel,
@@ -201,7 +208,9 @@ def build_next_action(
         "label": label,
         "reason": reason,
         "command": command,
+        "preview_command": command,
         "write_kind": write_kind,
+        "approval_required": write_kind != "none",
     }
     payload.update(extra)
     return payload
@@ -233,6 +242,7 @@ def choose_next_action(
     signal_types = {str(signal.get("type")) for signal in history_feedback.get("signals", []) if isinstance(signal, dict)}
     eval_repair_signals = {"eval-regression", "eval-unchanged-fail"} & signal_types
     if len(missing) >= 2:
+        apply_extra = ["--write", *confirm_write_extra("bootstrap", phase, human_involvement)]
         return build_next_action(
             "bootstrap",
             "planning",
@@ -245,11 +255,20 @@ def choose_next_action(
                 modules,
                 human_involvement,
                 repo_type,
-                ["--write"],
             ),
             "bootstrap",
+            apply_command=command_line(
+                "bootstrap",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                apply_extra,
+            ),
         )
     if eval_repair_signals and tune_payload.get("proposals"):
+        apply_extra = ["--write", *confirm_write_extra("tune", phase, human_involvement)]
         return build_next_action(
             "tune",
             "harness-tuning",
@@ -265,6 +284,15 @@ def choose_next_action(
                 ["--dry-run", "--diff"],
             ),
             "tune",
+            apply_command=command_line(
+                "tune",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                apply_extra,
+            ),
         )
     if eval_repair_signals:
         return build_next_action(
@@ -276,6 +304,7 @@ def choose_next_action(
             "none",
         )
     if tune_payload.get("proposals"):
+        apply_extra = ["--write", *confirm_write_extra("tune", phase, human_involvement)]
         return build_next_action(
             "tune",
             "harness-tuning",
@@ -291,8 +320,18 @@ def choose_next_action(
                 ["--dry-run", "--diff"],
             ),
             "tune",
+            apply_command=command_line(
+                "tune",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                apply_extra,
+            ),
         )
     if not write_target_exists(root, "Docs/AI/agent-team.md"):
+        apply_extra = ["--domain", quote_cli(domain), "--write-artifacts", *confirm_write_extra("factory", phase, human_involvement)]
         return build_next_action(
             "factory-artifacts",
             "planning",
@@ -305,12 +344,22 @@ def choose_next_action(
                 modules,
                 human_involvement,
                 repo_type,
-                ["--domain", quote_cli(domain), "--write-artifacts"],
+                ["--domain", quote_cli(domain)],
             ),
             "factory-artifacts",
+            apply_command=command_line(
+                "factory",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                apply_extra,
+            ),
         )
     if int(history_summary.get("count", 0) or 0) == 0:
         history_note = "baseline from run-loop"
+        apply_extra = ["--record", "--write", "--note", quote_cli(history_note), *confirm_write_extra("history", phase, human_involvement)]
         return build_next_action(
             "record-history",
             "history",
@@ -323,9 +372,18 @@ def choose_next_action(
                 modules,
                 human_involvement,
                 repo_type,
-                ["--record", "--write", "--note", quote_cli(history_note)],
+                ["--record", "--note", quote_cli(history_note)],
             ),
             "history",
+            apply_command=command_line(
+                "history",
+                root,
+                phase,
+                modules,
+                human_involvement,
+                repo_type,
+                apply_extra,
+            ),
             history_note=history_note,
         )
     return build_next_action(
@@ -388,6 +446,7 @@ def build_loop_plan(
         history_summary,
     )
     if next_action.get("id") == "observe" and skill_payload["summary"].get("recommendation_count", 0):
+        apply_extra = ["--write-plan", *confirm_write_extra("recommend-skills", phase, human_involvement)]
         next_action = build_next_action(
             "skill-recommendations",
             "skill-recommendation",
@@ -400,9 +459,17 @@ def build_loop_plan(
                 skill_payload["options"]["sources"],
                 int(skill_payload["options"]["limit"]),
                 catalog_root,
-                ["--write-plan"],
             ),
             "skill-recommendations-plan",
+            apply_command=skill_recommender.recommendation_command(
+                root,
+                phase,
+                domain,
+                skill_payload["options"]["sources"],
+                int(skill_payload["options"]["limit"]),
+                catalog_root,
+                apply_extra,
+            ),
         )
     status = "fit"
     if int(diagnosis["readiness"]["score"]) < 60:
@@ -514,6 +581,7 @@ def build_loop_plan(
                 catalog_root,
             ),
             next_action["command"],
+            *([next_action["apply_command"]] if next_action.get("apply_command") else []),
         ],
     }
 
@@ -564,11 +632,12 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
             f"- Meaning: {next_action.get('category_summary', 'Codex is choosing the next bounded action.')}",
             f"- {next_action['label']}",
             f"- Reason: {next_action['reason']}",
-            f"- Command: `{next_action['command']}`",
-            "",
-            "## Approval Boundary",
+            f"- Preview command: `{next_action.get('preview_command', next_action['command'])}`",
         ]
     )
+    if next_action.get("apply_command"):
+        lines.append(f"- Apply after approval: `{next_action['apply_command']}`")
+    lines.extend(["", "## Approval Boundary"])
     for line in approval_lines(payload, next_action):
         lines.append(f"- {line}")
     if payload.get("harness_contract"):
@@ -706,19 +775,22 @@ def record_history(payload: dict[str, Any], root: Path, note: str = "") -> dict[
 
 def approval_lines(payload: dict[str, Any], next_action: dict[str, Any]) -> list[str]:
     summary = payload["summary"]
-    command = str(next_action.get("command") or "")
+    preview_command = str(next_action.get("preview_command") or next_action.get("command") or "")
+    apply_command = str(next_action.get("apply_command") or "")
     write_kind = str(next_action.get("write_kind") or "none")
     lines: list[str] = []
     if write_kind == "none":
-        lines.append("No file write is implied by the next command.")
-    elif "--dry-run" in command or "--diff" in command:
-        lines.append("The next command is a preview/diff; applying changes needs a separate write command.")
-    elif "--write-plan" in command:
-        lines.append("The next command writes only a reviewable plan document.")
-    elif "--record" in command:
-        lines.append("The next command records harness history; run it only after approving that durable note.")
+        lines.append("No file write is implied by the preview command.")
+    elif not apply_command:
+        lines.append("The preview command does not apply changes; applying changes needs a separate approved command.")
+    elif "--dry-run" in preview_command or "--diff" in preview_command:
+        lines.append("The preview command is a dry-run/diff; run the apply command only after approving the diff.")
+    elif "--write-plan" in apply_command:
+        lines.append("The apply command writes only a reviewable plan document.")
+    elif "--record" in apply_command:
+        lines.append("The apply command records harness history; run it only after approving that durable note.")
     else:
-        lines.append("The next command includes a bounded write; run it only after approving that change.")
+        lines.append("The preview command is read-only; run the apply command only after approving the bounded change.")
     if int(summary.get("human_involvement", 3) or 3) >= 4:
         lines.append("Human involvement 4/5 requires --confirm-write for file writes.")
     lines.append("External skill installs require --install --confirm-install and are adapter-only.")
@@ -799,8 +871,12 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print(f"- {prefix}: {next_action['label']}")
     print(f"- Reason: {next_action['reason']}")
     print("")
-    print("Next command:")
-    print(next_action["command"])
+    print("Preview command:")
+    print(next_action.get("preview_command", next_action["command"]))
+    if next_action.get("apply_command"):
+        print("")
+        print("Apply after approval:")
+        print(next_action["apply_command"])
     print("")
     print("Needs approval:")
     for line in approval_lines(payload, next_action):

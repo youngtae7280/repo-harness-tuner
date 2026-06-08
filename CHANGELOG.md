@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 1.5.1 - 2026-06-08
+
+Assistant UX stabilization, natural-language entry, preview/apply next actions, and release validation alignment.
+
 ### Added
 
 - `Docs/cli-contracts.md` documenting stable CLI command names, exit codes, JSON envelopes, write-safety behavior, and Windows console compatibility expectations for the v1.0.0 contract pass.
@@ -20,13 +26,14 @@
 - User-journey fixture coverage for fresh repo bootstrap and fit repo history recording.
 - Vertical Mermaid one-command flow diagrams in the Korean default README and the English README.
 - `README_EN.md` for the English README after making `README.md` Korean by default.
-- Natural-language entry guidance for prompts such as "다음에 뭐해?", "기획해줘", "구조 잡아줘", and "알아서 해줘" in the skill trigger, README, command docs, and plugin default prompts.
+- Natural-language entry guidance for prompts such as "다음에 뭐해?", "기획해줘", "구조 잡아줘", "검수해줘", and "알아서 해줘" in the skill trigger, README, command docs, and plugin default prompts.
+- `summary.next_action.preview_command`, `apply_command`, and `approval_required` so `next` can show a safe preview before the approved apply command.
 
 ### Changed
 
 - `README.md` is now the Korean default README with a softer one-request onboarding tone; `README_KO.md` remains as a compatibility pointer.
 - Plugin marketplace metadata now presents natural-language `next` onboarding first and uses `youngtae7280` instead of the local-development author label.
-- `doctor`, `run-loop`, and `next` text output now highlights what Codex found, what it can do next, the next command, approval boundaries, and validation hints.
+- `doctor`, `run-loop`, and `next` text output now highlights what Codex found, what it can do next, the preview command, the apply-after-approval command when relevant, approval boundaries, and validation hints.
 - `bootstrap`, `tune`, and `factory` outputs now write the standard harness contract into generated or tuned harness docs.
 - CLI JSON output is now ASCII-safe by default, and console output is configured to avoid `UnicodeEncodeError` crashes on legacy Windows console encodings.
 - ROADMAP and HANDOFF now separate v1.0 one-command onboarding from v1.1+ adaptive cadence and adaptive human-involvement work.
