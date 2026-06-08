@@ -4,6 +4,19 @@
 
 No changes yet.
 
+## 1.5.4 - 2026-06-08
+
+Self-orchestration artifacts for Harness Tuner productization.
+
+### Added
+
+- Generated repo-local Codex team and orchestration artifacts for Harness Tuner itself: `Docs/AI/agent-team.md`, `Docs/AI/team-orchestration.md`, and focused `Docs/AI/skills/*.md` guidance.
+
+### Changed
+
+- Factory validation hints for Codex plugin projects now prefer `release-check` and `fixture-test` instead of a PowerShell-unfriendly `scripts/*.py` py_compile glob.
+- Generated `Docs/AI/skills/*.md` artifacts now state that they are repo-local planning artifacts, not installed Codex skills.
+
 ## 1.5.3 - 2026-06-08
 
 Roadmap request routing for Harness Tuner.

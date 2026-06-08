@@ -217,16 +217,17 @@ def build_validation_commands(root: Path, project_type: str, package_scripts: di
     if project_type == "codex-plugin":
         commands.extend(
             [
-                "python -m py_compile scripts/*.py",
+                "python scripts/console.py release-check",
+                "python scripts/console.py fixture-test",
                 "python <plugin-creator>/scripts/validate_plugin.py .",
                 "python <skill-creator>/scripts/quick_validate.py skills/<skill-name>",
             ]
         )
     if project_type == "python":
         if (root / "pyproject.toml").exists():
-            commands.append("python -m py_compile scripts/*.py")
+            commands.append("python -m compileall scripts")
         elif (root / "scripts").exists():
-            commands.append("python -m py_compile scripts/*.py")
+            commands.append("python -m compileall scripts")
     if project_type == "unity":
         commands.append("Record Unity Editor/build validation when available.")
     if not commands:
@@ -351,7 +352,7 @@ def summarize_evidence(project_type: str, refs: list[str], validation_commands: 
         return f"{project_type} project with limited concrete markers; keep generated output conservative."
     ref_text = ", ".join(short_list(refs, 5))
     validation_text = ", ".join(short_list(validation_commands, 3))
-    return f"{project_type} evidence: {ref_text}. Validation hints: {validation_text}."
+    return f"{project_type} evidence: {ref_text}. Validation hints: {validation_text}"
 
 
 def evidence_trigger_suffix(evidence: dict[str, Any]) -> str:
@@ -718,6 +719,8 @@ def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
         f"Status: {skill['status']}",
         f"Domain: {payload['domain']}",
         f"Team: {team['label']}",
+        "",
+        "This is a repo-local planning artifact, not an installed Codex skill. Treat it as guidance for future Harness Tuner work unless a separate approved install flow creates a real `SKILL.md`.",
         "",
         "## Purpose",
         skill["purpose"],
