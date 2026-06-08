@@ -30,12 +30,16 @@ Short natural-language prompts are fine when you name Harness Tuner:
 ```text
 What should I do next? Use Harness Tuner read-only first.
 Plan this project with Harness Tuner: scope, definition of done, and approval points first.
+Draft a roadmap with Harness Tuner, but show the draft first and ask before writing files.
+Plan the next milestone and development sequence with Harness Tuner read-only first.
 Review this repo with Harness Tuner, but only summarize the validation loop.
 ```
 
 Do not rely on a bare chat message like `next`. In chat, `next` is ambiguous and can be interpreted as continuing prior work. The CLI command is still named `next`; the chat prompt should explicitly invoke Harness Tuner.
 
 In repos with strong project-specific skills, explicitly naming Harness Tuner matters. Harness Tuner should route the work type and approval boundary first, then recommend a project-specific skill only when that is the right next step.
+
+Roadmap requests are chat drafts by default. They should cover phases, milestones, priorities, validation gates, dependencies, risks, approval points, and the next review trigger. Creating or updating `ROADMAP.md`, `Docs/AI/*`, issues, tasks, release notes, or milestone files requires explicit approval.
 
 These prompts do not mean "silently edit everything." The plugin should inspect first, label whether the work is planning, development support, review, harness tuning, skill recommendation, or history, then propose one safe next action.
 

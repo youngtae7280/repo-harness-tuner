@@ -4,6 +4,15 @@
 
 No changes yet.
 
+## 1.5.3 - 2026-06-08
+
+Roadmap request routing for Harness Tuner.
+
+### Changed
+
+- Added roadmap/roadmap-drafting prompts to the plugin metadata, skill UI prompt, README, and command docs.
+- Treat roadmap requests as planning work that drafts in chat by default and requires explicit approval before writing or updating roadmap files.
+
 ## 1.5.2 - 2026-06-08
 
 Chat-safe Harness Tuner entry and display-name stabilization.

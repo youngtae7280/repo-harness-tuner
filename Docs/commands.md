@@ -20,6 +20,8 @@ Short prompts are fine when they include the routing intent:
 ```text
 What should I do next? Use Harness Tuner read-only first.
 Plan this project with Harness Tuner: scope, definition of done, and approval points first.
+Draft a roadmap with Harness Tuner, but show the draft first and ask before writing files.
+Plan the next milestone and development sequence with Harness Tuner read-only first.
 Review this repo with Harness Tuner, but only summarize the validation loop.
 ```
 
@@ -28,6 +30,8 @@ The skill should treat those as `next`-style requests first: inspect the repo, l
 Do not rely on a bare chat message like `next`. In chat, `next` is ambiguous and can be interpreted as continuing prior work. The CLI command is still named `next`; chat prompts should explicitly invoke Harness Tuner.
 
 In repos with strong project-specific skills, Harness Tuner should route the work type and approval boundary first. Treat domain-specific skills as recommended next steps, not as the entry pass.
+
+Roadmap requests should produce a chat draft by default: phases, milestones, priorities, validation gates, dependencies, risks, approval points, and the next review trigger. Creating or updating `ROADMAP.md`, `Docs/AI/*`, issues, tasks, release notes, or milestone files requires explicit approval.
 
 Use `next` when you want the plugin to answer "what should Codex do next?" without writing files:
 

@@ -1,7 +1,7 @@
 {
   "name": "repo-harness-tuner",
-  "version": "1.5.2+codex.20260608124818",
-  "description": "Harness Tuner helps Codex choose the next safe repo step with a read-only first pass, then tune repo harnesses and recommend minimal adapter skills with approval gates.",
+  "version": "1.5.3+codex.20260608125756",
+  "description": "Harness Tuner helps Codex choose the next safe repo step, draft project roadmaps, tune repo harnesses, and recommend minimal adapter skills with approval gates.",
   "author": {
     "name": "youngtae7280"
   },
@@ -9,8 +9,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Harness Tuner",
-    "shortDescription": "Ask Harness Tuner for a read-only next-step pass with approval boundaries.",
-    "longDescription": "Harness Tuner is a Codex workspace tuner for natural-language project direction. Its purpose is not to make Codex silently do everything; it keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. In a repo context, prompts like \u201cHarness Tuner\ub85c \uc774 repo\uc5d0\uc11c \ub2e4\uc74c\uc5d0 \ubb50\ud560\uc9c0 \uc77d\uae30 \uc804\uc6a9\uc73c\ub85c \uc548\ub0b4\ud574\uc918\u201d or \u201cUse Harness Tuner to inspect this repo read-only and tell me the next safe step\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. A bare chat message like \u201cnext\u201d is ambiguous and should not launch apps, browsers, UI tests, builds, hardware checks, file writes, installs, or domain-specific implementation skills before the read-only Harness Tuner summary. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
+    "shortDescription": "Ask Harness Tuner for read-only next steps, roadmaps, and approval boundaries.",
+    "longDescription": "Harness Tuner is a Codex workspace tuner for natural-language project direction. Its purpose is not to make Codex silently do everything; it keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. In a repo context, prompts like \u201cHarness Tuner\ub85c \uc774 repo\uc5d0\uc11c \ub2e4\uc74c\uc5d0 \ubb50\ud560\uc9c0 \uc77d\uae30 \uc804\uc6a9\uc73c\ub85c \uc548\ub0b4\ud574\uc918\u201d, \u201cHarness Tuner\ub85c \ub85c\ub4dc\ub9f5 \uc791\uc131\ud574\uc918\u201d, or \u201cUse Harness Tuner to draft a roadmap for this repo\u201d should start with a read-only planning pass: inspect the repo, label the work type, draft phases/milestones/priorities/validation/approval points, show approval boundaries, and suggest validation. A bare chat message like \u201cnext\u201d is ambiguous and should not launch apps, browsers, UI tests, builds, hardware checks, file writes, installs, or domain-specific implementation skills before the read-only Harness Tuner summary. Roadmap requests should draft in chat by default; creating or updating ROADMAP.md, Docs/AI/*, issues, tasks, release notes, or milestone files requires explicit approval. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
     "developerName": "youngtae7280",
     "category": "Productivity",
     "capabilities": [
@@ -19,6 +19,7 @@
       "Next action work type labeling",
       "One-command harness doctor",
       "One-command run-loop planning",
+      "Read-only project roadmap drafting",
       "Fixture golden-test suite",
       "User journey fixture coverage",
       "Release fresh-copy validation",
@@ -60,7 +61,10 @@
     ],
     "defaultPrompt": [
       "Use $repo-harness-tuner to inspect this repo read-only and tell me the next safe step. Do not open apps, run tests, write files, or install anything; show preview/apply boundaries.",
+      "Use $repo-harness-tuner to draft a roadmap for this repo from read-only evidence. Do not write ROADMAP.md unless I approve it.",
+      "Use $repo-harness-tuner to plan the next milestone, release plan, and development sequence from read-only evidence.",
       "Harness Tuner\ub85c \uc774 repo\uc5d0\uc11c \ub2e4\uc74c\uc5d0 \ubb50\ud560\uc9c0 \uc77d\uae30 \uc804\uc6a9\uc73c\ub85c \uc548\ub0b4\ud574\uc918. \ucc3d \uc5f4\uae30, \ud14c\uc2a4\ud2b8 \uc2e4\ud589, \ud30c\uc77c \uc4f0\uae30, \uc124\uce58\ub294 \ud558\uc9c0 \ub9d0\uace0 preview/apply \uacbd\uacc4\ub9cc \ubcf4\uc5ec\uc918.",
+      "Harness Tuner\ub85c \uc774 repo \ub85c\ub4dc\ub9f5 \ucd08\uc548\uc744 \uc791\uc131\ud574\uc918. ROADMAP.md \uc800\uc7a5\uc740 \ub0b4\uac00 \uc2b9\uc778\ud558\uae30 \uc804\uc5d0\ub294 \ud558\uc9c0 \ub9c8.",
       "Use Harness Tuner to plan this project read-only first, then list what needs approval before any implementation.",
       "Use Harness Tuner to define scope, access/actions, definition of done, and human approval points for this repo.",
       "Use Harness Tuner to review the validation loop for this repo without running tests yet.",

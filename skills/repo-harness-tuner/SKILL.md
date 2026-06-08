@@ -1,6 +1,6 @@
 ---
 name: repo-harness-tuner
-description: "Use $repo-harness-tuner / Harness Tuner in a repository when the user asks for project direction, next steps, planning, structure, review/validation, completion criteria, approval points, harness tuning, or skill/agent recommendations, including Korean prompts like '\ubb50\ud574\uc57c \ud560\uc9c0 \uc548\ub0b4\ud574\uc918', '\ub2e4\uc74c \uc791\uc5c5', '\ub2e4\uc74c\uc5d0 \ubb50\ud574?', '\uae30\ud68d\ud574\uc918', '\uad6c\uc870 \uc7a1\uc544\uc918', '\uac80\uc218 \uae30\uc900 \uc7a1\uc544\uc918', or '\uc2b9\uc778 \uc9c0\uc810 \uc7a1\uc544\uc918'. Also use when the user explicitly says Harness Tuner or repo-harness-tuner. First entry is read-only: inspect repo evidence and report one safe next action with preview/apply boundaries. If the user only says 'next', treat it as ambiguous chat unless project-direction intent is clear. Do not open apps, browsers, or windows; run builds, UI tests, or hardware checks; write files; install skills; or switch to domain-specific project skills before the read-only next pass."
+description: "Use $repo-harness-tuner / Harness Tuner in a repository when the user asks for project direction, next steps, roadmaps, milestone planning, release planning, priority ordering, development sequence, structure, review/validation, completion criteria, approval points, harness tuning, or skill/agent recommendations, including Korean prompts like '\ubb50\ud574\uc57c \ud560\uc9c0 \uc548\ub0b4\ud574\uc918', '\ub85c\ub4dc\ub9f5 \uc791\uc131\ud574\uc918', '\ub2e4\uc74c \ub9c8\uc77c\uc2a4\ud1a4', '\uac1c\ubc1c \uc21c\uc11c', '\uc6b0\uc120\uc21c\uc704 \uc815\ub9ac', '\ub2e4\uc74c \uc791\uc5c5', '\ub2e4\uc74c\uc5d0 \ubb50\ud574?', '\uae30\ud68d\ud574\uc918', '\uad6c\uc870 \uc7a1\uc544\uc918', '\uac80\uc218 \uae30\uc900 \uc7a1\uc544\uc918', or '\uc2b9\uc778 \uc9c0\uc810 \uc7a1\uc544\uc918'. Also use when the user explicitly says Harness Tuner or repo-harness-tuner. First entry is read-only: inspect repo evidence and report one safe next action or roadmap draft with preview/apply boundaries. If the user only says 'next', treat it as ambiguous chat unless project-direction intent is clear. Do not open apps, browsers, or windows; run builds, UI tests, or hardware checks; write files; install skills; or switch to domain-specific project skills before the read-only next pass."
 ---
 
 # Harness Tuner
@@ -38,6 +38,11 @@ Examples that should trigger this skill when a repo is available:
 
 - "What should Codex do next?"
 - "Plan this project."
+- "Draft a roadmap."
+- "Write a roadmap for this repo."
+- "Plan the next milestone."
+- "Create a release plan."
+- "Prioritize the development sequence."
 - "Set up the project structure."
 - "Set the review and validation loop."
 - "Define completion criteria and approval points."
@@ -48,6 +53,7 @@ Map these prompts conservatively:
 
 - "what next" -> run or emulate `next`, then report the work type, one next action, approval boundary, and validation.
 - "plan" -> start with `next`; if planning is recommended, shape Scope, Access & Actions, Definition of Done, and Human Approval Points.
+- "roadmap" / "milestone" / "release plan" / "priority ordering" -> start read-only, then draft a roadmap in chat with phases, milestones, validation gates, dependencies, risks, approval points, and the next review trigger. Do not create or update `ROADMAP.md`, `Docs/AI/*`, release notes, issues, tasks, or milestone files unless the user explicitly approves a file write.
 - "structure" -> inspect first; recommend `bootstrap`, `tune`, or `factory` only when repo evidence supports it.
 - "review" / "completion criteria" -> start with `next`; emphasize Definition of Done, validation evidence, skipped-check handling, and remaining-risk reporting.
 - "handle it for me" -> start read-only, explain the next safe step, and stop before file writes, installs, policy changes, release/deploy, dependency changes, or destructive actions unless the user explicitly approves.
