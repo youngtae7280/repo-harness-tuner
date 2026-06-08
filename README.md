@@ -1,24 +1,26 @@
 # Repo Harness Tuner
 
-Repo Harness Tuner is a local Codex plugin that helps Codex set up and keep improving the smallest useful repo-local working harness for a project.
+Repo Harness Tuner is a Codex workspace tuner.
 
-It is meant to feel like a one-request assistant: you ask once, it inspects the repo, decides the next harness step, and keeps writes behind explicit approval.
+Run one command to inspect a repo, diagnose its agent workflow, choose the next safe action, suggest validation, and recommend only the smallest useful skills or worker patterns. It plans and recommends automatically. It writes files, changes policy, or installs external skills only after explicit approval.
+
+It is not a silent autonomous product developer. It is the layer that helps Codex keep planning, development, review, validation, and repo-local harness guidance organized as the project moves.
 
 ## Start Here
 
 In Codex, start with one request:
 
 ```text
-Use repo-harness-tuner on this repo. Inspect the project, diagnose the Codex harness, recommend the next step, and keep file writes behind approval.
+Use repo-harness-tuner on this repo. Tell me what Codex should do next, what validation to run, and what needs approval before any file write or install.
 ```
 
-From the command line, run one read-only planning pass:
+From the command line, use `next` as the first read-only planning pass:
 
 ```powershell
-python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-For diagnosis only:
+`next` is a friendly alias for `run-loop`. Use `doctor` when you want a shorter health check:
 
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
@@ -32,6 +34,14 @@ The loop does the harness work in order:
 Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 ```
 
+The output is organized around:
+
+- what Codex found,
+- what Codex can do next,
+- the next command,
+- what needs approval,
+- validation to run.
+
 It decides whether the repo needs:
 
 - no change because the current harness is fit,
@@ -41,13 +51,13 @@ It decides whether the repo needs:
 - a minimal skill/agent recommendation with `recommend-skills`,
 - an evaluation or history record so future runs can learn from the result.
 
-You do not need to choose all of those commands up front. Start with `run-loop` or `doctor`; use the recommended next action after reviewing it.
+You do not need to choose all of those commands up front. Start with `next`; use the recommended action after reviewing the approval boundary.
 
 ## Safety Model
 
 The plugin is read-first.
 
-- `doctor` and default `run-loop` do not edit files.
+- `next`, `doctor`, and default `run-loop` do not edit files.
 - File writes require explicit flags such as `--write`, `--write-plan`, `--write-recommended`, or `--write-artifacts`.
 - Skill installs require explicit `--install --confirm-install`.
 - Human involvement levels 4 and 5 also require `--confirm-write`.
@@ -82,13 +92,13 @@ It tracks:
 - repeated human-involvement gaps,
 - eval regressions and unchanged failures.
 
-Those signals raise review pressure and can make the next `run-loop` recommend `tune`, `eval-review`, or a shorter review interval.
+Those signals raise review pressure and can make the next `next` / `run-loop` pass recommend `tune`, `eval-review`, or a shorter review interval.
 
-`doctor` and `run-loop` also emit structured `adaptive` recommendations for cadence and human involvement. There is no background scheduler yet. Re-run `doctor` or `run-loop` at the recommended trigger, after meaningful project changes, after repeated Codex misses, or before high-risk/release work.
+`next`, `doctor`, and `run-loop` also emit structured `adaptive` recommendations for cadence and human involvement. There is no background scheduler yet. Re-run `next` at the recommended trigger, after meaningful project changes, after repeated Codex misses, or before high-risk/release work.
 
 ## Skill Recommendations
 
-`run-loop` includes minimal skill recommendations. The standalone command is:
+`next` / `run-loop` includes minimal skill recommendations. The standalone command is:
 
 ```powershell
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project" --source builtin,ecc
@@ -133,6 +143,7 @@ Current behavior detects human-involvement gaps and can recommend keeping, raisi
 Run from this plugin directory:
 
 ```powershell
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project"

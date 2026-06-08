@@ -70,6 +70,7 @@ Start a new Codex thread after installing so the plugin skills are loaded into t
 The CLI scripts can run directly from the cloned repository:
 
 ```powershell
+python scripts\console.py next --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py doctor --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py recommend-skills --repo . --phase active-development --domain "Codex plugin harness factory"
@@ -126,7 +127,7 @@ Start with release validation and fresh-clone verification. The expected work is
 2. Confirm first-time install, upgrade, reinstall, and troubleshooting docs from a fresh clone.
 3. Keep versioning and breaking-change policy aligned with `Docs/versioning.md`.
 4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, recommendation adapter installs, and broad CLI smoke tests.
-5. Confirm a fresh clone on a different PC can run `doctor`, `run-loop`, `recommend-skills`, `fixture-test`, and plugin install from docs only.
+5. Confirm a fresh clone on a different PC can run `next`, `doctor`, `run-loop`, `recommend-skills`, `fixture-test`, and plugin install from docs only.
 
 Agreed development order after the 2026-06-08 audit review:
 
@@ -135,9 +136,9 @@ Agreed development order after the 2026-06-08 audit review:
 3. Use `Docs/versioning.md` for `#20`, then do `#21` and `#22`: CI/release validation matrix and fresh-clone continuation verification.
 4. Keep PowerShell-safe commands in docs. Prefer explicit script file lists over `scripts/*.py` in Windows instructions.
 5. Track the Windows CP949 `UnicodeEncodeError` seen in `overview` as a `#18` compatibility issue, because it is part of the public CLI contract rather than only an onboarding problem.
-6. Treat "one-command assistant" as a user-experience commitment around `doctor` and `run-loop`; `recommend-skills` is a supporting command, not a new required first step.
-7. v1.1 structured adaptive recommendations are implemented in `doctor`/`run-loop`. They recommend cadence and human-involvement changes from closed-loop evidence, but do not run a scheduler or silently change policy.
-8. v1.2-v1.5 skill recommendations are implemented in `recommend-skills` / `catalog` and surfaced in `doctor` / `run-loop`. They remain recommendation-only unless the user passes explicit write/install flags.
+6. Treat "one-command assistant" as a user-experience commitment around `next`, `doctor`, and `run-loop`; `recommend-skills` is a supporting command, not a new required first step.
+7. v1.1 structured adaptive recommendations are implemented in `next`/`doctor`/`run-loop`. They recommend cadence and human-involvement changes from closed-loop evidence, but do not run a scheduler or silently change policy.
+8. v1.2-v1.5 skill recommendations are implemented in `recommend-skills` / `catalog` and surfaced in `next` / `doctor` / `run-loop`. They remain recommendation-only unless the user passes explicit write/install flags.
 
 The `#18`, `#19`, and `#20` documentation entry points are:
 
@@ -149,7 +150,7 @@ The `#18`, `#19`, and `#20` documentation entry points are:
 
 Product direction:
 
-- Keep the first user action to one request in Codex or one `run-loop` command in CLI.
+- Keep the first user action to one request in Codex or one `next` command in CLI.
 - Keep structured adaptive cadence recommendations in `adaptive.cadence` before considering any scheduler-like automation.
 - Keep human-involvement adjustment suggestions in `adaptive.human_involvement`; require explicit approval before changing repo-local policy.
 - Keep skill/catalog recommendations minimal, adapter-only, and approval-based.

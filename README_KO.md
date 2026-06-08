@@ -1,24 +1,26 @@
 # Repo Harness Tuner
 
-Repo Harness Tuner는 Codex가 프로젝트별로 필요한 최소 작업 하네스를 만들고, 프로젝트가 진행되면서 계속 알맞게 조정하도록 돕는 로컬 Codex 플러그인입니다.
+Repo Harness Tuner는 Codex 작업장 튜너입니다.
 
-목표는 원커맨드 assistant 경험입니다. 사용자는 한 번 요청하고, 플러그인은 repo를 분석하고, 다음 하네스 작업과 필요한 최소 skill/agent 후보를 추천하며, 파일 쓰기와 설치는 명시 승인 뒤에만 진행합니다.
+명령 하나로 repo를 살펴보고, agent 작업 흐름을 진단하고, 다음 안전한 작업과 검증 방법, 필요한 최소 skill/worker 추천을 정리합니다. 분석과 추천은 자동으로 하지만, 파일 쓰기, 정책 변경, 외부 skill 설치는 명시 승인 후에만 합니다.
+
+이 플러그인은 조용히 모든 기획/개발/출시를 대신하는 자동 개발자가 아닙니다. Codex가 기획, 개발, 검수, 문서화, 하네스 정리를 계속 이어가기 좋도록 작업장을 정리하는 층입니다.
 
 ## 시작하기
 
 Codex에서는 이렇게 한 번 요청하세요.
 
 ```text
-repo-harness-tuner로 이 repo를 봐줘. 프로젝트를 분석하고, Codex 하네스를 진단하고, 다음 작업과 필요한 최소 skill/agent를 추천하되, 파일 쓰기와 설치는 승인 후에만 진행해줘.
+repo-harness-tuner로 이 repo를 봐줘. Codex가 다음에 뭘 해야 하는지, 어떤 검증을 해야 하는지, 파일 쓰기나 설치 전에 무엇을 승인해야 하는지 알려줘.
 ```
 
-CLI에서는 read-only planning pass부터 시작합니다.
+CLI에서는 `next`를 첫 read-only planning pass로 사용합니다.
 
 ```powershell
-python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-진단만 보고 싶다면:
+`next`는 `run-loop`의 친절한 alias입니다. 짧은 건강 상태만 보고 싶다면 `doctor`를 씁니다.
 
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
@@ -32,6 +34,14 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 ```
 
+출력은 다음 항목을 중심으로 보여줍니다.
+
+- Codex가 발견한 것
+- Codex가 다음에 할 수 있는 일
+- 다음 명령
+- 승인이 필요한 것
+- 실행할 검증
+
 결과에 따라 다음 중 하나를 추천합니다.
 
 - 현재 하네스가 충분하면 변경 없음
@@ -41,13 +51,13 @@ Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 - 최소 skill/agent 후보가 필요하면 `recommend-skills`
 - 다음 실행이 더 좋아지도록 eval/history 기록
 
-처음부터 모든 명령을 고를 필요는 없습니다. `run-loop` 또는 `doctor`로 시작하고, 출력된 next action을 검토한 뒤 진행하면 됩니다.
+처음부터 모든 명령을 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 검토한 뒤 진행하면 됩니다.
 
 ## 안전 모델
 
 기본은 read-first입니다.
 
-- `doctor`와 기본 `run-loop`는 파일을 수정하지 않습니다.
+- `next`, `doctor`, 기본 `run-loop`는 파일을 수정하지 않습니다.
 - 파일 쓰기는 `--write`, `--write-plan`, `--write-recommended`, `--write-artifacts` 같은 명시 플래그가 필요합니다.
 - skill 설치는 `--install --confirm-install`이 필요합니다.
 - human involvement 4 또는 5에서는 `--confirm-write`도 필요합니다.
@@ -56,7 +66,7 @@ Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 
 ## Skill 추천
 
-`run-loop`에는 최소 skill 추천이 포함됩니다. 별도로 보고 싶으면:
+`next` / `run-loop`에는 최소 skill 추천이 포함됩니다. 별도로 보고 싶으면:
 
 ```powershell
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project" --source builtin,ecc
@@ -111,6 +121,7 @@ python scripts\console.py run-loop --repo C:\path\to\repo --module "Release flow
 ## 핵심 명령
 
 ```powershell
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "your project"

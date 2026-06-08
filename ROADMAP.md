@@ -89,13 +89,13 @@ Scope:
 - Define versioning and breaking-change policy in `Docs/versioning.md`.
 - Make the README a one-request/one-command onboarding path instead of a full command manual.
 - Keep CI coverage for fixture tests, plugin validation, skill validation, and smoke tests.
-- Ensure first-time users can start with `doctor` or `run-loop` without reading the whole manual.
+- Ensure first-time users can start with `next`, `doctor`, or `run-loop` without reading the whole manual.
 
 Done when:
 
 - A fresh clone on a new PC can install or run the plugin from the documented steps without relying on local-only state.
 - First-time usage docs cover empty projects, existing projects, Codex plugin projects, and projects that already have harness files.
-- README explains the product as a one-request assistant: start with `run-loop` or `doctor`, let the plugin recommend the next step, and keep writes behind explicit approval.
+- README explains the product as a one-request assistant: start with `next`, let the plugin recommend the next step, and keep writes behind explicit approval.
 - CLI command names, JSON schemas, exit codes, and write-safety behavior are documented and treated as stable unless a `Docs/versioning.md` breaking-change note is added.
 - CI validates script compilation, fixture tests, plugin manifest validation, skill validation, harness checks, and broad CLI smoke tests.
 - `doctor`, `run-loop`, `factory`, `eval`, `bootstrap`, and `tune` have examples that show read-only mode first and explicit write flags second.
@@ -103,7 +103,7 @@ Done when:
 
 ## v1.1.0 - Adaptive Assistant Experience
 
-Status: implemented for structured recommendations; scheduler-style automation remains future work.
+Status: implemented for the `next` entry alias and structured recommendations; scheduler-style automation remains future work.
 
 Goal: make the one-request assistant feel more continuous while preserving explicit approval for writes and policy changes.
 
@@ -117,7 +117,7 @@ Scope:
 
 Done when:
 
-- A user can start with one request or one command and receive a clear follow-up path for diagnosis, tuning, validation, and history recording.
+- A user can start with one request or one `next` command and receive a clear follow-up path for diagnosis, tuning, validation, and history recording.
 - Repeated closed-loop signals produce a structured recommendation such as "shorten review interval" or "raise human involvement for release flow".
 - Applying cadence or human-involvement changes remains explicit, reviewable, and documented in repo-local harness files.
 - Fixture tests cover closed-loop adaptive cadence and human-involvement recommendations.
@@ -133,7 +133,7 @@ Scope:
 - Rank repo-fit capabilities such as code review, TDD, security, docs, build repair, frontend UI, release checks, and harness curation.
 - Decide whether built-in factory output is enough before suggesting an external catalog candidate.
 - Cap recommendations at 1-3 and suppress low-evidence external suggestions.
-- Include recommendations in `doctor` and `run-loop`.
+- Include recommendations in `next`, `doctor`, and `run-loop`.
 
 Done when:
 
@@ -185,7 +185,7 @@ Scope:
 
 - Add `skill_recommendations.curator` with baseline, repair, reduce, keep, and watch actions.
 - Feed eval regressions, unchanged failures, readiness regression, process overhead, and human-involvement gaps into skill recommendation pressure.
-- Make `run-loop` show skill recommendations and optionally write only the recommendation plan through `--write-recommended`.
+- Make `next` / `run-loop` show skill recommendations and optionally write only the recommendation plan through `--write-recommended`.
 
 Done when:
 
@@ -200,7 +200,7 @@ The next implementation priority is **release validation and fresh-clone verific
 Current working agreement:
 
 1. Keep README slim: one request or one command first, then safety and links.
-2. Keep `doctor` and `run-loop` as the one-command assistant surface.
+2. Keep `next`, `doctor`, and `run-loop` as the one-command assistant surface.
 3. Keep `recommend-skills` / `catalog` as adapter-only; do not bulk-install ECC.
 4. Keep cadence, human-involvement, and install changes approval-based.
 5. Finish release validation, fresh-clone verification, cachebuster refresh, and GitHub release/tag alignment before calling the public release done.
@@ -212,5 +212,5 @@ Implemented documentation anchors for this pass:
 - `Docs/commands.md`: full command reference split out of README.
 - `Docs/versioning.md`: `#20` versioning, breaking-change classification, deprecation, changelog, and release checklist policy.
 - `README.md` / `README_KO.md`: slim one-request onboarding, safety model, adaptive-loop explanation, and links to detailed docs.
-- `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
+- `next` / `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
 - `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.

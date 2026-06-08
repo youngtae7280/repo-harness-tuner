@@ -4,10 +4,21 @@ Run these from the Repo Harness Tuner plugin directory unless noted otherwise.
 
 For the stability contract behind these commands, see `Docs/cli-contracts.md`.
 
+## One-Command Entry
+
+Use `next` when you want the plugin to answer "what should Codex do next?" without writing files:
+
+```powershell
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation"
+```
+
+`next` is a friendly alias for `run-loop`. It prints what Codex found, what Codex can do next, the next command, what needs approval, and validation to run.
+
 ## Read-Only First
 
 ```powershell
 python scripts\console.py overview --repo C:\path\to\repo
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "technical documentation"
@@ -18,6 +29,7 @@ python scripts\console.py fixture-test
 
 ```powershell
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --record-history --note "after first feature"
 python scripts\console.py history --repo C:\path\to\repo
 python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
@@ -107,6 +119,7 @@ python scripts\console.py prompt --repo-type "Vite + TypeScript + JSON game prot
 
 ```powershell
 python scripts\console.py overview --repo C:\path\to\repo --json
+python scripts\console.py next --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py doctor --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py run-loop --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py fixture-test --json
@@ -126,14 +139,14 @@ python scripts\console.py plugins --json
 python scripts\console.py repo --repo C:\path\to\repo --json
 ```
 
-`doctor` and `run-loop` include an `adaptive` object in JSON output. It is recommendation-only:
+`next`, `doctor`, and `run-loop` include an `adaptive` object in JSON output. It is recommendation-only:
 
 - `adaptive.cadence` gives structured review pressure, recommended interval, next trigger, and evidence signals.
 - `adaptive.human_involvement` can recommend keeping, raising, or lowering the default human-involvement level.
 - `adaptive.human_involvement.approval_required` is `true` when a policy change is recommended.
 - The plugin never silently changes cadence or human-involvement policy; apply those changes only after review.
 
-`doctor` and `run-loop` also include `skill_recommendations`. It is recommendation-only:
+`next`, `doctor`, and `run-loop` also include `skill_recommendations`. It is recommendation-only:
 
 - `skill_recommendations.recommendations` lists minimal built-in or ECC-seed candidates.
 - `skill_recommendations.curator` says whether the current evidence suggests baseline, repair, reduce, keep, or watch.

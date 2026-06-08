@@ -13,6 +13,7 @@ These command names are treated as public:
 | `doctor` | Stable | Read-only one-command harness health check and next action. |
 | `run-loop` | Stable | Read-only full analyze/diagnose/design/factory/tune/evaluate/history planning pass unless write flags are supplied. |
 | `loop` | Stable alias | Alias for `run-loop`. |
+| `next` | Stable alias | Friendly alias for `run-loop`; answers what Codex should do next. |
 | `fixture-test` | Stable | Run fixture golden tests. |
 | `diagnose` | Stable | Score readiness and detect drift, overhead, and human-involvement gaps. |
 | `design` | Stable | Build the next harness design plan from diagnosis. |
@@ -50,6 +51,7 @@ Read-only is the default. The following commands must not modify target files un
 - `doctor`
 - `run-loop`
 - `loop`
+- `next`
 - `diagnose`
 - `design`
 - `eval`
@@ -66,9 +68,9 @@ Stable write flags:
 | Flag | Commands | Contract |
 | --- | --- | --- |
 | `--write` | `bootstrap`, `apply`, `tune`, `history` | Enables file writes for the command's bounded target files. |
-| `--write-plan` | `run-loop`, `diagnose`, `design`, `eval`, `factory`, `recommend-skills`, `catalog` | Writes a durable plan document only. |
-| `--write-recommended` | `run-loop`, `loop` | Applies only the bounded recommended low-risk harness action. |
-| `--record-history` | `run-loop`, `loop` | Appends a harness history snapshot. |
+| `--write-plan` | `run-loop`, `loop`, `next`, `diagnose`, `design`, `eval`, `factory`, `recommend-skills`, `catalog` | Writes a durable plan document only. |
+| `--write-recommended` | `run-loop`, `loop`, `next` | Applies only the bounded recommended low-risk harness action. |
+| `--record-history` | `run-loop`, `loop`, `next` | Appends a harness history snapshot. |
 | `--write-score` | `eval` | Appends eval score history after `--score`. |
 | `--write-artifacts` | `factory` | Writes missing repo-local team and skill artifacts. |
 | `--write-codex-skills` | `factory` | Writes generated Codex skill drafts under the configured output directory. |
@@ -89,7 +91,7 @@ Stable top-level JSON fields:
 | Command | Stable top-level fields |
 | --- | --- |
 | `doctor` | `schema`, `created_at`, `repo`, `phase`, `domain`, `options`, `status`, `summary`, `analyze`, `diagnose`, `closed_loop`, `adaptive`, `design`, `factory`, `skill_recommendations`, `tune`, `evaluate`, `history`, `commands` |
-| `run-loop` / `loop` | Same top-level envelope as `doctor`, plus any write-result fields when write flags are used. |
+| `run-loop` / `loop` / `next` | Same top-level envelope as `doctor`, plus any write-result fields when write flags are used. |
 | `diagnose` | `phase`, `cadence`, `human_involvement`, `human_involvement_policy`, `readiness`, `drift`, `process_overhead`, `human_involvement_enforcement`, `history_feedback`, `human_involvement_matrix`, `harness_design`, `adaptive` |
 | `factory` | `schema`, `created_at`, `repo`, `domain`, `phase`, `project_type`, `factory_goal`, `harness_engine`, `repo_evidence`, `artifact_inventory`, `factory_quality`, `team_factory` |
 | `recommend-skills` / `catalog` | `schema`, `created_at`, `repo`, `domain`, `phase`, `options`, `summary`, `capabilities`, `recommendations`, `curator`, `safety`, `commands` |
@@ -110,7 +112,8 @@ Nested fields may grow over time. Removing or renaming documented top-level fiel
 
 Text output is user-facing and may evolve for readability, but it must preserve these concepts:
 
-- status/readiness/next action for `doctor` and `run-loop`
+- status/readiness/next action for `next`, `doctor`, and `run-loop`
+- "what Codex found", "what Codex can do next", next command, approval boundary, and validation hints for `doctor`, `run-loop`, and `next`
 - dry-run vs write distinction for `bootstrap`, `apply`, and `tune`
 - refusal reason and required flag for write guards
 - fixture pass/fail summary for `fixture-test`

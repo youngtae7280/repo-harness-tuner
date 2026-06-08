@@ -76,6 +76,7 @@ Start a new Codex thread after installing or refreshing so the plugin skills are
 The CLI scripts can run directly from the cloned repository:
 
 ```powershell
+python scripts\console.py next --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py doctor --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py recommend-skills --repo . --phase active-development --domain "Codex plugin harness factory"
@@ -172,6 +173,7 @@ Report or fix the command so default PowerShell users do not need the workaround
 Use read-only commands first:
 
 ```powershell
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
 ```

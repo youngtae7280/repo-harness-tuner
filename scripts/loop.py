@@ -438,6 +438,7 @@ def build_loop_plan(
         },
         "history": history_summary,
         "commands": [
+            command_line("next", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
             command_line("doctor", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
             command_line("run-loop", root, phase, modules, human_involvement, repo_type, ["--domain", quote_cli(domain)]),
             skill_recommender.recommendation_command(
@@ -499,13 +500,21 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
             f"- Reason: {next_action['reason']}",
             f"- Command: `{next_action['command']}`",
             "",
+            "## Approval Boundary",
+        ]
+    )
+    for line in approval_lines(payload, next_action):
+        lines.append(f"- {line}")
+    lines.extend(
+        [
+            "",
             "## Loop Summary",
             f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s), {len(payload['analyze']['missing_recommended'])} missing recommended file(s).",
             f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s).",
             f"- Design: {len(payload['design']['target_files'])} target action(s), next review `{payload['design']['next_review_trigger']}`.",
-        f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
-        f"- Skill recommendations: {summary['skill_recommendations']} candidate(s), {summary['external_skill_recommendations']} external, curator `{summary['skill_curator_action']}`.",
-        f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
+            f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
+            f"- Skill recommendations: {summary['skill_recommendations']} candidate(s), {summary['external_skill_recommendations']} external, curator `{summary['skill_curator_action']}`.",
+            f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
             f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
             f"- History: {summary['history_entries']} recorded event(s).",
             f"- Closed loop: {summary['closed_loop_signals']} signal(s), review pressure `{summary['review_pressure']}`.",
@@ -612,6 +621,38 @@ def record_history(payload: dict[str, Any], root: Path, note: str = "") -> dict[
     return {"event": event, "path": str(path)}
 
 
+def approval_lines(payload: dict[str, Any], next_action: dict[str, Any]) -> list[str]:
+    summary = payload["summary"]
+    command = str(next_action.get("command") or "")
+    write_kind = str(next_action.get("write_kind") or "none")
+    lines: list[str] = []
+    if write_kind == "none":
+        lines.append("No file write is implied by the next command.")
+    elif "--dry-run" in command or "--diff" in command:
+        lines.append("The next command is a preview/diff; applying changes needs a separate write command.")
+    elif "--write-plan" in command:
+        lines.append("The next command writes only a reviewable plan document.")
+    elif "--record" in command:
+        lines.append("The next command records harness history; run it only after approving that durable note.")
+    else:
+        lines.append("The next command includes a bounded write; run it only after approving that change.")
+    if int(summary.get("human_involvement", 3) or 3) >= 4:
+        lines.append("Human involvement 4/5 requires --confirm-write for file writes.")
+    lines.append("External skill installs require --install --confirm-install and are adapter-only.")
+    lines.append("Cadence and human-involvement policy changes are recommendations until you approve a repo-local change.")
+    return lines
+
+
+def validation_lines(payload: dict[str, Any], limit: int = 3) -> list[str]:
+    steps = payload.get("design", {}).get("evaluation_steps", [])
+    lines: list[str] = []
+    for step in steps[:limit]:
+        when = step.get("when", "when validation is needed")
+        command = step.get("command", "record validation evidence explicitly")
+        lines.append(f"{when}: {command}")
+    return lines or ["Record manual or unavailable validation explicitly."]
+
+
 def print_doctor(payload: dict[str, Any]) -> None:
     summary = payload["summary"]
     next_action = summary["next_action"]
@@ -623,7 +664,7 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print(f"Human involvement: {summary['human_involvement']}/5")
     print(f"Worker pattern: {summary['worker_label']} ({summary['worker_pattern']})")
     print("")
-    print("Loop:")
+    print("What Codex found:")
     print(f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s)")
     print(f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s)")
     print(f"- Design: {len(payload['design']['target_files'])} target action(s)")
@@ -641,7 +682,7 @@ def print_doctor(payload: dict[str, Any]) -> None:
     cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
     involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
     print("")
-    print("Adaptive:")
+    print("Adaptive Recommendations:")
     if cadence:
         print(
             f"- Cadence: {cadence.get('severity', 'normal')} pressure, "
@@ -665,14 +706,23 @@ def print_doctor(payload: dict[str, Any]) -> None:
     else:
         print("- None needed right now.")
     print("")
+    print("What Codex can do next:")
+    prefix = "Optional" if payload["status"] == "fit" else "Recommended"
     if payload["status"] == "fit":
-        print("Optional next action:")
         print("- Required: none. Current harness appears fit.")
-    else:
-        print("Required next action:")
-    print(f"- {next_action['label']}")
+    print(f"- {prefix}: {next_action['label']}")
     print(f"- Reason: {next_action['reason']}")
-    print(f"- Command: {next_action['command']}")
+    print("")
+    print("Next command:")
+    print(next_action["command"])
+    print("")
+    print("Needs approval:")
+    for line in approval_lines(payload, next_action):
+        print(f"- {line}")
+    print("")
+    print("Validation to run:")
+    for line in validation_lines(payload):
+        print(f"- {line}")
 
 
 def main() -> int:

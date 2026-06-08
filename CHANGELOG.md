@@ -8,7 +8,8 @@
 - `Docs/install.md` documenting fresh-clone install, personal marketplace setup, plugin refresh, validation, and troubleshooting flows.
 - `Docs/commands.md` as the full command reference split out from the README.
 - `Docs/versioning.md` documenting version format, breaking-change classification, deprecation policy, changelog rules, and release checklist expectations.
-- Structured `adaptive` recommendations in `doctor` and `run-loop` output for cadence, review pressure, and human-involvement policy suggestions.
+- Structured `adaptive` recommendations in `next`, `doctor`, and `run-loop` output for cadence, review pressure, and human-involvement policy suggestions.
+- `next` as a friendly `run-loop` alias for "what should Codex do next?" onboarding.
 - `recommend-skills` and `catalog` commands for minimal repo-fit skill/agent recommendations.
 - ECC seed catalog support for adapter-only recommendations.
 - Approved adapter skill install flow with `recommend-skills --install --confirm-install`.
@@ -16,11 +17,12 @@
 
 ### Changed
 
-- README and README_KO are now slimmer one-request onboarding docs focused on `doctor`/`run-loop`, the approval-based safety model, adaptive review cadence, and human-involvement defaults.
+- README and README_KO are now slimmer one-request onboarding docs focused on `next`/`doctor`/`run-loop`, the approval-based safety model, adaptive review cadence, and human-involvement defaults.
+- `doctor`, `run-loop`, and `next` text output now highlights what Codex found, what it can do next, the next command, approval boundaries, and validation hints.
 - CLI JSON output is now ASCII-safe by default, and console output is configured to avoid `UnicodeEncodeError` crashes on legacy Windows console encodings.
 - ROADMAP and HANDOFF now separate v1.0 one-command onboarding from v1.1+ adaptive cadence and adaptive human-involvement work.
 - Fixture tests now assert that closed-loop history/eval pressure produces structured adaptive cadence and human-involvement recommendations.
-- `doctor` and `run-loop` now include minimal skill recommendations while keeping external installs approval-based and adapter-only.
+- `next`, `doctor`, and `run-loop` now include minimal skill recommendations while keeping external installs approval-based and adapter-only.
 
 ## 0.8.0 - 2026-06-07
 
