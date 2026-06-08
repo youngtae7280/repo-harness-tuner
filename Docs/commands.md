@@ -6,6 +6,19 @@ For the stability contract behind these commands, see `Docs/cli-contracts.md`.
 
 ## One-Command Entry
 
+In Codex chat, natural-language project-direction prompts should enter the same read-only flow when a repo is open:
+
+```text
+다음에 뭐해?
+기획해줘.
+구조 잡아줘.
+검수해줘.
+완료 기준이랑 승인 지점 잡아줘.
+알아서 해줘. 단, 파일 쓰기나 설치는 승인 받고 해.
+```
+
+The skill should treat those as `next`-style requests first: inspect the repo, label the work type, propose one next action, show approval boundaries, and suggest validation.
+
 Use `next` when you want the plugin to answer "what should Codex do next?" without writing files:
 
 ```powershell

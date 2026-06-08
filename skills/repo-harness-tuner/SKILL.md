@@ -1,6 +1,6 @@
 ---
 name: repo-harness-tuner
-description: Continuously analyze, diagnose, design, generate, tune, restructure, and evaluate repo-local Codex harnesses and project-specific Codex team/skill plans, including AGENTS.md, Docs/AI/*, validation guidance, target files, human-involvement policy, prompt templates, visible/background worker policy, agent roles, skill plans, orchestration docs, Codex SKILL.md drafts, minimal skill/agent recommendations, ECC seed catalog adapters, approved adapter skill installs, and continuous history/eval-based curator recommendations. Use when the user asks whether a project has the right Codex harness, wants to bootstrap a first project, wants to generate a project-specific agent team/skill plan or skill drafts, wants to recommend or install only the smallest useful skills/agents, or wants to reduce/strengthen project-specific agent process over time.
+description: "Analyze, diagnose, tune, and evaluate repo-local Codex harnesses and project-specific team/skill plans. Use in a repository context for natural-language direction prompts such as \"what next?\", \"plan this project\", \"set up the structure/workflow\", \"review/validation loop\", \"completion criteria\", \"approval points\", \"handle it for me\", \"\ub2e4\uc74c\uc5d0 \ubb50\ud574?\", \"\uae30\ud68d\ud574\uc918\", \"\uad6c\uc870 \uc7a1\uc544\uc918\", \"\uac80\uc218\ud574\uc918\", or \"\uc54c\uc544\uc11c \ud574\uc918\"; start with the read-only next flow before suggesting writes. Also use for harness bootstrap/tuning, project-specific agent team or skill plans, minimal skill/agent recommendations, validation gates, and human-approval boundaries. Do not use for ordinary coding, debugging, or generic reviews unless the request is about project direction, Codex workflow, harness design, validation gates, approval boundaries, or skill recommendations."
 ---
 
 # Repo Harness Tuner
@@ -19,6 +19,30 @@ Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Restruct
 ```
 
 This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather evidence and decide what should change; use the embedded `codex-harness-setup` skill as the implementation engine when harness files need to be created, shortened, split, or tuned.
+
+## Natural Language Entry
+
+When the user asks a broad project-direction prompt in a repository context, treat it as an entry into the read-only `next` flow before doing implementation work.
+
+Examples that should trigger this skill when a repo is available:
+
+- "What should Codex do next?"
+- "Plan this project."
+- "Set up the project structure."
+- "Set the review and validation loop."
+- "Define completion criteria and approval points."
+- "Handle the next step for me."
+- Korean equivalents of "what next?", "plan it", "set up the structure", "review it", "define completion/approval points", and "handle it for me".
+
+Map these prompts conservatively:
+
+- "what next" -> run or emulate `next`, then report the work type, one next action, approval boundary, and validation.
+- "plan" -> start with `next`; if planning is recommended, shape Scope, Access & Actions, Definition of Done, and Human Approval Points.
+- "structure" -> inspect first; recommend `bootstrap`, `tune`, or `factory` only when repo evidence supports it.
+- "review" / "completion criteria" -> start with `next`; emphasize Definition of Done, validation evidence, skipped-check handling, and remaining-risk reporting.
+- "handle it for me" -> start read-only, explain the next safe step, and stop before file writes, installs, policy changes, release/deploy, dependency changes, or destructive actions unless the user explicitly approves.
+
+If there is no repository context, ask for the repo or provide a copyable starting prompt instead of pretending to inspect files.
 
 ## Capabilities
 

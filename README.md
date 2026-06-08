@@ -23,6 +23,21 @@ python scripts\console.py next --repo C:\path\to\repo --phase active-development
 
 [English README](README_EN.md)
 
+## 채팅으로는 이렇게 말하세요
+
+설치된 뒤에는 명령어를 외우지 않아도 됩니다. repo가 열려 있는 Codex 채팅에서 이렇게 말하면 Repo Harness Tuner가 먼저 read-only `next` 흐름으로 들어가도록 설계되어 있습니다.
+
+```text
+다음에 뭐해?
+기획해줘.
+구조 잡아줘.
+검수해줘.
+완료 기준이랑 승인 지점 잡아줘.
+알아서 해줘. 단, 파일 쓰기나 설치는 승인 받고 해.
+```
+
+이런 자연어 요청은 곧바로 파일을 고치는 뜻이 아닙니다. 먼저 repo를 살펴보고, 지금 단계가 기획인지, 개발 지원인지, 검수인지, 하네스 튜닝인지, skill 추천인지 판단한 뒤 다음 안전한 행동 하나를 제안합니다.
+
 ## 한눈에 보는 흐름
 
 ```mermaid

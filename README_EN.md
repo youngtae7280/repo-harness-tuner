@@ -14,6 +14,19 @@ In Codex, start with one request:
 Use repo-harness-tuner on this repo. Tell me what Codex should do next, what validation to run, and what needs approval before any file write or install.
 ```
 
+Natural-language prompts should also enter the same read-only `next` flow when a repo is open:
+
+```text
+What should I do next?
+Plan this project.
+Set up the structure.
+Set the review and validation loop.
+Define completion criteria and approval points.
+Handle the next step for me, but ask before writing files or installing anything.
+```
+
+These prompts do not mean "silently edit everything." The plugin should inspect first, label whether the work is planning, development support, review, harness tuning, skill recommendation, or history, then propose one safe next action.
+
 From the command line, start with `next`. Treat every other command as something the output may recommend later:
 
 ```powershell

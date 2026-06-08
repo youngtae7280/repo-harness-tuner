@@ -1,17 +1,17 @@
 {
   "name": "repo-harness-tuner",
-  "version": "1.5.0+codex.20260608020818",
-  "description": "Answer what Codex should do next for a repo, tune its harness, and recommend minimal adapter skills.",
+  "version": "1.5.0+codex.20260608023544",
+  "description": "Ask naturally what Codex should do next, then tune repo harnesses and recommend minimal adapter skills with approval gates.",
   "author": {
-    "name": "Local developer"
+    "name": "youngtae7280"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Repo Harness Tuner",
-    "shortDescription": "Tell Codex what to do next, tune repo harnesses, and recommend minimal adapter skills.",
-    "longDescription": "Repo Harness Tuner is a Codex workspace tuner. Its friendly `next` entry point answers what Codex should do next by inspecting a repo, diagnosing the agent workflow, choosing the next safe action, labeling the current work type, suggesting validation, and surfacing approval boundaries before writes happen. The generated harness contract keeps Scope, Access & Actions, Definition of Done, and Human Approval Points explicit so Codex knows what it may own, what it may see or do, what proves completion, and when humans must approve. The one-command doctor and run-loop keep the same engine available for health checks and full analyze, diagnose, design, factory-plan, tune, evaluate, history-track, and skill recommendation passes. The closed loop persists scored eval results in Docs/AI/harness-eval-results.jsonl and feeds eval/history signals back into diagnose, tune, factory, run-loop next-action selection, adaptive cadence, human-involvement suggestions, and skill curator recommendations. Factory output stays grounded in concrete repo evidence such as project markers, package scripts, harness files, source markers, validation commands, stale artifacts, conflicts, installed skill overlaps, and closed-loop feedback. The skill recommendation layer ranks repo-fit capabilities, can consider ECC seed catalog candidates, writes reviewable recommendation plans, and installs only small Codex adapter skills after explicit confirmation. It does not bulk-install ECC hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes. The fixture suite covers empty, Vite/Node, Unity, Codex plugin, already-harnessed, history-pressure, eval-score-pressure, and temp-copy user journeys so later changes have regression coverage. The release-check command runs a fresh-copy simulation for manifest, skill frontmatter, compile, fixture, JSON, console, and bootstrap validation before release. The factory side designs project-specific Codex agent roles, planned skills, orchestration docs, visible/background worker policies, repo-local team/skill artifacts, copyable Codex SKILL.md drafts, confirmed generated skill installs, and Codex plugin team presets. The engine side runs analyze, diagnose, design, tune, restructure, evaluate, and feedback loops for repo-local Codex harness design. It includes codex-harness-setup so one plugin can bootstrap, generate reviewable diffs, tune, review, evaluate, score and persist evaluation results, track history feedback, recommend adapter skills, and manage AGENTS.md, Docs/AI/*, validation guidance, human-involvement policy, Codex worker patterns, target files, and next review triggers as the project evolves.",
-    "developerName": "Local developer",
+    "shortDescription": "Ask \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d or \u201c\uae30\ud68d\ud574\uc918\u201d and get the next safe Codex step.",
+    "longDescription": "Repo Harness Tuner is a Codex workspace tuner for natural-language project direction. In a repo context, prompts like \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d, \u201c\uae30\ud68d\ud574\uc918\u201d, \u201c\uad6c\uc870 \uc7a1\uc544\uc918\u201d, \u201c\uc54c\uc544\uc11c \ud574\uc918\u201d, or \u201cWhat should Codex do next?\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
+    "developerName": "youngtae7280",
     "category": "Productivity",
     "capabilities": [
       "Analyze-diagnose-design-tune-restructure-evaluate loop",
@@ -58,25 +58,26 @@
       "Embedded codex-harness-setup"
     ],
     "defaultPrompt": [
+      "\ub2e4\uc74c\uc5d0 \ubb50\ud574?",
+      "\uae30\ud68d\ud574\uc918",
+      "\uad6c\uc870 \uc7a1\uc544\uc918",
+      "\uac80\uc218\ud574\uc918",
+      "\uc644\ub8cc \uae30\uc900\uc774\ub791 \uc2b9\uc778 \uc9c0\uc810 \uc7a1\uc544\uc918",
+      "\uc791\uc5c5 \ud750\ub984 \uc7a1\uc544\uc918",
+      "\uc54c\uc544\uc11c \ub2e4\uc74c \uc791\uc5c5 \uc7a1\uc544\uc918. \ud30c\uc77c \uc4f0\uae30\ub098 \uc124\uce58\ub294 \uc2b9\uc778 \ubc1b\uace0 \ud574.",
+      "\uc774 repo\uc5d0\uc11c Codex\uac00 \ub2e4\uc74c\uc5d0 \ud560 \uc77c \uc54c\ub824\uc918",
+      "\uac80\uc218 \uae30\uc900\uacfc \ub2e4\uc74c \uac80\uc99d \ubc29\ubc95 \uc7a1\uc544\uc918",
+      "What should Codex do next?",
+      "Plan this project",
+      "Set up the project structure",
+      "Handle the next step, but ask before writing files or installing anything",
       "Tell me what Codex should do next",
       "Run the one-command harness doctor",
-      "Run the full harness loop",
-      "Run fixture golden tests",
       "Run release and fresh-clone validation",
-      "Run the harness improvement loop",
       "Recommend minimal skills and agents for this repo",
-      "Recommend ECC adapter skills for this repo",
-      "Install approved adapter skills",
       "Bootstrap this repo's Codex harness",
-      "Design the next harness tuning step",
-      "Generate a Codex team and skill factory plan",
-      "Generate Codex skill drafts for this repo",
-      "Install generated Codex skill drafts",
       "Generate a harness tuning diff",
-      "Create a harness evaluation plan",
-      "Score and record harness evaluation results",
-      "Record a harness history snapshot",
-      "Tune and evaluate this repo's harness"
+      "Record a harness history snapshot"
     ]
   },
   "apps": "./.app.json"
