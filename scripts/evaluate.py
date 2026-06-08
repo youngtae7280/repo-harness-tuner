@@ -411,7 +411,7 @@ def main() -> int:
             if guard:
                 payload["write_blocked"] = guard
                 if args.json:
-                    print(json.dumps(payload, indent=2, ensure_ascii=False))
+                    print(json.dumps(payload, indent=2, ensure_ascii=True))
                 else:
                     print_eval_score(payload)
                     print("")
@@ -419,7 +419,7 @@ def main() -> int:
                 return 2
             payload["score_path"] = str(append_eval_score(root.resolve(), payload, args.note))
         if args.json:
-            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            print(json.dumps(payload, indent=2, ensure_ascii=True))
         else:
             print_eval_score(payload)
             if args.write_score:
@@ -433,7 +433,7 @@ def main() -> int:
         if guard:
             payload["write_blocked"] = guard
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(json.dumps(payload, indent=2, ensure_ascii=True))
             else:
                 print_eval_plan(payload)
                 print("")
@@ -441,7 +441,7 @@ def main() -> int:
             return 2
         payload["plan_path"] = str(write_eval_plan(root.resolve(), payload))
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_eval_plan(payload)
         if args.write_plan:

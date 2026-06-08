@@ -719,6 +719,179 @@ def next_review_trigger(phase: str, readiness_score: int, history_feedback: dict
     return "every 3-5 meaningful cycles, or sooner after repeated mistakes or validation drift"
 
 
+def history_signal_types(history_feedback: dict[str, Any] | None) -> list[str]:
+    signals = (history_feedback or {}).get("signals", [])
+    return sorted({str(signal.get("type")) for signal in signals if isinstance(signal, dict) and signal.get("type")})
+
+
+def adaptive_cadence_recommendation(
+    phase: str,
+    base_cadence: str,
+    next_trigger: str,
+    readiness_score: int,
+    history_feedback: dict[str, Any] | None,
+) -> dict[str, Any]:
+    signal_types = set(history_signal_types(history_feedback))
+    review_pressure = str((history_feedback or {}).get("review_pressure") or "normal")
+    severity = "normal"
+    interval = "use phase default cadence"
+    reason = "No stored history or eval signal requires a shorter review interval."
+    if review_pressure == "high":
+        severity = "high"
+        interval = "next meaningful cycle, then again after repair validation"
+        reason = "High review pressure means the harness should be checked again immediately after the next repair or meaningful task."
+    elif review_pressure == "elevated":
+        severity = "elevated"
+        interval = "after the next 1-2 meaningful cycles"
+        reason = "Stored history or eval signals suggest checking sooner than the phase default."
+    elif readiness_score < 70:
+        severity = "elevated"
+        interval = "after the next harness change"
+        reason = "Readiness is below the stable range, so the next harness change should be reviewed promptly."
+
+    if "eval-regression" in signal_types:
+        interval = "before promoting the last harness/team change, then after the repaired eval task passes"
+    elif "eval-unchanged-fail" in signal_types and severity != "high":
+        interval = "after the next focused harness tune"
+
+    return {
+        "current_phase": phase,
+        "base_cadence": base_cadence,
+        "review_pressure": review_pressure,
+        "severity": severity,
+        "recommended_interval": interval,
+        "next_trigger": next_trigger,
+        "reason": reason,
+        "evidence_signals": sorted(signal_types),
+        "approval_required": False,
+        "apply_policy_change_requires_approval": True,
+    }
+
+
+def adaptive_human_involvement_recommendation(
+    phase: str,
+    current_default: int,
+    readiness_score: int,
+    modules: list[str] | None,
+    involvement_enforcement: list[dict[str, str]],
+    overhead: list[dict[str, str]],
+    history_feedback: dict[str, Any] | None,
+) -> dict[str, Any]:
+    signal_types = set(history_signal_types(history_feedback))
+    review_pressure = str((history_feedback or {}).get("review_pressure") or "normal")
+    recommended = current_default
+    direction = "keep"
+    confidence = "medium"
+    reason = "Keep the current phase default; no evidence justifies changing human involvement."
+    module_overrides: list[dict[str, Any]] = []
+
+    raise_signals = {
+        "readiness-regression",
+        "declining-readiness-trend",
+        "recent-failure-note",
+        "eval-regression",
+        "eval-unchanged-fail",
+        "repeated-human-involvement-gap",
+    }
+    lower_signals = {"repeated-process-overhead"}
+
+    should_raise = (
+        bool(raise_signals & signal_types)
+        or review_pressure == "high"
+        or (bool(involvement_enforcement) and readiness_score >= 60)
+    )
+    should_lower = bool(lower_signals & signal_types) and not should_raise and current_default > 2 and phase not in {"pre-release", "high-risk"}
+
+    if should_raise and current_default < 5:
+        recommended = max(current_default + 1, 4)
+        recommended = min(5, recommended)
+        direction = "raise"
+        confidence = "high" if review_pressure == "high" or involvement_enforcement else "medium"
+        reason = "Repeated misses, eval pressure, or ask-before-edit gaps justify asking the user more often until the harness stabilizes."
+        module_overrides.append(
+            {
+                "area": "Harness repair and policy-sensitive edits",
+                "recommended_human_involvement": recommended,
+                "reason": reason,
+            }
+        )
+    elif should_lower:
+        recommended = current_default - 1
+        direction = "lower"
+        confidence = "low"
+        reason = "Repeated process overhead suggests lowering involvement for routine low-risk work, while keeping protected areas at level 5."
+        module_overrides.append(
+            {
+                "area": "Routine low-risk implementation or docs edits",
+                "recommended_human_involvement": recommended,
+                "reason": reason,
+            }
+        )
+    elif current_default >= 5:
+        reason = "The current phase already requires explicit approval before edits."
+
+    suggested_command = None
+    if direction != "keep":
+        suggested_command = f"rerun with --human-involvement {recommended} after the user approves this policy change"
+
+    return {
+        "current_default": current_default,
+        "recommended_default": recommended,
+        "direction": direction,
+        "confidence": confidence,
+        "reason": reason,
+        "evidence_signals": sorted(signal_types),
+        "module_overrides": module_overrides,
+        "approval_required": direction != "keep",
+        "silent_apply": False,
+        "suggested_command_or_doc_change": suggested_command
+        or "no human-involvement policy change recommended",
+    }
+
+
+def build_adaptive_recommendations(
+    phase: str,
+    base_cadence: str,
+    design: dict[str, Any],
+    readiness_score: int,
+    current_human_involvement: int,
+    modules: list[str] | None,
+    involvement_enforcement: list[dict[str, str]],
+    overhead: list[dict[str, str]],
+    history_feedback: dict[str, Any] | None,
+) -> dict[str, Any]:
+    cadence = adaptive_cadence_recommendation(
+        phase,
+        base_cadence,
+        str(design.get("next_review_trigger") or ""),
+        readiness_score,
+        history_feedback,
+    )
+    involvement = adaptive_human_involvement_recommendation(
+        phase,
+        current_human_involvement,
+        readiness_score,
+        modules,
+        involvement_enforcement,
+        overhead,
+        history_feedback,
+    )
+    evidence = sorted(set(cadence["evidence_signals"]) | set(involvement["evidence_signals"]))
+    confidence = "high" if cadence["severity"] == "high" or involvement["confidence"] == "high" else "medium"
+    if not evidence and cadence["severity"] == "normal" and involvement["direction"] == "keep":
+        confidence = "low"
+    return {
+        "schema": "repo-harness-tuner.adaptive.v1",
+        "mode": "recommendation-only",
+        "confidence": confidence,
+        "evidence_signals": evidence,
+        "cadence": cadence,
+        "human_involvement": involvement,
+        "approval_required_for_policy_change": involvement["approval_required"] or cadence["apply_policy_change_requires_approval"],
+        "silent_apply": False,
+    }
+
+
 def merge_target_files(items: list[dict[str, str]]) -> list[dict[str, str]]:
     merged: dict[str, dict[str, str]] = {}
     for item in items:
@@ -943,6 +1116,17 @@ def diagnose(
         repo_type,
         history_feedback,
     )
+    adaptive = build_adaptive_recommendations(
+        phase,
+        str(phase_info["cadence"]),
+        design,
+        int(score["score"]),
+        resolved_human_involvement,
+        modules,
+        involvement_enforcement,
+        overhead,
+        history_feedback,
+    )
     return {
         "phase": phase,
         "cadence": phase_info["cadence"],
@@ -955,6 +1139,7 @@ def diagnose(
         "history_feedback": history_feedback,
         "human_involvement_matrix": public_matrix,
         "harness_design": design,
+        "adaptive": adaptive,
         "internal": {
             "default_ambiguity": internal_default,
             "ambiguity_enforcement": involvement_enforcement,
@@ -1103,8 +1288,30 @@ def write_status(root: Path, payload: dict[str, Any]) -> Path:
         f"Recommended tuning cadence: {payload['cadence']}",
         f"Next review trigger: {payload['harness_design']['next_review_trigger']}",
         "",
-        "## Findings",
+        "## Adaptive Recommendations",
     ]
+    adaptive = payload.get("adaptive", {})
+    cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
+    if cadence:
+        lines.append(
+            f"- Cadence: {cadence.get('severity', 'normal')} pressure, "
+            f"recommended `{cadence.get('recommended_interval', 'use phase default cadence')}`."
+        )
+    if involvement:
+        lines.append(
+            f"- Human involvement: {involvement.get('direction', 'keep')} "
+            f"{involvement.get('current_default', payload['human_involvement'])}/5 -> "
+            f"{involvement.get('recommended_default', payload['human_involvement'])}/5."
+        )
+        if involvement.get("approval_required"):
+            lines.append("- Policy change requires explicit user approval; no silent apply.")
+    lines.extend(
+        [
+            "",
+            "## Findings",
+        ]
+    )
     for finding in readiness["findings"]:
         lines.append(f"- {finding['status']}: {finding['title']} - {finding['detail']}")
     lines.append("")
@@ -1310,6 +1517,24 @@ def print_diagnosis(payload: dict[str, Any]) -> None:
     else:
         print("- No history pressure detected.")
     print("")
+    adaptive = payload.get("adaptive", {})
+    cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
+    print("Adaptive recommendations:")
+    if cadence:
+        print(
+            f"- Cadence: {cadence.get('severity', 'normal')} pressure, "
+            f"{cadence.get('recommended_interval', 'use phase default cadence')}"
+        )
+    if involvement:
+        print(
+            f"- Human involvement: {involvement.get('direction', 'keep')} "
+            f"{involvement.get('current_default', payload['human_involvement'])}/5 -> "
+            f"{involvement.get('recommended_default', payload['human_involvement'])}/5"
+        )
+        if involvement.get("approval_required"):
+            print("- Approval required before changing human-involvement policy.")
+    print("")
     print_harness_design(payload["harness_design"])
     print("")
     print("Human involvement matrix:")
@@ -1344,7 +1569,7 @@ def main() -> int:
         if guard:
             payload["write_blocked"] = guard
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(json.dumps(payload, indent=2, ensure_ascii=True))
             else:
                 print(write_policy.format_guard(guard))
             return 2
@@ -1355,7 +1580,7 @@ def main() -> int:
     if args.write_plan:
         payload["plan_path"] = str(write_design_plan(root.resolve(), payload))
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_diagnosis(payload)
         if args.emit_prompt:

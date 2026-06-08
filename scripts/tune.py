@@ -362,7 +362,7 @@ def main() -> int:
         if guard:
             payload["write_blocked"] = guard
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(json.dumps(payload, indent=2, ensure_ascii=True))
             else:
                 print_summary(payload, args.diff)
                 print("")
@@ -370,7 +370,7 @@ def main() -> int:
             return 2
         payload["results"] = apply_proposals(payload, root, args.force)
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_summary(payload, args.diff)
         if args.write:

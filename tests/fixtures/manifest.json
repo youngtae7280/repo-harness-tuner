@@ -112,7 +112,11 @@
         "factory_generic_output": false,
         "history_signals_min": 2,
         "review_pressure": "high",
-        "closed_loop_signal_contains": ["readiness-regression", "repeated-validation-drift"]
+        "closed_loop_signal_contains": ["readiness-regression", "repeated-validation-drift"],
+        "adaptive_cadence_severity": "high",
+        "adaptive_human_involvement_direction": "raise",
+        "adaptive_human_involvement_recommended": 4,
+        "adaptive_human_involvement_approval_required": true
       }
     },
     {
@@ -134,7 +138,11 @@
         "history_signals_min": 2,
         "eval_score_records_min": 1,
         "review_pressure": "high",
-        "closed_loop_signal_contains": ["eval-regression", "eval-unchanged-fail"]
+        "closed_loop_signal_contains": ["eval-regression", "eval-unchanged-fail"],
+        "adaptive_cadence_severity": "high",
+        "adaptive_human_involvement_direction": "raise",
+        "adaptive_human_involvement_recommended": 4,
+        "adaptive_human_involvement_approval_required": true
       }
     }
   ]

@@ -11,6 +11,11 @@ Use the cheapest check that gives meaningful evidence for the change.
 - Use the equivalent `$HOME/.codex/skills/.system/...` paths on Unix-like machines.
 - GitHub Actions broad check: `.github/workflows/validate.yml`.
 
+## Windows Notes
+- In Windows PowerShell, prefer explicit file lists for `py_compile`; `scripts/*.py` is not expanded by PowerShell before Python receives it.
+- Public CLI text output should not crash under the default Windows console encoding. When touching CLI printing, run at least one representative command in a normal PowerShell session, such as `python scripts\console.py overview --repo .`.
+- `PYTHONIOENCODING=utf-8` is an acceptable local workaround, but v1.0 CLI behavior should be safe without requiring users to know that workaround.
+
 ## Selection Policy
 - Docs-only or prompt-only changes: review the changed text; skip code validation with a reason.
 - Narrow behavior changes: run the closest focused check.

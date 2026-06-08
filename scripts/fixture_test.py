@@ -113,6 +113,9 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     evidence_refs = [str(item) for item in factory_payload.get("repo_evidence", {}).get("evidence_refs", [])]
     history_feedback = diagnosis.get("history_feedback", {})
     signal_types = [str(signal.get("type")) for signal in history_feedback.get("signals", []) if isinstance(signal, dict)]
+    adaptive = loop_payload.get("adaptive", {})
+    adaptive_cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    adaptive_involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
     if "factory_evidence_min" in expected:
         assert_minimum(failures, "factory_evidence_refs", int(factory_quality.get("evidence_ref_count", 0)), int(expected["factory_evidence_min"]))
     if "factory_skills_with_evidence_min" in expected:
@@ -133,6 +136,34 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
         assert_equal(failures, "review_pressure", history_feedback.get("review_pressure", "normal"), expected["review_pressure"])
     if "closed_loop_signal_contains" in expected:
         assert_contains_all(failures, "closed_loop_signals", signal_types, list(expected["closed_loop_signal_contains"]))
+    if "adaptive_cadence_severity" in expected:
+        assert_equal(
+            failures,
+            "adaptive_cadence_severity",
+            adaptive_cadence.get("severity"),
+            expected["adaptive_cadence_severity"],
+        )
+    if "adaptive_human_involvement_direction" in expected:
+        assert_equal(
+            failures,
+            "adaptive_human_involvement_direction",
+            adaptive_involvement.get("direction"),
+            expected["adaptive_human_involvement_direction"],
+        )
+    if "adaptive_human_involvement_recommended" in expected:
+        assert_equal(
+            failures,
+            "adaptive_human_involvement_recommended",
+            adaptive_involvement.get("recommended_default"),
+            expected["adaptive_human_involvement_recommended"],
+        )
+    if "adaptive_human_involvement_approval_required" in expected:
+        assert_equal(
+            failures,
+            "adaptive_human_involvement_approval_required",
+            bool(adaptive_involvement.get("approval_required")),
+            bool(expected["adaptive_human_involvement_approval_required"]),
+        )
     assert_range(
         failures,
         "readiness",
@@ -171,6 +202,9 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "history_signals": len(signal_types),
             "eval_score_records": history_feedback.get("eval_score_records", 0),
             "review_pressure": history_feedback.get("review_pressure", "normal"),
+            "adaptive_cadence_severity": adaptive_cadence.get("severity", "normal"),
+            "adaptive_human_involvement_direction": adaptive_involvement.get("direction", "keep"),
+            "adaptive_human_involvement_recommended": adaptive_involvement.get("recommended_default"),
             "diagnosis_findings": len(diagnosis["readiness"]["findings"]),
             "harness_files": len(repo_scan.get("files", [])),
             "eval_mode": eval_payload.get("evaluation_mode", ""),
@@ -223,7 +257,9 @@ def print_report(payload: dict[str, Any]) -> None:
                 f"factory_evidence={observed.get('factory_evidence_refs', 0)} "
                 f"conflicts={observed.get('factory_conflicts', 0)} "
                 f"signals={observed.get('history_signals', 0)} "
-                f"pressure={observed.get('review_pressure', 'normal')}"
+                f"pressure={observed.get('review_pressure', 'normal')} "
+                f"adaptive={observed.get('adaptive_cadence_severity', 'normal')}/"
+                f"{observed.get('adaptive_human_involvement_direction', 'keep')}"
             )
         for failure in result.get("failures", []):
             print(f"  failure: {failure}")
@@ -238,7 +274,7 @@ def main() -> int:
 
     payload = run_fixtures(Path(args.fixtures_root), args.fixture)
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_report(payload)
     return 0 if payload["failed"] == 0 else 1

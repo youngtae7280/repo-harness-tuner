@@ -67,4 +67,8 @@ Closed-loop fixtures can also assert:
 - `history_signals_min`
 - `eval_score_records_min`
 - `review_pressure`
+- `adaptive_cadence_severity`
+- `adaptive_human_involvement_direction`
+- `adaptive_human_involvement_recommended`
+- `adaptive_human_involvement_approval_required`
 - `closed_loop_signal_contains`

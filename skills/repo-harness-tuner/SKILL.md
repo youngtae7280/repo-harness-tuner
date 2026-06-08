@@ -44,7 +44,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Generate reviewable tuning diffs with `tune --dry-run --diff`, using managed sections instead of whole-file rewrites.
 - Record and summarize harness evolution through `Docs/AI/harness-history.jsonl`, then feed recurring history signals back into diagnosis and tuning.
 - Merge history and eval-score signals into closed-loop review pressure, recommendations, factory quality fields, and run-loop next-action selection.
-- Recommend phase-aware harness review cadence.
+- Recommend phase-aware harness review cadence and structured adaptive cadence/human-involvement changes without silently applying policy changes.
 - Detect drift between `package.json` scripts and validation docs.
 - Detect overbroad process rules that require full QA, detailed reports, visible chats, or plans for every small task.
 - Detect human-involvement enforcement gaps where ask-before-edit rules are missing or not linked from the repo entrypoint.
@@ -61,7 +61,7 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 ## Improvement Loop
 
 1. **Analyze**: inspect project type, existing harness files, package scripts, CI/hooks, reports, and coordination docs. Prefer `scripts/console.py doctor --repo <repo-root>` for a first read-only status pass.
-2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, cadence, and human-involvement matrix.
+2. **Diagnose**: run `scripts/console.py diagnose --repo <repo-root> --phase <phase>` and review readiness, drift, overbroad process, adaptive cadence, and human-involvement recommendations.
 3. **Design**: run `scripts/console.py design --repo <repo-root> --phase <phase>` or inspect `harness_design` from diagnosis to choose target files, worker pattern, validation evidence, and next review timing.
 4. **Factory**: when the user wants team/skill generation, run `scripts/console.py factory --repo <repo-root> --domain "<domain>" --phase <phase>` to design repo-specific agent roles, planned skill files, orchestration rules, evidence-backed triggers, artifact inventory, update paths, and durable outputs. Add `--write-artifacts` only when the user wants repo-local team/skill docs written. Add `--write-codex-skills` only when the user wants copyable Codex `SKILL.md` drafts. Add `--install-codex-skills --confirm-install` only when the user explicitly wants generated skill drafts installed.
 5. **Restructure**: invoke the embedded `codex-harness-setup` skill to make the smallest useful change. Prefer `AGENTS.md`, `Docs/AI/harness-profile.md`, and `Docs/AI/validation.md` for first setup.
@@ -151,7 +151,7 @@ Use `tune` for projects with existing harness files. It should generate a review
 
 Use `history` after meaningful harness changes, repeated mistakes, evaluation runs, or user feedback. The history record should stay concise: readiness, worker pattern, drift counts, target actions, next review trigger, and a short note.
 
-Future `diagnose`, `tune`, `factory`, and `run-loop` runs should treat repeated history and eval-score signals as design evidence: readiness regression, repeated validation drift, repeated process overhead, repeated human-involvement gaps, recent failure notes, eval regressions, and unchanged eval failures raise review pressure and can justify a harness-profile update.
+Future `diagnose`, `tune`, `factory`, and `run-loop` runs should treat repeated history and eval-score signals as design evidence: readiness regression, repeated validation drift, repeated process overhead, repeated human-involvement gaps, recent failure notes, eval regressions, and unchanged eval failures raise review pressure and can justify a harness-profile update. `doctor` and `run-loop` expose this as `adaptive.cadence` and `adaptive.human_involvement`; policy changes require explicit approval.
 
 ## Safety
 
@@ -180,6 +180,7 @@ For scans, report:
 - tune diff proposals and write results,
 - harness history summary or written event path,
 - recommended review cadence,
+- structured adaptive cadence and human-involvement recommendations,
 - human-involvement and visibility matrix,
 - suggested next action,
 - exact prompt text when requested.

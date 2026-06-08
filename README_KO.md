@@ -1,229 +1,151 @@
 # Repo Harness Tuner
 
-Repo Harness Tuner는 프로젝트별 Codex 작업 하네스를 계속 설계하고 개선하기 위한 로컬 Codex 플러그인입니다.
+Repo Harness Tuner는 프로젝트에 맞는 Codex 작업 하네스를 만들고, 프로젝트가 진행되면서 계속 적정 크기로 튜닝해 주는 로컬 Codex 플러그인입니다.
 
-최종 목표는 두 축을 함께 가져가는 것입니다.
+목표는 원커맨드 assistant 경험입니다. 사용자는 한 번 요청하고, 플러그인은 저장소를 분석하고, 다음 하네스 작업을 판단하고, 파일 쓰기는 명시 승인 뒤에만 진행합니다.
 
-- **Factory**: 프로젝트별 agent team, role prompt, skill plan, orchestration 문서를 생성합니다.
-- **Engine**: 그 하네스를 분석, 진단, 튜닝, 평가하면서 프로젝트가 진행될수록 계속 개선합니다.
+## 여기서 시작
 
-핵심 루프는 다음과 같습니다.
-
-```text
-Analyze -> Diagnose -> Design -> Factory -> Tune -> Restructure -> Evaluate
-```
-
-대상은 `AGENTS.md`, `Docs/AI/*`, 검증 지침, 사람 개입 정책, 워커 패턴, 평가 계획, 하네스 변경 이력, agent team/skill 계획입니다.
-
-v0.3.0부터 v1.0.0까지의 릴리스 계획은 [ROADMAP.md](ROADMAP.md)에 정리되어 있습니다. 다른 PC에서 GitHub만 보고 이어서 작업할 때는 [HANDOFF.md](HANDOFF.md)를 보면 됩니다.
-
-## 주요 기능
-
-- 현재 저장소의 `AGENTS.md`, `Docs/AI/*`, `docs/ai/*`, `Docs/SKILLS.md`, `package.json` scripts, 일반 문서를 스캔합니다.
-- `doctor`로 파일을 수정하지 않고 하네스 건강 상태, 준비도, 루프 요약, 다음 추천 작업을 한 번에 확인합니다.
-- `run-loop` 또는 `loop`로 analyze -> diagnose -> design -> factory -> tune -> evaluate -> history 계획 루프를 한 번에 실행합니다.
-- `fixture-test`로 empty, Vite/Node, Unity, Codex plugin, 기존 하네스 fixture를 대상으로 golden test를 실행합니다.
-- Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, unknown 프로젝트 프리셋을 적용합니다.
-- `diagnose`로 하네스 준비도, 검증 drift, 과한 프로세스 규칙, 사람 개입 enforcement gap을 진단합니다.
-- `design`으로 다음에 손댈 파일, 워커 구조, 평가 단계, 다음 리뷰 시점을 설계합니다.
-- `factory`로 도메인 설명과 구체적인 저장소 evidence를 합쳐 Codex agent team/skill 계획, repo-local 문서, Codex `SKILL.md` 초안, 확인된 skill 설치를 처리합니다.
-- factory 출력에서 프로젝트 marker, package scripts, 하네스 파일, source marker, validation command, stale/conflict artifact, 안전한 update path를 확인합니다.
-- `bootstrap`/`apply`로 새 프로젝트의 최소 하네스를 dry-run 우선으로 생성합니다.
-- `tune --dry-run --diff`로 기존 하네스에 review 가능한 unified diff를 만듭니다.
-- `history`로 `Docs/AI/harness-history.jsonl`에 진단 스냅샷을 남기고, 이후 `diagnose`/`tune`이 그 반복 신호를 다시 반영합니다.
-- `eval`로 baseline vs with-harness 평가 계획을 만들고, `eval --score`로 결과 JSON을 점수화합니다.
-- `eval --score --write-score`로 평가 점수를 `Docs/AI/harness-eval-results.jsonl`에 저장하고, 이후 `diagnose`/`tune`/`factory`/`run-loop`이 이 증거를 다시 사용합니다.
-- `patterns`로 Codex 워커 패턴을 확인하고, `patterns --prompt`로 visible/background worker용 지시 프롬프트를 생성합니다.
-- 내장된 `codex-harness-setup` 스킬을 사용해 실제 하네스 파일을 설계/수정합니다.
-
-## 기본 사용법
-
-플러그인 루트에서 실행합니다.
-
-```powershell
-python scripts\console.py overview --repo C:\path\to\repo
-python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "technical documentation"
-python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
-python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
-python scripts\console.py fixture-test
-python scripts\console.py diagnose --repo C:\path\to\repo --phase active-development --human-involvement 3
-python scripts\console.py design --repo C:\path\to\repo --phase active-development
-python scripts\console.py factory --repo C:\path\to\repo --domain "Unity tycoon game UI" --phase active-development
-python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after harness change"
-python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
-python scripts\console.py history --repo C:\path\to\repo --record --write --note "after feature slice"
-```
-
-factory plan을 파일로 남기려면:
-
-```powershell
-python scripts\console.py factory --repo C:\path\to\repo --domain "deep research" --team-size 3 --write-plan
-```
-
-이 명령은 다음 파일을 씁니다.
+Codex에서는 이렇게 한 번 요청합니다.
 
 ```text
-Docs/AI/factory-plan.md
+repo-harness-tuner로 이 repo를 점검해줘. 프로젝트를 분석하고, Codex 하네스를 진단하고, 다음 작업을 추천하되 파일 쓰기는 승인 뒤에만 해줘.
 ```
 
-agent team/skill 문서까지 생성하려면:
+CLI에서는 읽기 전용 planning pass 하나로 시작합니다.
 
 ```powershell
-python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-artifacts
+python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-이 명령은 기존 파일을 덮어쓰지 않고, 없는 파일만 생성합니다.
+진단만 보고 싶으면:
+
+```powershell
+python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
+```
+
+## 다음에 일어나는 일
+
+루프는 하네스 작업을 이 순서로 판단합니다.
 
 ```text
-Docs/AI/agent-team.md
-Docs/AI/team-orchestration.md
-Docs/AI/skills/*.md
+Analyze -> Diagnose -> Design -> Factory -> Tune -> Evaluate
 ```
 
-기존 파일은 기본적으로 보존됩니다. 생성된 factory 파일에는 `repo-harness-tuner` marker가 들어갑니다. 기존 generated 파일을 의도적으로 다시 만들 때는 `--force`를 사용합니다. marker가 없는 기존 파일은 사용자가 작성했거나 unmanaged 상태로 보고, 검토 후 `--force --replace-unmanaged`를 함께 써야 덮어쓸 수 있습니다.
+결과에 따라 다음 중 하나를 추천합니다.
 
-설치/복사 가능한 Codex skill 초안까지 만들려면:
+- 현재 하네스가 충분해서 변경하지 않음
+- 새 프로젝트에 최소 하네스를 만드는 `bootstrap`
+- 낡은 하네스 문서를 부분 수정하는 `tune`
+- 프로젝트별 team/skill 계획을 만드는 `factory`
+- 다음 실행이 학습할 수 있도록 eval/history 기록
 
-```powershell
-python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --write-codex-skills
-```
+처음부터 모든 명령을 고를 필요는 없습니다. `run-loop` 또는 `doctor`로 시작하고, 출력된 next action을 검토한 뒤 진행하면 됩니다.
 
-이 명령은 다음 구조를 만듭니다.
+## 안전 모델
 
-```text
-Docs/AI/codex-skills/<skill-id>/SKILL.md
-```
+기본은 read-first입니다.
 
-이 스킬 초안은 자동 설치되지 않습니다. 검토와 검증 후 필요한 위치로 복사하거나 설치하는 흐름을 사용합니다.
+- `doctor`와 기본 `run-loop`는 파일을 수정하지 않습니다.
+- 파일 쓰기는 `--write`, `--write-plan`, `--write-recommended`, `--write-artifacts` 같은 명시 플래그가 있어야 합니다.
+- 사람 개입 레벨이 4 또는 5이면 `--confirm-write`도 필요합니다.
+- dependency, release, CI, secret, credential, marketplace, install/uninstall, migration, privacy-sensitive, destructive 변경은 명시 승인 없이는 진행하지 않습니다.
+- `tune`은 전체 파일을 갈아엎지 않고 관리되는 markdown 섹션만 갱신합니다.
+- `bootstrap`과 factory artifact 쓰기는 명시적인 force 경로 없이는 기존 파일을 보존합니다.
 
-생성된 skill 초안을 실제 Codex skills 디렉터리에 설치하려면:
+## 언제 사용하나요?
 
-```powershell
-python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --install-codex-skills --confirm-install
-```
+다음 상황에서 사용합니다.
 
-기본 설치 위치는 `$CODEX_HOME/skills`이고, `CODEX_HOME`이 없으면 `~/.codex/skills`입니다. 다른 위치에 설치하려면 `--skill-install-root`를 사용합니다. 설치는 저장소 밖에 쓰는 작업이므로 항상 `--confirm-install`이 필요합니다. 기존 installed skill은 기본적으로 보존되며, generated skill은 `--force`, marker가 없는 수동 skill은 검토 후 `--force --replace-unmanaged`가 필요합니다.
+- `AGENTS.md` 또는 `Docs/AI/*`가 필요할 때
+- Codex가 너무 많은 절차를 만들거나, 반대로 필요한 검증/질문을 놓칠 때
+- 검증 지침, ask-before-edit 규칙, worker visibility를 저장소별로 정리하고 싶을 때
+- 프로젝트별 Codex team/skill 계획이 필요할 때
+- history/eval 증거로 하네스를 계속 튜닝하고 싶을 때
 
-새 프로젝트에서는 먼저 dry-run으로 봅니다.
+일반 코딩, 디버깅, 리뷰처럼 하네스 자체가 이미 적절한 작업에는 보통 필요하지 않습니다.
 
-```powershell
-python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3
-```
+## Adaptive Harness Loop
 
-내용이 맞으면 명시적으로 씁니다.
+이 플러그인은 프로젝트가 계속 바뀐다는 전제를 둡니다.
 
-```powershell
-python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project --human-involvement 3 --write
-```
+추적하는 신호:
 
-사람 개입 레벨이 4 또는 5이면 파일 쓰기 명령에 `--confirm-write`가 추가로 필요합니다.
+- phase별 review cadence
+- 다음 review trigger
+- readiness score 변화
+- 반복되는 validation drift
+- 반복되는 process overhead
+- 반복되는 human-involvement gap
+- eval regression 또는 unchanged failure
 
-```powershell
-python scripts\console.py tune --repo C:\path\to\repo --phase high-risk --write --confirm-write
-```
+이 신호들이 review pressure를 올리고, 다음 `run-loop`가 `tune`, `eval-review`, 더 짧은 review interval을 추천하게 만들 수 있습니다.
 
-## 원커맨드 Doctor와 Loop
-
-`doctor`는 읽기 전용 점검입니다. 프로젝트 타입, 준비도, 워커 패턴, 루프 모듈 요약, 히스토리 수, 다음 추천 작업을 보여줍니다.
-
-```powershell
-python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "technical documentation"
-```
-
-`run-loop`는 전체 계획 루프를 한 번에 돌립니다. 기본값은 읽기 전용입니다.
-
-```powershell
-python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
-```
-
-검토 후 명시적으로 파일을 남기거나 다음 추천 작업을 적용할 수 있습니다.
-
-```powershell
-python scripts\console.py run-loop --repo C:\path\to\repo --write-plan
-python scripts\console.py run-loop --repo C:\path\to\repo --write-recommended
-python scripts\console.py run-loop --repo C:\path\to\repo --record-history --note "after first feature"
-```
-
-각각 `Docs/AI/harness-loop-plan.md`, 다음 추천 bootstrap/tune/factory artifact 작업, `Docs/AI/harness-history.jsonl`을 씁니다. `loop`는 `run-loop`의 alias입니다.
-
-## Fixture Golden Tests
-
-0.3.0부터는 fixture 기반 golden test가 포함됩니다.
-
-```powershell
-python scripts\console.py fixture-test
-```
-
-이 테스트는 프로젝트 타입 감지, 준비도 범위, 다음 추천 작업, 평가 golden task 수, factory team label, factory evidence 품질, stale/conflict artifact, closed-loop signal 처리, high-risk write guard, 읽기 전용 명령의 무변경성을 확인합니다. fixture 작성 규칙은 [Docs/fixture-tests.md](Docs/fixture-tests.md)에 있습니다.
+`doctor`와 `run-loop`는 cadence와 사람 개입 레벨에 대한 구조화된 `adaptive` 추천도 출력합니다. 아직 백그라운드 스케줄러처럼 자동 실행되지는 않습니다. 추천된 시점, 의미 있는 프로젝트 변경 뒤, Codex가 같은 실수를 반복한 뒤, high-risk/release 작업 전에 `doctor` 또는 `run-loop`를 다시 실행하는 구조입니다.
 
 ## 사람 개입 레벨
 
-사용자가 고르는 핵심 설정은 사람 개입 정도입니다.
+사람 개입 레벨은 Codex가 행동 전에 얼마나 자주 물어야 하는지 정합니다.
 
-- 1: 보호 영역이나 명시적 승인 조건이 없으면 Codex가 자율적으로 진행합니다.
-- 2: 기존 패턴을 따라 진행하고 마무리에서 가정을 언급합니다.
-- 3: 저장소 맥락으로 추론하되 되돌리기 어렵거나 사용자에게 보이는 방향 변경은 묻습니다.
-- 4: 파일 수정 전에 1-3개의 집중 질문을 합니다. 단, 저장소의 명확한 source of truth가 답을 주면 진행할 수 있습니다.
-- 5: 파일 수정 전에 명시적 승인을 받아야 합니다.
+기본값은 phase로 자동 선택됩니다.
 
-내부적으로는 이 레벨이 `Docs/AI/ambiguity-profile.md`의 ask-before 규칙으로 표현됩니다.
+| Phase | 기본값 |
+| --- | ---: |
+| `prototype` | 2 |
+| `new-project` | 3 |
+| `active-development` | 3 |
+| `maintenance` | 3 |
+| `pre-release` | 4 |
+| `high-risk` | 5 |
 
-## Factory와 Engine의 관계
-
-Factory는 “어떤 팀과 스킬이 필요한가”를 설계합니다.
-
-- agent 역할
-- role별 목적과 출력물
-- skill plan
-- visible/background worker 정책
-- orchestration 문서
-
-Engine은 “그 설계가 프로젝트에 맞게 계속 좋아지고 있는가”를 관리합니다.
-
-- readiness 진단
-- drift와 과한 프로세스 감지
-- history feedback 반영
-- evaluation score 반영
-- tune diff 생성
-
-v0.8.0부터는 history와 eval score가 함께 closed-loop feedback이 됩니다. history는 하네스 상태 스냅샷이고, eval score는 baseline 대비 with-harness 결과입니다. 둘은 파일을 따로 저장하지만, 다음 `diagnose`, `tune`, `factory`, `run-loop`에서는 하나의 판단 증거로 합쳐집니다.
-
-둘 중 하나만으로는 부족합니다. 이 플러그인의 목표는 팀/스킬 생성 공장과 점진적 하네스 개선 엔진을 함께 제공하는 것입니다.
-
-## 평가
-
-평가 계획을 만들려면:
+직접 조절할 수도 있습니다.
 
 ```powershell
-python scripts\console.py eval --repo C:\path\to\repo --phase active-development
+python scripts\console.py run-loop --repo C:\path\to\repo --human-involvement 4
+python scripts\console.py run-loop --repo C:\path\to\repo --module "Release flow: 5"
 ```
 
-baseline과 with-harness 결과를 JSON으로 기록한 뒤 점수화하려면:
+레벨 의미:
+
+- `1`: 보호 영역이 없으면 Codex가 자율적으로 진행
+- `2`: 기존 repo 패턴을 따르고 마무리에 가정 보고
+- `3`: repo 문맥으로 추론하되 되돌리기 어렵거나 사용자에게 보이는 방향 변경은 질문
+- `4`: repo가 이미 답하지 않는 한 편집 전에 집중 질문
+- `5`: 편집 전 명시 승인 필요
+
+현재는 human-involvement gap과 history/eval 증거를 바탕으로 기본 레벨을 유지, 상향, 하향할지 추천할 수 있습니다. 단, 정책 변경은 자동 적용되지 않으며 repo-local policy를 바꾸려면 검토와 명시 승인이 필요합니다.
+
+## 핵심 명령
+
+이 플러그인 디렉터리에서 실행합니다.
 
 ```powershell
-python scripts\console.py eval --score C:\path\to\eval-results.json
+python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
+python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "your project"
+python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
+python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project
+python scripts\console.py fixture-test
 ```
 
-점수화는 assertion 단위로 improved, regressed, unchanged pass, unchanged fail을 계산하고 keep/revise 권고를 냅니다.
+전체 명령과 JSON 예시는 [Docs/commands.md](Docs/commands.md)에 있습니다.
 
-다음 루프가 이 결과를 학습하게 하려면 대상 repo를 지정하고 점수를 저장합니다.
+## 설치
+
+처음 설치할 때는 `$HOME\plugins\repo-harness-tuner`에 clone하고 personal marketplace entry를 추가한 뒤 실행합니다.
 
 ```powershell
-python scripts\console.py eval --repo C:\path\to\repo --score C:\path\to\eval-results.json --write-score --note "after harness change"
+codex plugin add repo-harness-tuner@personal
 ```
 
-이 명령은 다음 파일에 JSONL 기록을 추가합니다.
+fresh clone, 갱신, 문제 해결, Windows `codex.exe` shim, PyYAML validator, 검증 절차는 [Docs/install.md](Docs/install.md)를 봅니다.
 
-```text
-Docs/AI/harness-eval-results.jsonl
-```
+## 관련 문서
 
-저장된 eval regression 또는 unchanged fail은 review pressure를 높이고, 다음 `run-loop`의 추천 작업을 `tune` 또는 `eval-review`로 바꿀 수 있습니다.
-
-## 안전 기본값
-
-- 파일 쓰기는 기본적으로 일어나지 않습니다. `--write` 또는 `--write-plan`이 있어야 합니다.
-- 사람 개입 4/5에서는 `--confirm-write`도 필요합니다.
-- 기존 bootstrap 파일은 기본적으로 skip되며, 덮어쓰려면 `--write --force`가 필요합니다.
-- `tune`은 전체 파일을 갈아엎지 않고 `repo-harness-tuner:start:*` / `repo-harness-tuner:end:*` 관리 섹션을 갱신합니다.
-- dependency, release, CI, secret, migration, privacy-sensitive 변경은 명시적 승인 없이는 추가하지 않습니다.
+- English README: [README.md](README.md)
+- 설치와 문제 해결: [Docs/install.md](Docs/install.md)
+- 전체 명령어: [Docs/commands.md](Docs/commands.md)
+- CLI 계약: [Docs/cli-contracts.md](Docs/cli-contracts.md)
+- 버전과 파괴적 변경 정책: [Docs/versioning.md](Docs/versioning.md)
+- Fixture 테스트: [Docs/fixture-tests.md](Docs/fixture-tests.md)
+- 로드맵: [ROADMAP.md](ROADMAP.md)
+- 다른 PC/thread에서 이어가기: [HANDOFF.md](HANDOFF.md)

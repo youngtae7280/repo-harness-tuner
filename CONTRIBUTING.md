@@ -46,8 +46,9 @@ When validating outside the original development machine, use the equivalent loc
 
 ## Release Flow
 
-1. Update `CHANGELOG.md`.
-2. Run validation.
-3. Update the plugin cachebuster with `plugin-creator`.
-4. Commit and push.
-5. Create a version tag when the change is ready to share.
+1. Classify the change with `Docs/versioning.md`.
+2. Update `CHANGELOG.md`.
+3. Run validation.
+4. Update the plugin cachebuster with `plugin-creator`.
+5. Commit and push.
+6. Create a version tag when the change is ready to share.

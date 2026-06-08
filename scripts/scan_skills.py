@@ -74,7 +74,7 @@ def main() -> int:
     args = parser.parse_args()
     skills = scan()
     if args.json:
-        print(json.dumps({"skills": skills, "count": len(skills)}, indent=2, ensure_ascii=False))
+        print(json.dumps({"skills": skills, "count": len(skills)}, indent=2, ensure_ascii=True))
     else:
         print(f"Skills found: {len(skills)}")
         for skill in skills:

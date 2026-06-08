@@ -224,13 +224,13 @@ def main() -> int:
         prompt = build_worker_prompt(args.prompt, args.repo, args.phase, args.scope, args.human_involvement)
         payload = {"pattern": get_pattern(args.prompt), "prompt": prompt}
         if args.json:
-            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            print(json.dumps(payload, indent=2, ensure_ascii=True))
         else:
             print(prompt)
         return 0
     payload = {"patterns": list_patterns(), "count": len(PATTERNS)}
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print(f"Worker patterns: {payload['count']}")
         for pattern in payload["patterns"]:

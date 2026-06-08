@@ -6,12 +6,21 @@ import argparse
 import importlib.util
 import json
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def configure_console_output() -> None:
+    """Avoid UnicodeEncodeError on legacy Windows console encodings."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="replace")
 
 
 def load_local_module(name: str):
@@ -286,6 +295,9 @@ def build_loop_plan(
     history_summary = history_module.summarize(history_module.load_history(root))
     history_feedback = diagnosis.get("history_feedback", {})
     closed_loop = history_feedback.get("closed_loop", {})
+    adaptive = diagnosis.get("adaptive", {})
+    adaptive_cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    adaptive_involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
     next_action = choose_next_action(
         root,
         phase,
@@ -336,6 +348,8 @@ def build_loop_plan(
             "closed_loop_signals": int(closed_loop.get("signal_count", len(history_feedback.get("signals", []))) or 0),
             "review_pressure": history_feedback.get("review_pressure", "normal"),
             "closed_loop_evidence_note": closed_loop_evidence_note(history_feedback, next_action),
+            "adaptive_cadence_severity": adaptive_cadence.get("severity", "normal"),
+            "adaptive_human_involvement_direction": adaptive_involvement.get("direction", "keep"),
             "next_action": next_action,
         },
         "analyze": {
@@ -360,6 +374,7 @@ def build_loop_plan(
             "used_for_next_action": next_action["id"] in {"tune", "eval-review"},
             "evidence_note": closed_loop_evidence_note(history_feedback, next_action),
         },
+        "adaptive": adaptive,
         "design": {
             "target_files": design.get("target_files", []),
             "worker_architecture": design.get("worker_architecture", {}),
@@ -411,24 +426,47 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"Review pressure: {summary['review_pressure']} ({summary['closed_loop_signals']} closed-loop signal(s), {summary['eval_score_records']} eval score record(s))",
         f"Closed-loop evidence: {summary['closed_loop_evidence_note']}",
         "",
-        "## Next Action",
-        f"- {next_action['label']}",
-        f"- Reason: {next_action['reason']}",
-        f"- Command: `{next_action['command']}`",
-        "",
-        "## Loop Summary",
-        f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s), {len(payload['analyze']['missing_recommended'])} missing recommended file(s).",
-        f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s).",
-        f"- Design: {len(payload['design']['target_files'])} target action(s), next review `{payload['design']['next_review_trigger']}`.",
-        f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
-        f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
-        f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
-        f"- History: {summary['history_entries']} recorded event(s).",
-        f"- Closed loop: {summary['closed_loop_signals']} signal(s), review pressure `{summary['review_pressure']}`.",
-        f"- Evidence note: {summary['closed_loop_evidence_note']}",
-        "",
-        "## Target Files",
+        "## Adaptive Recommendations",
     ]
+    adaptive = payload.get("adaptive", {})
+    cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
+    if cadence:
+        lines.append(
+            f"- Cadence: {cadence.get('severity', 'normal')} pressure, "
+            f"`{cadence.get('recommended_interval', 'use phase default cadence')}`."
+        )
+    if involvement:
+        lines.append(
+            f"- Human involvement: {involvement.get('direction', 'keep')} "
+            f"{involvement.get('current_default', summary['human_involvement'])}/5 -> "
+            f"{involvement.get('recommended_default', summary['human_involvement'])}/5."
+        )
+        if involvement.get("approval_required"):
+            lines.append("- Policy change requires explicit user approval; no silent apply.")
+    lines.extend(
+        [
+            "",
+            "## Next Action",
+            f"- {next_action['label']}",
+            f"- Reason: {next_action['reason']}",
+            f"- Command: `{next_action['command']}`",
+            "",
+            "## Loop Summary",
+            f"- Analyze: {len(payload['analyze']['harness_files'])} harness/support file(s), {len(payload['analyze']['missing_recommended'])} missing recommended file(s).",
+            f"- Diagnose: {len(payload['diagnose']['drift'])} drift issue(s), {len(payload['diagnose']['human_involvement_enforcement'])} human-involvement gap(s).",
+            f"- Design: {len(payload['design']['target_files'])} target action(s), next review `{payload['design']['next_review_trigger']}`.",
+            f"- Factory: {payload['factory']['label']} with {len(payload['factory']['roles'])} role(s) and {len(payload['factory']['skills'])} planned skill(s).",
+            f"- Tune: {len(payload['tune']['proposals'])} proposal(s).",
+            f"- Evaluate: {len(payload['evaluate']['golden_tasks'])} golden task(s).",
+            f"- History: {summary['history_entries']} recorded event(s).",
+            f"- Closed loop: {summary['closed_loop_signals']} signal(s), review pressure `{summary['review_pressure']}`.",
+            f"- Adaptive: cadence `{summary['adaptive_cadence_severity']}`, human involvement `{summary['adaptive_human_involvement_direction']}`.",
+            f"- Evidence note: {summary['closed_loop_evidence_note']}",
+            "",
+            "## Target Files",
+        ]
+    )
     for item in payload["design"]["target_files"]:
         lines.append(f"- {item['action']}: `{item['path']}` - {item['reason']}")
     lines.extend(["", "## Factory Roles"])
@@ -523,14 +561,37 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print(f"- History: {summary['history_entries']} event(s)")
     print(f"- Closed loop: {summary['closed_loop_signals']} signal(s), {summary['eval_score_records']} eval score record(s), pressure={summary['review_pressure']}")
     print(f"- Evidence note: {summary['closed_loop_evidence_note']}")
+    adaptive = payload.get("adaptive", {})
+    cadence = adaptive.get("cadence", {}) if isinstance(adaptive, dict) else {}
+    involvement = adaptive.get("human_involvement", {}) if isinstance(adaptive, dict) else {}
     print("")
-    print("Next action:")
+    print("Adaptive:")
+    if cadence:
+        print(
+            f"- Cadence: {cadence.get('severity', 'normal')} pressure, "
+            f"{cadence.get('recommended_interval', 'use phase default cadence')}"
+        )
+    if involvement:
+        print(
+            f"- Human involvement: {involvement.get('direction', 'keep')} "
+            f"{involvement.get('current_default', summary['human_involvement'])}/5 -> "
+            f"{involvement.get('recommended_default', summary['human_involvement'])}/5"
+        )
+        if involvement.get("approval_required"):
+            print("- Approval required before changing human-involvement policy.")
+    print("")
+    if payload["status"] == "fit":
+        print("Optional next action:")
+        print("- Required: none. Current harness appears fit.")
+    else:
+        print("Required next action:")
     print(f"- {next_action['label']}")
     print(f"- Reason: {next_action['reason']}")
     print(f"- Command: {next_action['command']}")
 
 
 def main() -> int:
+    configure_console_output()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=".")
     parser.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
@@ -555,7 +616,7 @@ def main() -> int:
         if guard:
             payload["write_blocked"] = guard
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(json.dumps(payload, indent=2, ensure_ascii=True))
             else:
                 print_doctor(payload)
                 print("")
@@ -568,7 +629,7 @@ def main() -> int:
     if args.record_history:
         payload["history_record"] = record_history(payload, root.resolve(), args.note)
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_doctor(payload)
         if args.write_plan:

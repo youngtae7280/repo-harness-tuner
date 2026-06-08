@@ -10,6 +10,7 @@ Next review trigger: after the next harness change or repeated agent miss
 - plugin manifest and marketplace metadata drift
 - skill frontmatter or trigger wording becoming invalid
 - CLI smoke coverage missing generated factory and install flows
+- Windows console compatibility for public CLI output
 
 ## Baseline Harness
 - `AGENTS.md`: short entrypoint for Codex behavior.
@@ -18,12 +19,13 @@ Next review trigger: after the next harness change or repeated agent miss
 - `Docs/AI/ambiguity-profile.md`: human-involvement and ask-before-edit rules.
 
 ## Worker Pattern
-- Selected pattern: Supervisor Cycle (`supervisor-cycle`).
-- Visibility: main visible coordinator plus optional background workers.
-- Coordination: main thread owns task board, sequencing, and final acceptance.
+- Selected pattern: Single Agent (`single-agent`).
+- Visibility: single visible thread by default.
+- Coordination: one main thread owns the task board, sequencing, and final acceptance.
 
 Selection reasons:
-- low readiness plus required restructuring needs a staged coordinator
+- current harness is fit enough for a single-thread loop
+- escalate to a supervisor cycle only after repeated agent misses, high-risk release work, or multi-file harness restructuring
 
 ## Usually Skip
 - New CI gates, release blockers, dependencies, or destructive scripts unless repeated evidence justifies them and the user approves.

@@ -123,7 +123,7 @@ def main() -> int:
         payload = summarize(load_history(root))
 
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     elif args.record:
         print("History event:")
         print(f"- Type: {payload['event']['type']}")

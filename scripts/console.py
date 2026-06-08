@@ -5,11 +5,20 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def configure_console_output() -> None:
+    """Avoid UnicodeEncodeError on legacy Windows console encodings."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="replace")
 
 
 def load_module(name: str):
@@ -39,7 +48,7 @@ fixture_test_module = load_module("fixture_test")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
-    print(json.dumps(payload, indent=2, ensure_ascii=False))
+    print(json.dumps(payload, indent=2, ensure_ascii=True))
 
 
 def print_skills(payload: dict[str, Any]) -> None:
@@ -736,6 +745,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    configure_console_output()
     parser = build_parser()
     args = parser.parse_args()
     return args.func(args)

@@ -78,7 +78,7 @@ def main() -> int:
     args = parser.parse_args()
     prompt = build_prompt(args)
     if args.json:
-        print(json.dumps({"prompt": prompt}, indent=2, ensure_ascii=False))
+        print(json.dumps({"prompt": prompt}, indent=2, ensure_ascii=True))
     else:
         print(prompt)
     return 0

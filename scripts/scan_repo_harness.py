@@ -166,7 +166,7 @@ def main() -> int:
     args = parser.parse_args()
     result = scan(Path(args.repo_root))
     if args.json:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        print(json.dumps(result, indent=2, ensure_ascii=True))
     else:
         print(f"Repo: {result['root']}")
         print(f"Project type: {result['project_type']}")

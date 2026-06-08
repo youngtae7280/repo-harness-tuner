@@ -125,6 +125,30 @@ Start with the GitHub `v1.0.0 - Stable Public Release` milestone. The expected w
 4. Keep CI coverage for py_compile, fixture tests, plugin validation, skill validation, harness checks, eval-score persistence, and broad CLI smoke tests.
 5. Confirm a fresh clone on a different PC can run `doctor`, `run-loop`, `fixture-test`, and plugin install from docs only.
 
+Agreed development order after the 2026-06-08 audit review:
+
+1. Do `#18` first. Freeze the user-facing CLI contract before doing a large README/onboarding rewrite. Cover command aliases, stable JSON fields, exit codes, write flags, `--confirm-write` behavior, optional vs required next actions, and Windows console-safe output.
+2. Then do `#19`. Use the audit report's README recommendations, but keep README slim: one request or one command first, what happens next, safety model, adaptive loop, human-involvement summary, and links to detailed docs.
+3. Use `Docs/versioning.md` for `#20`, then do `#21` and `#22`: CI/release validation matrix and fresh-clone continuation verification.
+4. Keep PowerShell-safe commands in docs. Prefer explicit script file lists over `scripts/*.py` in Windows instructions.
+5. Track the Windows CP949 `UnicodeEncodeError` seen in `overview` as a `#18` compatibility issue, because it is part of the public CLI contract rather than only an onboarding problem.
+6. Treat "one-command assistant" as a v1.0 documentation/user-experience commitment around `doctor` and `run-loop`; do not add a new automation surface before the CLI contract and fresh-clone flow are stable.
+7. v1.1 structured adaptive recommendations are implemented in `doctor`/`run-loop`. They recommend cadence and human-involvement changes from closed-loop evidence, but do not run a scheduler or silently change policy.
+
+The `#18`, `#19`, and `#20` documentation entry points are:
+
+- `Docs/cli-contracts.md` for stable command names, JSON envelopes, exit codes, write-safety behavior, and console compatibility.
+- `Docs/install.md` for first-time install, refresh, validation, and troubleshooting.
+- `Docs/commands.md` for the full command reference moved out of the README.
+- `Docs/versioning.md` for version format, breaking-change classification, deprecation policy, changelog rules, and release checklist.
+- `README.md` / `README_KO.md` for slim one-request onboarding and the product-level safety/adaptive-loop explanation.
+
+Post-v1.0 product direction:
+
+- Keep the first user action to one request in Codex or one `run-loop` command in CLI.
+- Keep structured adaptive cadence recommendations in `adaptive.cadence` before considering any scheduler-like automation.
+- Keep human-involvement adjustment suggestions in `adaptive.human_involvement`; require explicit approval before changing repo-local policy.
+
 ## Local-Only State
 
 These are machine-specific and should not be treated as source of truth:
@@ -140,12 +164,13 @@ The durable source of truth is the GitHub repository plus GitHub issues/mileston
 
 For a release change:
 
-1. Update `CHANGELOG.md`.
-2. Update `.codex-plugin/plugin.json` base version.
-3. Run the plugin-creator cachebuster helper.
-4. Run local validation.
-5. Commit and push.
-6. Confirm GitHub Actions passes on `main`.
-7. Create and push the version tag.
-8. Confirm GitHub Actions passes on the tag.
-9. Refresh the local Codex install with `codex plugin add repo-harness-tuner@personal`.
+1. Classify the change with `Docs/versioning.md`.
+2. Update `CHANGELOG.md`.
+3. Update `.codex-plugin/plugin.json` base version.
+4. Run the plugin-creator cachebuster helper.
+5. Run local validation.
+6. Commit and push.
+7. Confirm GitHub Actions passes on `main`.
+8. Create and push the version tag.
+9. Confirm GitHub Actions passes on the tag.
+10. Refresh the local Codex install with `codex plugin add repo-harness-tuner@personal`.

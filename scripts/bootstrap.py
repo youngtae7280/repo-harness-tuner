@@ -265,7 +265,7 @@ def main() -> int:
         if guard:
             plan["write_blocked"] = guard
             if args.json:
-                print(json.dumps(plan, indent=2, ensure_ascii=False))
+                print(json.dumps(plan, indent=2, ensure_ascii=True))
             else:
                 print_plan(plan, args.show_content)
                 print("")
@@ -273,7 +273,7 @@ def main() -> int:
             return 2
         plan["results"] = apply_bootstrap(plan, root)
     if args.json:
-        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        print(json.dumps(plan, indent=2, ensure_ascii=True))
     else:
         print_plan(plan, args.show_content)
         if args.write:

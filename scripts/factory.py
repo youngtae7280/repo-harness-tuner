@@ -1098,7 +1098,7 @@ def main() -> int:
         if guard:
             payload["write_blocked"] = guard
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(json.dumps(payload, indent=2, ensure_ascii=True))
             else:
                 print_factory_plan(payload)
                 print("")
@@ -1111,7 +1111,7 @@ def main() -> int:
             "reason": "Installing generated skills writes outside the target repo and must be explicitly confirmed.",
         }
         if args.json:
-            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            print(json.dumps(payload, indent=2, ensure_ascii=True))
         else:
             print_factory_plan(payload)
             print("")
@@ -1127,7 +1127,7 @@ def main() -> int:
         install_root = Path(args.skill_install_root) if args.skill_install_root else None
         payload["install_results"] = install_codex_skill_scaffolds(payload, install_root, args.force, args.replace_unmanaged)
     if args.json:
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
     else:
         print_factory_plan(payload)
         if args.write_plan:

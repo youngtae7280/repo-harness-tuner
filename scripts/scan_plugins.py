@@ -72,7 +72,7 @@ def main() -> int:
     result = {"plugins": scan_plugins(), "marketplace": scan_marketplace()}
     result["count"] = len(result["plugins"])
     if args.json:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        print(json.dumps(result, indent=2, ensure_ascii=True))
     else:
         print(f"Plugins found: {result['count']}")
         for plugin in result["plugins"]:
