@@ -1,16 +1,16 @@
 {
   "name": "repo-harness-tuner",
   "version": "1.5.1+codex.20260608025120",
-  "description": "Ask naturally what Codex should do next, then tune repo harnesses and recommend minimal adapter skills with approval gates.",
+  "description": "Harness Tuner helps Codex choose the next safe repo step, tune repo harnesses, and recommend minimal adapter skills with approval gates.",
   "author": {
     "name": "youngtae7280"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Repo Harness Tuner",
+    "displayName": "Harness Tuner",
     "shortDescription": "Ask \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d or \u201c\uae30\ud68d\ud574\uc918\u201d and get the next safe Codex step.",
-    "longDescription": "Repo Harness Tuner is a Codex workspace tuner for natural-language project direction. In a repo context, prompts like \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d, \u201c\uae30\ud68d\ud574\uc918\u201d, \u201c\uad6c\uc870 \uc7a1\uc544\uc918\u201d, \u201c\uc54c\uc544\uc11c \ud574\uc918\u201d, or \u201cWhat should Codex do next?\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
+    "longDescription": "Harness Tuner is a Codex workspace tuner for natural-language project direction. Its purpose is not to make Codex silently do everything; it keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. In a repo context, prompts like \u201c\ub2e4\uc74c\uc5d0 \ubb50\ud574?\u201d, \u201c\uae30\ud68d\ud574\uc918\u201d, \u201c\uad6c\uc870 \uc7a1\uc544\uc918\u201d, \u201c\uc54c\uc544\uc11c \ud574\uc918\u201d, or \u201cWhat should Codex do next?\u201d should start with a read-only next pass: inspect the repo, label the work type, propose one safe next action, show approval boundaries, and suggest validation. It helps Codex keep planning, development support, review, harness tuning, history, and minimal skill recommendations organized as a project evolves. It writes files, changes repo policy, installs adapter skills, or touches release/deploy/dependency-sensitive areas only after explicit approval. It includes codex-harness-setup for repo-local AGENTS.md and Docs/AI/* harness setup, release-check for fresh-copy validation, fixture tests for regression coverage, and recommendation-only ECC seed catalog support without bulk installing external hooks, MCP servers, slash commands, native agents, marketplace entries, or policy changes.",
     "developerName": "youngtae7280",
     "category": "Productivity",
     "capabilities": [

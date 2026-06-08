@@ -1,6 +1,8 @@
 # Versioning And Breaking-Change Policy
 
-This document defines how Repo Harness Tuner versions public behavior and classifies breaking changes for the v1.0.0 stabilization track.
+This document defines how Harness Tuner versions public behavior and classifies breaking changes for the v1.0.0 stabilization track.
+
+The display name is **Harness Tuner**. The GitHub repo, plugin id, install command, and skill entry point remain `repo-harness-tuner` unless a future breaking-change release says otherwise.
 
 It does not duplicate the command reference, install guide, or JSON contract details. Use these documents together:
 
@@ -10,7 +12,7 @@ It does not duplicate the command reference, install guide, or JSON contract det
 
 ## Version Format
 
-Repo Harness Tuner uses a SemVer-style base version:
+Harness Tuner uses a SemVer-style base version:
 
 ```text
 MAJOR.MINOR.PATCH

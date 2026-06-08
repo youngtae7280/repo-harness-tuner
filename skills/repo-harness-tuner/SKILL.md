@@ -3,11 +3,13 @@ name: repo-harness-tuner
 description: "Analyze, diagnose, tune, and evaluate repo-local Codex harnesses and project-specific team/skill plans. Use in a repository context for natural-language direction prompts such as \"what next?\", \"plan this project\", \"set up the structure/workflow\", \"review/validation loop\", \"completion criteria\", \"approval points\", \"handle it for me\", \"\ub2e4\uc74c\uc5d0 \ubb50\ud574?\", \"\uae30\ud68d\ud574\uc918\", \"\uad6c\uc870 \uc7a1\uc544\uc918\", \"\uac80\uc218\ud574\uc918\", or \"\uc54c\uc544\uc11c \ud574\uc918\"; start with the read-only next flow before suggesting writes. Also use for harness bootstrap/tuning, project-specific agent team or skill plans, minimal skill/agent recommendations, validation gates, and human-approval boundaries. Do not use for ordinary coding, debugging, or generic reviews unless the request is about project direction, Codex workflow, harness design, validation gates, approval boundaries, or skill recommendations."
 ---
 
-# Repo Harness Tuner
+# Harness Tuner
 
 ## Purpose
 
-Use this skill as the front-end for the repo harness improvement loop and the team/skill factory loop.
+Use this skill as the front-end for the repo-local harness improvement loop and the team/skill factory loop.
+
+Harness Tuner's purpose is to keep Codex's working contract explicit as a project evolves: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve. It should make Codex safer and more predictable, not silently more aggressive.
 
 Final product goal:
 

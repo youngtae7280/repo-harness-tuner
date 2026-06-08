@@ -5,6 +5,7 @@
 ### Changed
 
 - Reworked the Korean default README around natural-language entry, role-based onboarding, a vertical first-run flow, and clearer preview/apply safety boundaries.
+- Shortened the user-facing display name to Harness Tuner while keeping the `repo-harness-tuner` technical id for compatibility, and clarified the plugin philosophy around repo-local responsibility boundaries.
 
 ## 1.5.1 - 2026-06-08
 

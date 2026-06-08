@@ -1,6 +1,6 @@
 # Fixture Golden Tests
 
-Repo Harness Tuner uses small fixture repositories to catch regressions in project detection, harness readiness, next-action selection, assistant work type selection, preview/apply command separation, evaluation planning, user journeys, and write safety.
+Harness Tuner uses small fixture repositories to catch regressions in project detection, harness readiness, next-action selection, assistant work type selection, preview/apply command separation, evaluation planning, user journeys, and write safety.
 
 Run the suite from the plugin root:
 

@@ -33,7 +33,7 @@ Selection reasons:
 - Visible specialist chats when only final findings matter.
 
 <!-- repo-harness-tuner:start:harness-contract -->
-## Repo Harness Tuner Harness Contract
+## Harness Tuner Harness Contract
 
 ### Scope
 

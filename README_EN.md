@@ -1,6 +1,14 @@
-# Repo Harness Tuner
+# Harness Tuner
 
-Repo Harness Tuner is a Codex workspace tuner.
+Codex plugin id: `repo-harness-tuner`
+
+Harness Tuner is a Codex workspace tuner.
+
+Its purpose is not to make Codex silently do everything. It keeps the repo-local working contract clear: what Codex may handle, what it may inspect or change, what counts as done, and when a human must approve.
+
+It proposes the next workflow from repo evidence: files, docs, validation commands, and previous history.
+
+The product display name is **Harness Tuner**. The GitHub repo, plugin id, and install command still use `repo-harness-tuner` for compatibility.
 
 Run `next` once to inspect a repo, diagnose its agent workflow, choose the next safe action, suggest validation, and recommend only the smallest useful skills or worker patterns. It plans and recommends automatically. It writes files, changes policy, or installs external skills only after explicit approval.
 
@@ -102,7 +110,7 @@ You usually do not need it for ordinary coding, debugging, or review when the re
 
 ## Adaptive Harness Loop
 
-Repo Harness Tuner is designed for projects that keep changing.
+Harness Tuner is designed for projects that keep changing.
 
 It tracks:
 

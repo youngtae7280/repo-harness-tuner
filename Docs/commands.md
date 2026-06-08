@@ -1,6 +1,8 @@
 # Command Reference
 
-Run these from the Repo Harness Tuner plugin directory unless noted otherwise.
+Run these from the Harness Tuner plugin directory unless noted otherwise.
+
+The display name is **Harness Tuner**. The technical plugin id remains `repo-harness-tuner`.
 
 For the stability contract behind these commands, see `Docs/cli-contracts.md`.
 

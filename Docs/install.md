@@ -1,6 +1,8 @@
 # Install, Refresh, And Troubleshooting
 
-Use this guide to install or refresh Repo Harness Tuner from a fresh clone.
+Use this guide to install or refresh Harness Tuner from a fresh clone.
+
+The display name is **Harness Tuner**. The GitHub repo, plugin id, and install command still use `repo-harness-tuner` for compatibility.
 
 ## Requirements
 
