@@ -194,9 +194,31 @@ Done when:
 - Process-overhead signals can steer the curator toward reduction instead of more installs.
 - No curator action silently installs skills or changes policy.
 
+## v1.5.1 - Assistant UX Stabilization
+
+Status: implemented for next-action work types, history recommended writes, user-journey fixtures, release-check, and README visual onboarding.
+
+Goal: make `next` feel like the product's one-command assistant surface rather than a raw harness engine report.
+
+Scope:
+
+- Add work type categories to `summary.next_action`: planning, development-support, review-validation, harness-tuning, skill-recommendation, and history.
+- Make `run-loop --write-recommended` handle the `record-history` action instead of reporting that no file changes were recommended.
+- Add user-journey fixture coverage for fresh repo bootstrap and fit repo history recording.
+- Add `release-check` for fresh-copy release validation.
+- Simplify README onboarding around `next` and add a visual one-command flow.
+- Clarify factory-artifacts as documenting how Codex should split planning, development, and review work.
+
+Done when:
+
+- `next` text output shows the work type and plain-language meaning of the recommended action.
+- `fixture-test` covers both functional fixtures and temp-copy user journeys.
+- `release-check` validates a fresh-copy simulation, JSON contracts, fixture journeys, Windows-console tolerance, and bootstrap/harness-check behavior.
+- README and README_KO make the one-command flow visually scannable.
+
 ## Current Priority
 
-The next implementation priority is **release validation and fresh-clone verification**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, v0.8.0 closed-loop history/eval fixtures, and v1.2-v1.5 recommendation assertions as the regression safety net.
+The next implementation priority is **release validation, fresh-clone verification, and one-command assistant UX stability**. Use the v0.3.0 fixture suite, v0.5.0 factory quality assertions, v0.8.0 closed-loop history/eval fixtures, v1.2-v1.5 recommendation assertions, and v1.5.1 user-journey fixtures as the regression safety net.
 
 Current working agreement:
 
@@ -205,6 +227,7 @@ Current working agreement:
 3. Keep `recommend-skills` / `catalog` as adapter-only; do not bulk-install ECC.
 4. Keep cadence, human-involvement, and install changes approval-based.
 5. Finish release validation, fresh-clone verification, cachebuster refresh, and GitHub release/tag alignment before calling the public release done.
+6. Keep `next` output centered on a clear work type, one next command, approval boundary, and validation evidence.
 
 Implemented documentation anchors for this pass:
 
@@ -216,3 +239,5 @@ Implemented documentation anchors for this pass:
 - `next` / `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
 - `harness_contract`: standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections for generated/tuned harness docs.
 - `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.
+- `release-check`: v1.5.1 fresh-copy validation for release readiness.
+- `summary.next_action.category`: v1.5.1 assistant work type for one-command UX.

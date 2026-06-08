@@ -1,6 +1,6 @@
 # Fixture Golden Tests
 
-Repo Harness Tuner uses small fixture repositories to catch regressions in project detection, harness readiness, next-action selection, evaluation planning, and write safety.
+Repo Harness Tuner uses small fixture repositories to catch regressions in project detection, harness readiness, next-action selection, assistant work type selection, evaluation planning, user journeys, and write safety.
 
 Run the suite from the plugin root:
 
@@ -36,6 +36,7 @@ Each fixture checks:
 - readiness range,
 - loop status,
 - next recommended action,
+- next action work type/category,
 - evaluation golden task count,
 - factory team label,
 - factory evidence quality,
@@ -45,6 +46,15 @@ Each fixture checks:
 - harness contract sections: Scope, Access & Actions, Definition of Done, and Human Approval Points,
 - high-risk write guard behavior,
 - read-only commands do not modify fixture files.
+
+## User Journey Fixtures
+
+`fixture-test` also runs temp-copy journeys when the full suite is selected:
+
+- fresh Vite repo: `next` recommends `bootstrap`, `--write-recommended` writes only managed harness files, and the second `next` moves past bootstrap.
+- fit Vite repo: `next` recommends `record-history`, `--write-recommended` writes `Docs/AI/harness-history.jsonl`, and the second `next` moves past baseline history recording.
+
+These journeys are run in temporary copies, so source fixtures remain read-only.
 
 ## Adding A Fixture
 
@@ -78,3 +88,4 @@ Closed-loop fixtures can also assert:
 - `skill_recommendation_source_contains`
 - `skill_recommendation_capability_contains`
 - `skill_curator_action`
+- `next_action_category`

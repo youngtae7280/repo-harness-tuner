@@ -91,7 +91,34 @@ def write_target_exists(root: Path, rel: str) -> bool:
     return any((root / variant).exists() for variant in variants)
 
 
-SAFE_AUTO_APPLY_KINDS = {"bootstrap", "tune", "factory-artifacts", "skill-recommendations-plan"}
+ACTION_CATEGORIES = {
+    "planning": {
+        "label": "Planning",
+        "summary": "Codex is setting direction, scope, or repo-local working agreements before broader work.",
+    },
+    "development-support": {
+        "label": "Development Support",
+        "summary": "Codex is preparing support that makes implementation work more repeatable.",
+    },
+    "review-validation": {
+        "label": "Review / Validation",
+        "summary": "Codex is checking evidence, validation, or failures before changing the harness.",
+    },
+    "harness-tuning": {
+        "label": "Harness Tuning",
+        "summary": "Codex is updating repo-local agent guidance, validation rules, or approval boundaries.",
+    },
+    "skill-recommendation": {
+        "label": "Skill Recommendation",
+        "summary": "Codex is reviewing the smallest useful skill or agent candidates without installing them.",
+    },
+    "history": {
+        "label": "History",
+        "summary": "Codex is recording a durable baseline or feedback signal for later tuning.",
+    },
+}
+
+SAFE_AUTO_APPLY_KINDS = {"bootstrap", "tune", "factory-artifacts", "skill-recommendations-plan", "history"}
 SAFE_AUTO_APPLY_FILES = {"AGENTS.md"}
 SAFE_AUTO_APPLY_PREFIXES = ("Docs/AI/", "docs/AI/", "docs/ai/")
 BLOCKED_AUTO_APPLY_FRAGMENTS = (
@@ -150,9 +177,34 @@ def auto_apply_guard(action: dict[str, Any], planned_items: list[dict[str, Any]]
         }
     return {
         "allowed": True,
-        "reason": "Recommended write is limited to managed harness docs or AGENTS.md.",
+        "reason": "Recommended write is limited to managed harness docs, harness history, or AGENTS.md.",
         "checked_paths": checked_paths,
     }
+
+
+def build_next_action(
+    action_id: str,
+    category: str,
+    label: str,
+    reason: str,
+    command: str,
+    write_kind: str,
+    **extra: Any,
+) -> dict[str, Any]:
+    info = ACTION_CATEGORIES.get(category, ACTION_CATEGORIES["planning"])
+    payload = {
+        "id": action_id,
+        "action_type": category,
+        "category": category,
+        "category_label": info["label"],
+        "category_summary": info["summary"],
+        "label": label,
+        "reason": reason,
+        "command": command,
+        "write_kind": write_kind,
+    }
+    payload.update(extra)
+    return payload
 
 
 def closed_loop_evidence_note(history_feedback: dict[str, Any], next_action: dict[str, Any]) -> str:
@@ -181,11 +233,12 @@ def choose_next_action(
     signal_types = {str(signal.get("type")) for signal in history_feedback.get("signals", []) if isinstance(signal, dict)}
     eval_repair_signals = {"eval-regression", "eval-unchanged-fail"} & signal_types
     if len(missing) >= 2:
-        return {
-            "id": "bootstrap",
-            "label": "Bootstrap missing repo harness files",
-            "reason": "multiple baseline harness files are missing",
-            "command": command_line(
+        return build_next_action(
+            "bootstrap",
+            "planning",
+            "Set up the repo working agreement",
+            "multiple baseline harness files are missing",
+            command_line(
                 "bootstrap",
                 root,
                 phase,
@@ -194,14 +247,15 @@ def choose_next_action(
                 repo_type,
                 ["--write"],
             ),
-            "write_kind": "bootstrap",
-        }
+            "bootstrap",
+        )
     if eval_repair_signals and tune_payload.get("proposals"):
-        return {
-            "id": "tune",
-            "label": "Apply the proposed harness tuning diff",
-            "reason": f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}",
-            "command": command_line(
+        return build_next_action(
+            "tune",
+            "harness-tuning",
+            "Review the proposed harness tuning diff",
+            f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}",
+            command_line(
                 "tune",
                 root,
                 phase,
@@ -210,22 +264,24 @@ def choose_next_action(
                 repo_type,
                 ["--dry-run", "--diff"],
             ),
-            "write_kind": "tune",
-        }
+            "tune",
+        )
     if eval_repair_signals:
-        return {
-            "id": "eval-review",
-            "label": "Review eval failures before changing generated teams or skills",
-            "reason": f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}, but no safe managed diff was generated",
-            "command": command_line("diagnose", root, phase, modules, human_involvement, repo_type),
-            "write_kind": "none",
-        }
+        return build_next_action(
+            "eval-review",
+            "review-validation",
+            "Review eval failures before changing generated teams or skills",
+            f"latest eval/history feedback raised {', '.join(sorted(eval_repair_signals))}, but no safe managed diff was generated",
+            command_line("diagnose", root, phase, modules, human_involvement, repo_type),
+            "none",
+        )
     if tune_payload.get("proposals"):
-        return {
-            "id": "tune",
-            "label": "Apply the proposed harness tuning diff",
-            "reason": f"{len(tune_payload['proposals'])} tuning proposal(s) are available",
-            "command": command_line(
+        return build_next_action(
+            "tune",
+            "harness-tuning",
+            "Review the proposed harness tuning diff",
+            f"{len(tune_payload['proposals'])} tuning proposal(s) are available",
+            command_line(
                 "tune",
                 root,
                 phase,
@@ -234,14 +290,15 @@ def choose_next_action(
                 repo_type,
                 ["--dry-run", "--diff"],
             ),
-            "write_kind": "tune",
-        }
+            "tune",
+        )
     if not write_target_exists(root, "Docs/AI/agent-team.md"):
-        return {
-            "id": "factory-artifacts",
-            "label": "Generate repo-local team and skill artifacts",
-            "reason": "the harness is fit, but no repo-local agent team artifact exists yet",
-            "command": command_line(
+        return build_next_action(
+            "factory-artifacts",
+            "planning",
+            "Document how Codex should split planning, development, and review work",
+            "the harness is fit, but no repo-local team/orchestration artifact explains how Codex should divide the work",
+            command_line(
                 "factory",
                 root,
                 phase,
@@ -250,31 +307,35 @@ def choose_next_action(
                 repo_type,
                 ["--domain", quote_cli(domain), "--write-artifacts"],
             ),
-            "write_kind": "factory-artifacts",
-        }
+            "factory-artifacts",
+        )
     if int(history_summary.get("count", 0) or 0) == 0:
-        return {
-            "id": "record-history",
-            "label": "Record a baseline harness history snapshot",
-            "reason": "the harness is fit enough, but no history baseline has been recorded",
-            "command": command_line(
+        history_note = "baseline from run-loop"
+        return build_next_action(
+            "record-history",
+            "history",
+            "Record a baseline harness history snapshot",
+            "the harness is fit enough, but no history baseline has been recorded",
+            command_line(
                 "history",
                 root,
                 phase,
                 modules,
                 human_involvement,
                 repo_type,
-                ["--record", "--write", "--note", quote_cli("baseline from run-loop")],
+                ["--record", "--write", "--note", quote_cli(history_note)],
             ),
-            "write_kind": "history",
-        }
-    return {
-        "id": "observe",
-        "label": "Keep the harness stable and observe",
-        "reason": diagnosis["harness_design"]["next_review_trigger"],
-        "command": command_line("doctor", root, phase, modules, human_involvement, repo_type),
-        "write_kind": "none",
-    }
+            "history",
+            history_note=history_note,
+        )
+    return build_next_action(
+        "observe",
+        "review-validation",
+        "Keep the harness stable and observe",
+        diagnosis["harness_design"]["next_review_trigger"],
+        command_line("doctor", root, phase, modules, human_involvement, repo_type),
+        "none",
+    )
 
 
 def build_loop_plan(
@@ -327,11 +388,12 @@ def build_loop_plan(
         history_summary,
     )
     if next_action.get("id") == "observe" and skill_payload["summary"].get("recommendation_count", 0):
-        next_action = {
-            "id": "skill-recommendations",
-            "label": "Review minimal skill and external catalog recommendations",
-            "reason": "the harness is stable enough to review optional skills without changing files or installing anything",
-            "command": skill_recommender.recommendation_command(
+        next_action = build_next_action(
+            "skill-recommendations",
+            "skill-recommendation",
+            "Review minimal skill and external catalog recommendations",
+            "the harness is stable enough to review optional skills without changing files or installing anything",
+            skill_recommender.recommendation_command(
                 root,
                 phase,
                 domain,
@@ -340,8 +402,8 @@ def build_loop_plan(
                 catalog_root,
                 ["--write-plan"],
             ),
-            "write_kind": "skill-recommendations-plan",
-        }
+            "skill-recommendations-plan",
+        )
     status = "fit"
     if int(diagnosis["readiness"]["score"]) < 60:
         status = "needs-bootstrap"
@@ -498,6 +560,8 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
         [
             "",
             "## Next Action",
+            f"- Work type: {next_action.get('category_label', 'Planning')} (`{next_action.get('category', 'planning')}`)",
+            f"- Meaning: {next_action.get('category_summary', 'Codex is choosing the next bounded action.')}",
             f"- {next_action['label']}",
             f"- Reason: {next_action['reason']}",
             f"- Command: `{next_action['command']}`",
@@ -557,6 +621,7 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
 
 
 def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) -> dict[str, Any]:
+    root = root.resolve()
     action = payload["summary"]["next_action"]
     kind = action.get("write_kind")
     options = payload.get("options", {})
@@ -604,6 +669,20 @@ def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) 
         return {
             "action": action,
             "results": [{"status": "create", "path": str(path.relative_to(root))}],
+            "auto_apply_guard": guard,
+        }
+    if kind == "history":
+        planned = [{"path": "Docs/AI/harness-history.jsonl", "action": "record"}]
+        guard = auto_apply_guard(action, planned)
+        if not guard["allowed"]:
+            return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
+        history_result = record_history(payload, root, str(action.get("history_note") or "baseline from run-loop"))
+        history_path = Path(history_result["path"])
+        rel = str(history_path.relative_to(root)) if history_path.is_absolute() else str(history_path)
+        return {
+            "action": action,
+            "results": [{"status": "record", "path": rel}],
+            "history_record": history_result,
             "auto_apply_guard": guard,
         }
     return {"action": action, "results": [], "note": "No file changes were recommended for this action."}
@@ -714,6 +793,9 @@ def print_doctor(payload: dict[str, Any]) -> None:
     prefix = "Optional" if payload["status"] == "fit" else "Recommended"
     if payload["status"] == "fit":
         print("- Required: none. Current harness appears fit.")
+    print(f"- Work type: {next_action.get('category_label', 'Planning')} ({next_action.get('category', 'planning')})")
+    if next_action.get("category_summary"):
+        print(f"- What that means: {next_action['category_summary']}")
     print(f"- {prefix}: {next_action['label']}")
     print(f"- Reason: {next_action['reason']}")
     print("")

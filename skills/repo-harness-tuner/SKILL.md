@@ -26,10 +26,13 @@ This plugin includes `codex-harness-setup`. Use `repo-harness-tuner` to gather e
 - Compare installed capabilities against what the current repo actually documents or needs.
 - Score harness readiness and recommend concrete tuning changes.
 - Run `next` for the friendliest read-only answer to "what should Codex do next?"
+- Treat `summary.next_action.category` as the user-facing work type: `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`.
 - Run `doctor` for a read-only one-command health check, loop summary, and recommended next action.
 - Run `run-loop` or `loop` for the full analyze -> diagnose -> design -> factory -> tune -> evaluate -> history planning pass.
+- Run `release-check` before release or handoff to simulate a fresh clone and validate manifest, compile, fixtures, user journeys, JSON contracts, console output, and bootstrap behavior.
 - Emit and preserve a standard harness contract: Scope, Access & Actions, Definition of Done, and Human Approval Points.
 - Run `fixture-test` to validate project detection, readiness bands, next actions, eval golden tasks, factory labels, write guards, and read-only behavior across fixture repositories.
+- Use fixture-test user journeys to verify first-run bootstrap and baseline history flows without mutating source fixtures.
 - Detect the project type and apply a lightweight preset for Unity, Godot, Vite/Node, Node, Python, Codex plugin, docs-only, or unknown projects.
 - Generate a concrete harness design with target files, worker architecture, evaluation steps, and the next review trigger.
 - Apply Codex plugin-specific presets for plugin.json, bundled skill validation, cachebuster, and CLI smoke-test workflows.

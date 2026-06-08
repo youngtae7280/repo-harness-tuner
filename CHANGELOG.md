@@ -15,6 +15,10 @@
 - Approved adapter skill install flow with `recommend-skills --install --confirm-install`.
 - `skill_recommendations.curator` for history/eval-informed baseline, repair, reduce, keep, and watch decisions.
 - `harness_contract` in `next`, `doctor`, and `run-loop` output, with standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections.
+- `summary.next_action.category`, `category_label`, and `category_summary` for one-command assistant work types.
+- `release-check` for fresh-copy release validation, including manifest, compile, fixture/user-journey, JSON, console, and bootstrap smoke checks.
+- User-journey fixture coverage for fresh repo bootstrap and fit repo history recording.
+- Mermaid one-command flow diagrams in README and README_KO.
 
 ### Changed
 
@@ -25,6 +29,11 @@
 - ROADMAP and HANDOFF now separate v1.0 one-command onboarding from v1.1+ adaptive cadence and adaptive human-involvement work.
 - Fixture tests now assert that closed-loop history/eval pressure produces structured adaptive cadence and human-involvement recommendations.
 - `next`, `doctor`, and `run-loop` now include minimal skill recommendations while keeping external installs approval-based and adapter-only.
+- `factory-artifacts` next action copy now explains that it documents how Codex should split planning, development, and review work.
+
+### Fixed
+
+- `run-loop --write-recommended` now records the recommended baseline history action instead of reporting that no file changes were recommended.
 
 ## 0.8.0 - 2026-06-07
 

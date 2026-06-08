@@ -2,7 +2,7 @@
 
 Repo Harness Tuner는 Codex 작업장 튜너입니다.
 
-명령 하나로 repo를 살펴보고, agent 작업 흐름을 진단하고, 다음 안전한 작업과 검증 방법, 필요한 최소 skill/worker 추천을 정리합니다. 분석과 추천은 자동으로 하지만, 파일 쓰기, 정책 변경, 외부 skill 설치는 명시 승인 후에만 합니다.
+`next` 한 번으로 repo를 살펴보고, agent 작업 흐름을 진단하고, 다음 안전한 작업과 검증 방법, 필요한 최소 skill/worker 추천을 정리합니다. 분석과 추천은 자동으로 하지만, 파일 쓰기, 정책 변경, 외부 skill 설치는 명시 승인 후에만 합니다.
 
 이 플러그인은 조용히 모든 기획/개발/출시를 대신하는 자동 개발자가 아닙니다. Codex가 기획, 개발, 검수, 문서화, 하네스 정리를 계속 이어가기 좋도록 작업장을 정리하는 층입니다.
 
@@ -14,44 +14,43 @@ Codex에서는 이렇게 한 번 요청하세요.
 repo-harness-tuner로 이 repo를 봐줘. Codex가 다음에 뭘 해야 하는지, 어떤 검증을 해야 하는지, 파일 쓰기나 설치 전에 무엇을 승인해야 하는지 알려줘.
 ```
 
-CLI에서는 `next`를 첫 read-only planning pass로 사용합니다.
+CLI에서는 `next`로 시작하세요. 다른 명령은 `next` 결과가 추천할 때 따라가면 됩니다.
 
 ```powershell
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-`next`는 `run-loop`의 친절한 alias입니다. 짧은 건강 상태만 보고 싶다면 `doctor`를 씁니다.
+`next`가 기본 진입점입니다. 짧은 건강 상태만 보고 싶다면 `doctor`를 씁니다.
 
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-## 다음에 일어나는 일
+## 원커맨드 흐름
 
-루프는 다음 순서로 판단합니다.
-
-```text
-Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
+```mermaid
+flowchart LR
+    A["1. next 실행"] --> B["2. repo 확인"]
+    B --> C["3. 작업 타입 선택<br/>기획 / 개발 / 검수 / 튜닝 / skill / history"]
+    C --> D["4. 다음 명령 하나 출력"]
+    D --> E{"5. 승인 필요?"}
+    E -->|"아니오"| F["안전한 다음 단계 실행"]
+    E -->|"예"| G["diff, write flag, 설치, 정책 경계 검토"]
+    F --> H["검증하고 증거 기록"]
+    G --> H
 ```
 
-출력은 다음 항목을 중심으로 보여줍니다.
+`next`는 다섯 가지를 보여줍니다.
 
 - Codex가 발견한 것
-- Codex가 다음에 할 수 있는 일
-- 다음 명령
+- 현재 작업 타입
+- 다음 명령 하나
 - 승인이 필요한 것
 - 실행할 검증
 
-결과에 따라 다음 중 하나를 추천합니다.
+작업 타입은 `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, `history` 중 하나로 표시됩니다. 그래서 지금 Codex가 기획을 잡는 중인지, 개발을 돕는 중인지, 검수 증거를 보는 중인지, 하네스를 조정하는 중인지 한눈에 알 수 있습니다.
 
-- 현재 하네스가 충분하면 변경 없음
-- 첫 하네스가 필요하면 `bootstrap`
-- 오래되거나 어긋난 하네스 문서는 `tune`
-- 프로젝트별 팀/skill 설계가 필요하면 `factory`
-- 최소 skill/agent 후보가 필요하면 `recommend-skills`
-- 다음 실행이 더 좋아지도록 eval/history 기록
-
-처음부터 모든 명령을 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 검토한 뒤 진행하면 됩니다.
+처음부터 `bootstrap`, `tune`, `factory`, `recommend-skills`, `history`를 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 검토한 뒤 추천된 다음 명령만 따라가면 됩니다.
 
 ## 하네스 계약
 
@@ -139,6 +138,7 @@ python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project
 python scripts\console.py fixture-test
+python scripts\console.py release-check
 ```
 
 전체 명령과 JSON 예시는 [Docs/commands.md](Docs/commands.md)에 있습니다.

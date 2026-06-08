@@ -15,6 +15,7 @@ These command names are treated as public:
 | `loop` | Stable alias | Alias for `run-loop`. |
 | `next` | Stable alias | Friendly alias for `run-loop`; answers what Codex should do next. |
 | `fixture-test` | Stable | Run fixture golden tests. |
+| `release-check` | Stable | Run release validation and fresh-clone simulation checks. |
 | `diagnose` | Stable | Score readiness and detect drift, overhead, and human-involvement gaps. |
 | `design` | Stable | Build the next harness design plan from diagnosis. |
 | `eval` | Stable | Build an evaluation plan or score recorded eval results. |
@@ -62,6 +63,7 @@ Read-only is the default. The following commands must not modify target files un
 - `apply`
 - `tune`
 - `history`
+- `release-check`
 
 Stable write flags:
 
@@ -99,7 +101,8 @@ Stable top-level JSON fields:
 | `tune` | `schema`, `created_at`, `repo`, `phase`, `force`, `readiness`, `diagnosis`, `proposals`, `notes` |
 | `bootstrap` / `apply` | `repo`, `phase`, `force`, `actions`, plus `results` when `--write` is used. |
 | `history` | `count`, `parse_errors`, `by_type`, `by_worker_pattern`, `latest`, `readiness_min`, `readiness_max`, `readiness_latest`, `readiness_values`, `totals` |
-| `fixture-test` | `schema`, `created_at`, `fixtures_root`, `count`, `passed`, `failed`, `results` |
+| `fixture-test` | `schema`, `created_at`, `fixtures_root`, `count`, `passed`, `failed`, `results`, `journey_count`, `journey_passed`, `journey_failed`, `journeys` |
+| `release-check` | `schema`, `created_at`, `source_root`, `mode`, `count`, `passed`, `failed`, `checks` |
 | `repo` | `root`, `project_type`, `project_markers`, `files`, `package_scripts`, `docs_reports_count`, `missing_recommended` |
 | `overview` | `skills`, `plugins`, `marketplace`, `repo`, `counts` |
 | `skills` | `skills`, `count` |
@@ -107,6 +110,8 @@ Stable top-level JSON fields:
 | `patterns` | `patterns`, or prompt fields when `--prompt` is used |
 
 Nested fields may grow over time. Removing or renaming documented top-level fields before v2.0 requires a breaking-change note.
+
+For `doctor`, `run-loop`, `loop`, and `next`, `summary.next_action` also includes `action_type`, `category`, `category_label`, and `category_summary`. `action_type` and `category` carry the same work-type value: one of `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`.
 
 ## Text Output
 
@@ -118,6 +123,7 @@ Text output is user-facing and may evolve for readability, but it must preserve 
 - dry-run vs write distinction for `bootstrap`, `apply`, and `tune`
 - refusal reason and required flag for write guards
 - fixture pass/fail summary for `fixture-test`
+- release pass/fail summary for `release-check`
 - install/write target paths when commands write outside the current repo
 - skill recommendation count, source, curator action, and adapter-only install boundary for `recommend-skills`
 
@@ -131,6 +137,7 @@ Before changing CLI output or write safety, run:
 python scripts\console.py overview --repo .
 python scripts\console.py doctor --repo . --phase active-development --json
 python scripts\console.py fixture-test
+python scripts\console.py release-check
 ```
 
 For broad validation, use the explicit file list in `Docs/AI/validation.md`; do not rely on PowerShell expanding `scripts/*.py`.

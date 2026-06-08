@@ -81,6 +81,7 @@ python scripts\console.py doctor --repo . --phase active-development --domain "C
 python scripts\console.py run-loop --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py recommend-skills --repo . --phase active-development --domain "Codex plugin harness factory"
 python scripts\console.py fixture-test
+python scripts\console.py release-check
 ```
 
 This is enough for development, CI checks, and fixture-test work.
@@ -121,9 +122,12 @@ python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.
 python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\codex-harness-setup
 python %USERPROFILE%\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py .
 python skills\codex-harness-setup\scripts\check_harness.py .
+python scripts\console.py release-check
 ```
 
 In Windows PowerShell, prefer explicit file lists. `scripts/*.py` is not expanded before Python receives it.
+
+`release-check` copies the current checkout to a temporary fresh-copy simulation, then validates manifest parsing, bundled skill frontmatter, script compilation, fixture/user-journey tests, `next`/`doctor` JSON contracts, Windows-console text output tolerance, and bootstrap/harness-check behavior.
 
 ## Troubleshooting
 

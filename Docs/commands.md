@@ -14,6 +14,8 @@ python scripts\console.py next --repo C:\path\to\repo --phase active-development
 
 `next` is a friendly alias for `run-loop`. It prints what Codex found, what Codex can do next, the next command, what needs approval, and validation to run.
 
+The recommended next action includes a work type: `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`.
+
 ## Read-Only First
 
 ```powershell
@@ -23,6 +25,7 @@ python scripts\console.py doctor --repo C:\path\to\repo --phase active-developme
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active-development --domain "technical documentation"
 python scripts\console.py fixture-test
+python scripts\console.py release-check
 ```
 
 ## Plans And History
@@ -30,10 +33,13 @@ python scripts\console.py fixture-test
 ```powershell
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-plan
+python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "technical documentation" --write-recommended
 python scripts\console.py run-loop --repo C:\path\to\repo --phase active-development --domain "technical documentation" --record-history --note "after first feature"
 python scripts\console.py history --repo C:\path\to\repo
 python scripts\console.py history --repo C:\path\to\repo --record --write --note "after first feature"
 ```
+
+`--write-recommended` applies only the bounded next action selected by `next` / `run-loop`. It can write managed harness docs, repo-local factory artifacts, skill recommendation plans, or a baseline harness history record when that exact action is recommended.
 
 ## Diagnose And Design
 
@@ -115,6 +121,15 @@ python scripts\console.py repo --repo C:\path\to\repo
 python scripts\console.py prompt --repo-type "Vite + TypeScript + JSON game prototype" --phase prototype --human-involvement 2
 ```
 
+## Release Validation
+
+```powershell
+python scripts\console.py release-check
+python scripts\console.py release-check --json
+```
+
+`release-check` runs a fresh-copy simulation of the current checkout. It validates plugin JSON, bundled skill frontmatter, Python compilation, fixture tests including user journeys, `next`/`doctor` JSON contracts, Windows-console text output tolerance, and bootstrap/harness-check behavior in a clean temp target.
+
 ## JSON Output
 
 ```powershell
@@ -123,6 +138,7 @@ python scripts\console.py next --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py doctor --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py run-loop --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py fixture-test --json
+python scripts\console.py release-check --json
 python scripts\console.py diagnose --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py design --repo C:\path\to\repo --phase prototype --json
 python scripts\console.py factory --repo C:\path\to\repo --domain "technical documentation" --json
@@ -145,6 +161,13 @@ python scripts\console.py repo --repo C:\path\to\repo --json
 - `adaptive.human_involvement` can recommend keeping, raising, or lowering the default human-involvement level.
 - `adaptive.human_involvement.approval_required` is `true` when a policy change is recommended.
 - The plugin never silently changes cadence or human-involvement policy; apply those changes only after review.
+
+`summary.next_action` includes the assistant work type:
+
+- `action_type`: stable work-type slug such as `planning`, `review-validation`, or `history`.
+- `category`: stable slug such as `planning`, `review-validation`, or `history`.
+- `category_label`: user-facing label.
+- `category_summary`: short explanation of what Codex is doing at that step.
 
 `next`, `doctor`, and `run-loop` also include `skill_recommendations`. It is recommendation-only:
 

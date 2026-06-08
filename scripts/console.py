@@ -46,6 +46,7 @@ factory_module = load_module("factory")
 skill_recommender = load_module("skill_recommender")
 loop_module = load_module("loop")
 fixture_test_module = load_module("fixture_test")
+release_validation_module = load_module("release_validation")
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -607,6 +608,15 @@ def cmd_fixture_test(args: argparse.Namespace) -> int:
     return 0 if payload["failed"] == 0 else 1
 
 
+def cmd_release_check(args: argparse.Namespace) -> int:
+    payload = release_validation_module.run_release_validation(Path(args.repo))
+    if args.json:
+        emit_json(payload)
+    else:
+        release_validation_module.print_report(payload)
+    return 0 if payload["failed"] == 0 else 1
+
+
 def add_loop_arguments(command_parser: argparse.ArgumentParser) -> None:
     command_parser.add_argument("--repo", default=".")
     command_parser.add_argument("--phase", default="active-development", choices=sorted(diagnose_module.PHASES))
@@ -689,6 +699,11 @@ def build_parser() -> argparse.ArgumentParser:
     fixture_test.add_argument("--fixture", action="append", help="Run one fixture id. Can be repeated.")
     fixture_test.add_argument("--json", action="store_true")
     fixture_test.set_defaults(func=cmd_fixture_test)
+
+    release_check = sub.add_parser("release-check", help="Run release and fresh-clone simulation checks.")
+    release_check.add_argument("--repo", default=".", help="Source checkout to copy and validate.")
+    release_check.add_argument("--json", action="store_true")
+    release_check.set_defaults(func=cmd_release_check)
 
     prompt = sub.add_parser("prompt", help="Generate a codex-harness-setup prompt.")
     prompt.add_argument("--mode", default="Setup", choices=["Audit only", "Setup", "Targeted upgrade", "Recovery", "Ambiguity profiling"])

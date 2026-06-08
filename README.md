@@ -2,7 +2,7 @@
 
 Repo Harness Tuner is a Codex workspace tuner.
 
-Run one command to inspect a repo, diagnose its agent workflow, choose the next safe action, suggest validation, and recommend only the smallest useful skills or worker patterns. It plans and recommends automatically. It writes files, changes policy, or installs external skills only after explicit approval.
+Run `next` once to inspect a repo, diagnose its agent workflow, choose the next safe action, suggest validation, and recommend only the smallest useful skills or worker patterns. It plans and recommends automatically. It writes files, changes policy, or installs external skills only after explicit approval.
 
 It is not a silent autonomous product developer. It is the layer that helps Codex keep planning, development, review, validation, and repo-local harness guidance organized as the project moves.
 
@@ -14,44 +14,43 @@ In Codex, start with one request:
 Use repo-harness-tuner on this repo. Tell me what Codex should do next, what validation to run, and what needs approval before any file write or install.
 ```
 
-From the command line, use `next` as the first read-only planning pass:
+From the command line, start with `next`. Treat every other command as something the output may recommend later:
 
 ```powershell
 python scripts\console.py next --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-`next` is a friendly alias for `run-loop`. Use `doctor` when you want a shorter health check:
+`next` is the main entry point. Use `doctor` only when you want a shorter health check:
 
 ```powershell
 python scripts\console.py doctor --repo C:\path\to\repo --phase active-development --domain "your project"
 ```
 
-## What Happens Next
+## One-Command Flow
 
-The loop does the harness work in order:
-
-```text
-Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
+```mermaid
+flowchart LR
+    A["1. Run next"] --> B["2. Inspect repo"]
+    B --> C["3. Pick work type<br/>planning / development / review / tuning / skills / history"]
+    C --> D["4. Print one next command"]
+    D --> E{"5. Needs approval?"}
+    E -->|"No"| F["Run safe next step"]
+    E -->|"Yes"| G["Review diff, write flag, install, or policy boundary"]
+    F --> H["Validate and record evidence"]
+    G --> H
 ```
 
-The output is organized around:
+`next` prints five things:
 
 - what Codex found,
-- what Codex can do next,
-- the next command,
+- the current work type,
+- the one next command,
 - what needs approval,
 - validation to run.
 
-It decides whether the repo needs:
+The work type is explicit: `planning`, `development-support`, `review-validation`, `harness-tuning`, `skill-recommendation`, or `history`. That keeps the output from feeling like a raw engine dump: you can see whether Codex is setting direction, supporting implementation, checking evidence, tuning the harness, recommending skills, or recording learning for the next cycle.
 
-- no change because the current harness is fit,
-- a minimal first harness with `bootstrap`,
-- a focused update to stale harness docs with `tune`,
-- a project-specific team/skill plan with `factory`,
-- a minimal skill/agent recommendation with `recommend-skills`,
-- an evaluation or history record so future runs can learn from the result.
-
-You do not need to choose all of those commands up front. Start with `next`; use the recommended action after reviewing the approval boundary.
+You do not need to choose `bootstrap`, `tune`, `factory`, `recommend-skills`, or `history` up front. Start with `next`; use the recommended action after reviewing the approval boundary.
 
 ## Harness Contract
 
@@ -161,6 +160,7 @@ python scripts\console.py recommend-skills --repo C:\path\to\repo --phase active
 python scripts\console.py tune --repo C:\path\to\repo --phase active-development --dry-run --diff
 python scripts\console.py bootstrap --repo C:\path\to\repo --phase new-project
 python scripts\console.py fixture-test
+python scripts\console.py release-check
 ```
 
 Full command details and JSON examples are in [Docs/commands.md](Docs/commands.md).

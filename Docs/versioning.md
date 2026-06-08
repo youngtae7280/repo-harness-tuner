@@ -48,6 +48,8 @@ The public stability surface is the behavior users, docs, CI, and downstream aut
 - stored harness history and eval score formats when later commands are expected to read them
 - stored or emitted skill recommendation plans and adapter skill install boundaries
 - emitted and generated harness contract sections: Scope, Access & Actions, Definition of Done, and Human Approval Points
+- emitted next-action category values for the one-command assistant flow
+- `release-check` fresh-copy validation expectations
 - default Windows PowerShell compatibility for normal text output
 
 Internal helper functions, private nested fields, text formatting, fixture internals, and wording in human-readable output may evolve unless they are explicitly documented as stable.
@@ -70,6 +72,7 @@ Breaking changes include:
 - making stored history or eval result files unreadable without a migration
 - changing `recommend-skills` from adapter-only to external bulk install without a new documented approval path
 - removing or silently weakening the generated harness contract boundaries for scope, access/actions, done criteria, or human approval points
+- removing or silently changing documented next-action category meanings
 - introducing text output that crashes in a default Windows PowerShell console
 
 Breaking changes must be called out in `CHANGELOG.md` with `BREAKING:` and should update the relevant contract document.

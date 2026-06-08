@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -106,6 +108,10 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     assert_equal(failures, "project_type", summary["project_type"], expected.get("project_type"))
     assert_equal(failures, "status", loop_payload["status"], expected.get("status"))
     assert_equal(failures, "next_action", next_action["id"], expected.get("next_action"))
+    if next_action.get("action_type") != next_action.get("category"):
+        failures.append("next_action action_type and category diverged")
+    if "next_action_category" in expected:
+        assert_equal(failures, "next_action_category", next_action.get("category"), expected.get("next_action_category"))
     assert_equal(failures, "eval_tasks", summary["eval_tasks"], expected.get("eval_tasks"))
     assert_equal(failures, "factory_label", factory_payload["team_factory"]["label"], expected.get("factory_label"))
     factory_quality = factory_payload.get("factory_quality", {})
@@ -226,6 +232,7 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "readiness": summary["readiness"],
             "loop_status": loop_payload["status"],
             "next_action": next_action["id"],
+            "next_action_category": next_action.get("category"),
             "eval_tasks": summary["eval_tasks"],
             "factory_label": factory_payload["team_factory"]["label"],
             "factory_evidence_refs": factory_quality.get("evidence_ref_count", 0),
@@ -251,6 +258,96 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def copy_fixture(fixtures_root: Path, fixture_path: str, workspace: Path) -> Path:
+    source = fixtures_root / fixture_path
+    destination = workspace / fixture_path.replace("/", "-").replace("\\", "-")
+    shutil.copytree(source, destination)
+    return destination
+
+
+def run_user_journey_fixtures(fixtures_root: Path) -> list[dict[str, Any]]:
+    journeys: list[dict[str, Any]] = []
+    with tempfile.TemporaryDirectory(prefix="rht-journey-") as temp_dir:
+        workspace = Path(temp_dir)
+
+        fresh_root = copy_fixture(fixtures_root, "vite-node-existing", workspace)
+        failures: list[str] = []
+        first = loop_module.build_loop_plan(fresh_root, "active-development", "Vite frontend app")
+        first_action = first["summary"]["next_action"]
+        assert_equal(failures, "first_next_action", first_action["id"], "bootstrap")
+        assert_equal(failures, "first_next_action_category", first_action.get("category"), "planning")
+        recommended = loop_module.apply_recommended(first, fresh_root)
+        guard = recommended.get("auto_apply_guard", {})
+        if recommended.get("blocked"):
+            failures.append(f"bootstrap recommended write was blocked: {guard.get('reason', 'unknown reason')}")
+        if not guard.get("allowed"):
+            failures.append("bootstrap auto-apply guard did not allow managed harness files")
+        written_paths = sorted(str(item.get("path", "")).replace("\\", "/") for item in recommended.get("results", []))
+        assert_contains_all(
+            failures,
+            "bootstrap_written_paths",
+            written_paths,
+            ["AGENTS.md", "Docs/AI/harness-profile.md", "Docs/AI/validation.md", "Docs/AI/ambiguity-profile.md"],
+        )
+        second = loop_module.build_loop_plan(fresh_root, "active-development", "Vite frontend app")
+        if second["summary"]["next_action"]["id"] == "bootstrap":
+            failures.append("second next action should move past bootstrap after applying the managed write")
+        if int(second["summary"].get("readiness", 0) or 0) < 90:
+            failures.append(f"second readiness expected at least 90, got {second['summary'].get('readiness')}")
+        journeys.append(
+            {
+                "id": "fresh-next-bootstrap-journey",
+                "status": "pass" if not failures else "fail",
+                "failures": failures,
+                "observed": {
+                    "first_next_action": first_action["id"],
+                    "first_next_action_category": first_action.get("category"),
+                    "written_paths": written_paths,
+                    "second_next_action": second["summary"]["next_action"]["id"],
+                    "second_next_action_category": second["summary"]["next_action"].get("category"),
+                    "second_readiness": second["summary"].get("readiness"),
+                },
+            }
+        )
+
+        history_root = copy_fixture(fixtures_root, "harnessed-vite", workspace)
+        failures = []
+        first = loop_module.build_loop_plan(history_root, "active-development", "Vite frontend app")
+        first_action = first["summary"]["next_action"]
+        assert_equal(failures, "first_next_action", first_action["id"], "record-history")
+        assert_equal(failures, "first_next_action_category", first_action.get("category"), "history")
+        recommended = loop_module.apply_recommended(first, history_root)
+        guard = recommended.get("auto_apply_guard", {})
+        if recommended.get("blocked"):
+            failures.append(f"history recommended write was blocked: {guard.get('reason', 'unknown reason')}")
+        if not guard.get("allowed"):
+            failures.append("history auto-apply guard did not allow harness history")
+        written_paths = sorted(str(item.get("path", "")).replace("\\", "/") for item in recommended.get("results", []))
+        assert_contains_all(failures, "history_written_paths", written_paths, ["Docs/AI/harness-history.jsonl"])
+        history_path = history_root / "Docs" / "AI" / "harness-history.jsonl"
+        if not history_path.exists() or not history_path.read_text(encoding="utf-8-sig").strip():
+            failures.append("history file was not written with a record")
+        second = loop_module.build_loop_plan(history_root, "active-development", "Vite frontend app")
+        if second["summary"]["next_action"]["id"] == "record-history":
+            failures.append("second next action should move past record-history after writing the baseline")
+        journeys.append(
+            {
+                "id": "fit-next-history-journey",
+                "status": "pass" if not failures else "fail",
+                "failures": failures,
+                "observed": {
+                    "first_next_action": first_action["id"],
+                    "first_next_action_category": first_action.get("category"),
+                    "written_paths": written_paths,
+                    "second_next_action": second["summary"]["next_action"]["id"],
+                    "second_next_action_category": second["summary"]["next_action"].get("category"),
+                    "history_entries": second["summary"].get("history_entries"),
+                },
+            }
+        )
+    return journeys
+
+
 def run_fixtures(fixtures_root: Path, selected: list[str] | None = None) -> dict[str, Any]:
     manifest = load_manifest(fixtures_root)
     selected_set = set(selected or [])
@@ -267,15 +364,21 @@ def run_fixtures(fixtures_root: Path, selected: list[str] | None = None) -> dict
             raise ValueError(f"Unknown fixture id(s): {', '.join(missing)}")
 
     results = [run_fixture(fixtures_root, fixture) for fixture in fixtures]
+    journeys = [] if selected_set else run_user_journey_fixtures(fixtures_root)
     failed = [result for result in results if result["status"] != "pass"]
+    journey_failed = [result for result in journeys if result["status"] != "pass"]
     return {
         "schema": "repo-harness-tuner.fixture-test.v1",
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         "fixtures_root": str(fixtures_root.resolve()),
         "count": len(results),
         "passed": len(results) - len(failed),
-        "failed": len(failed),
+        "failed": len(failed) + len(journey_failed),
         "results": results,
+        "journey_count": len(journeys),
+        "journey_passed": len(journeys) - len(journey_failed),
+        "journey_failed": len(journey_failed),
+        "journeys": journeys,
     }
 
 
@@ -284,6 +387,8 @@ def print_report(payload: dict[str, Any]) -> None:
     print(f"Fixtures: {payload['count']}")
     print(f"Passed: {payload['passed']}")
     print(f"Failed: {payload['failed']}")
+    if payload.get("journey_count"):
+        print(f"Journeys: {payload['journey_count']} passed={payload['journey_passed']} failed={payload['journey_failed']}")
     print("")
     for result in payload["results"]:
         observed = result.get("observed", {})
@@ -301,6 +406,17 @@ def print_report(payload: dict[str, Any]) -> None:
                 f"{observed.get('adaptive_human_involvement_direction', 'keep')} "
                 f"skills={observed.get('skill_recommendations', 0)}/"
                 f"{observed.get('skill_curator_action', 'baseline')}"
+            )
+        for failure in result.get("failures", []):
+            print(f"  failure: {failure}")
+    for result in payload.get("journeys", []):
+        observed = result.get("observed", {})
+        print(f"- {result['status']}: {result['id']}")
+        if observed:
+            print(
+                "  "
+                f"first={observed.get('first_next_action')}:{observed.get('first_next_action_category')} "
+                f"second={observed.get('second_next_action')}:{observed.get('second_next_action_category')}"
             )
         for failure in result.get("failures", []):
             print(f"  failure: {failure}")
