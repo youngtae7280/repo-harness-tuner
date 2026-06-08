@@ -14,11 +14,13 @@
 - ECC seed catalog support for adapter-only recommendations.
 - Approved adapter skill install flow with `recommend-skills --install --confirm-install`.
 - `skill_recommendations.curator` for history/eval-informed baseline, repair, reduce, keep, and watch decisions.
+- `harness_contract` in `next`, `doctor`, and `run-loop` output, with standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections.
 
 ### Changed
 
 - README and README_KO are now slimmer one-request onboarding docs focused on `next`/`doctor`/`run-loop`, the approval-based safety model, adaptive review cadence, and human-involvement defaults.
 - `doctor`, `run-loop`, and `next` text output now highlights what Codex found, what it can do next, the next command, approval boundaries, and validation hints.
+- `bootstrap`, `tune`, and `factory` outputs now write the standard harness contract into generated or tuned harness docs.
 - CLI JSON output is now ASCII-safe by default, and console output is configured to avoid `UnicodeEncodeError` crashes on legacy Windows console encodings.
 - ROADMAP and HANDOFF now separate v1.0 one-command onboarding from v1.1+ adaptive cadence and adaptive human-involvement work.
 - Fixture tests now assert that closed-loop history/eval pressure produces structured adaptive cadence and human-involvement recommendations.

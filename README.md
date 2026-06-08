@@ -53,6 +53,17 @@ It decides whether the repo needs:
 
 You do not need to choose all of those commands up front. Start with `next`; use the recommended action after reviewing the approval boundary.
 
+## Harness Contract
+
+Every generated or tuned harness should make four boundaries explicit:
+
+- **Scope**: what Codex may own, and what it must not take over.
+- **Access & Actions**: what Codex can see, what it can do, what it must not do, and what requires approval.
+- **Definition of Done**: validation, changed-file summary, skipped-check reason, remaining risk, and closeout evidence.
+- **Human Approval Points**: release, deployment, dependencies, CI, secrets, customer/user-facing sends, destructive changes, policy changes, and high human-involvement areas.
+
+`next`, `doctor`, and `run-loop` expose this as `harness_contract`; `bootstrap`, `tune`, and `factory` write those sections into generated harness docs.
+
 ## Safety Model
 
 The plugin is read-first.

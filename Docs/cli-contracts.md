@@ -90,7 +90,7 @@ Stable top-level JSON fields:
 
 | Command | Stable top-level fields |
 | --- | --- |
-| `doctor` | `schema`, `created_at`, `repo`, `phase`, `domain`, `options`, `status`, `summary`, `analyze`, `diagnose`, `closed_loop`, `adaptive`, `design`, `factory`, `skill_recommendations`, `tune`, `evaluate`, `history`, `commands` |
+| `doctor` | `schema`, `created_at`, `repo`, `phase`, `domain`, `options`, `status`, `summary`, `analyze`, `diagnose`, `closed_loop`, `adaptive`, `harness_contract`, `design`, `factory`, `skill_recommendations`, `tune`, `evaluate`, `history`, `commands` |
 | `run-loop` / `loop` / `next` | Same top-level envelope as `doctor`, plus any write-result fields when write flags are used. |
 | `diagnose` | `phase`, `cadence`, `human_involvement`, `human_involvement_policy`, `readiness`, `drift`, `process_overhead`, `human_involvement_enforcement`, `history_feedback`, `human_involvement_matrix`, `harness_design`, `adaptive` |
 | `factory` | `schema`, `created_at`, `repo`, `domain`, `phase`, `project_type`, `factory_goal`, `harness_engine`, `repo_evidence`, `artifact_inventory`, `factory_quality`, `team_factory` |
@@ -114,6 +114,7 @@ Text output is user-facing and may evolve for readability, but it must preserve 
 
 - status/readiness/next action for `next`, `doctor`, and `run-loop`
 - "what Codex found", "what Codex can do next", next command, approval boundary, and validation hints for `doctor`, `run-loop`, and `next`
+- harness contract visibility for Scope, Access & Actions, Definition of Done, and Human Approval Points
 - dry-run vs write distinction for `bootstrap`, `apply`, and `tune`
 - refusal reason and required flag for write guards
 - fixture pass/fail summary for `fixture-test`

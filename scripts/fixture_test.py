@@ -122,6 +122,11 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
     skill_sources = sorted({str(item.get("source")) for item in skill_recommendations if isinstance(item, dict)})
     skill_capabilities = sorted({str(item.get("capability")) for item in skill_recommendations if isinstance(item, dict)})
     skill_curator = skill_payload.get("curator", {}) if isinstance(skill_payload, dict) else {}
+    harness_contract = loop_payload.get("harness_contract", {})
+    required_contract_sections = ["scope", "access_actions", "definition_of_done", "human_approval_points"]
+    missing_contract_sections = [section for section in required_contract_sections if section not in harness_contract]
+    if missing_contract_sections:
+        failures.append(f"harness_contract: missing sections {missing_contract_sections}")
     if "factory_evidence_min" in expected:
         assert_minimum(failures, "factory_evidence_refs", int(factory_quality.get("evidence_ref_count", 0)), int(expected["factory_evidence_min"]))
     if "factory_skills_with_evidence_min" in expected:
@@ -238,6 +243,7 @@ def run_fixture(fixtures_root: Path, fixture: dict[str, Any]) -> dict[str, Any]:
             "skill_recommendation_sources": skill_sources,
             "skill_recommendation_capabilities": skill_capabilities,
             "skill_curator_action": skill_curator.get("action"),
+            "harness_contract_sections": sorted(section for section in required_contract_sections if section in harness_contract),
             "diagnosis_findings": len(diagnosis["readiness"]["findings"]),
             "harness_files": len(repo_scan.get("files", [])),
             "eval_mode": eval_payload.get("evaluation_mode", ""),

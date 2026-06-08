@@ -151,3 +151,10 @@ python scripts\console.py repo --repo C:\path\to\repo --json
 - `skill_recommendations.recommendations` lists minimal built-in or ECC-seed candidates.
 - `skill_recommendations.curator` says whether the current evidence suggests baseline, repair, reduce, keep, or watch.
 - `skill_recommendations.safety` records that external catalog bulk install is disabled and adapter installs require approval.
+
+`next`, `doctor`, and `run-loop` also include `harness_contract`:
+
+- `scope` separates what Codex may own from what it must not take over.
+- `access_actions` separates visible information, allowed actions, forbidden actions, and approval-required actions.
+- `definition_of_done` lists expected validation, closeout evidence, skipped-check handling, and remaining-risk reporting.
+- `human_approval_points` records the default human-involvement level, always-ask triggers, and area matrix.

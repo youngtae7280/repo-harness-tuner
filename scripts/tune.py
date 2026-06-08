@@ -120,6 +120,33 @@ def involvement_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
     ]
 
 
+def contract_present(root: Path) -> bool:
+    combined = "\n".join(
+        read_text(path)
+        for path in [
+            root / "AGENTS.md",
+            root / "Docs" / "AI" / "harness-profile.md",
+            root / "docs" / "AI" / "harness-profile.md",
+            root / "docs" / "ai" / "harness-profile.md",
+        ]
+    ).lower()
+    required = [
+        "scope",
+        "access & actions",
+        "definition of done",
+        "human approval points",
+    ]
+    return all(item in combined for item in required)
+
+
+def contract_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
+    return diagnose_module.render_harness_contract_lines(
+        diagnosis["harness_contract"],
+        heading_level=3,
+        include_heading=False,
+    )
+
+
 def harness_profile_patch_lines(diagnosis: dict[str, Any]) -> list[str]:
     design = diagnosis["harness_design"]
     worker = design["worker_architecture"]
@@ -215,7 +242,8 @@ def build_proposals(
     has_involvement_gaps = bool(diagnosis.get("human_involvement_enforcement"))
     has_overhead = bool(diagnosis.get("process_overhead"))
     has_history_pressure = bool(diagnosis.get("history_feedback", {}).get("recommendations"))
-    needs_profile = "Docs/AI/harness-profile.md" in missing or any(
+    needs_contract = not contract_present(root)
+    needs_profile_design = "Docs/AI/harness-profile.md" in missing or any(
         finding["status"] == "gap" and finding["title"] in {"Harness profile", "Worker visibility", "Human involvement policy"}
         for finding in diagnosis["readiness"]["findings"]
     ) or has_history_pressure
@@ -224,7 +252,7 @@ def build_proposals(
         for finding in diagnosis["readiness"]["findings"]
     )
     needs_involvement = "Docs/AI/ambiguity-profile.md" in missing or has_involvement_gaps
-    needs_agents = "AGENTS.md" in missing or has_involvement_gaps or needs_profile
+    needs_agents = "AGENTS.md" in missing or has_involvement_gaps or needs_profile_design
 
     if needs_agents:
         ensure_or_update(
@@ -236,7 +264,17 @@ def build_proposals(
             agents_patch_lines(diagnosis),
             "AGENTS.md is missing or needs links to harness policy",
         )
-    if needs_profile:
+    if needs_contract and "Docs/AI/harness-profile.md" not in missing:
+        ensure_or_update(
+            ["Docs/AI/harness-profile.md", "docs/AI/harness-profile.md", "docs/ai/harness-profile.md"],
+            "Docs/AI/harness-profile.md",
+            "Docs/AI/harness-profile.md",
+            "harness-contract",
+            "Repo Harness Tuner Harness Contract",
+            contract_patch_lines(diagnosis),
+            "harness contract is missing the standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections",
+        )
+    if needs_profile_design:
         ensure_or_update(
             ["Docs/AI/harness-profile.md", "docs/AI/harness-profile.md", "docs/ai/harness-profile.md"],
             "Docs/AI/harness-profile.md",

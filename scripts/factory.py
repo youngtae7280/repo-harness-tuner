@@ -510,7 +510,9 @@ def build_factory_plan(
             "history_feedback": history_feedback,
             "human_involvement": diagnosis["human_involvement"],
             "next_review_trigger": diagnosis["harness_design"]["next_review_trigger"],
+            "harness_contract": diagnosis["harness_contract"],
         },
+        "harness_contract": diagnosis["harness_contract"],
         "repo_evidence": evidence,
         "artifact_inventory": artifact_inventory,
         "factory_quality": {
@@ -584,6 +586,8 @@ def write_factory_plan(root: Path, payload: dict[str, Any]) -> Path:
         f"- Visibility: {team['architecture_pattern']['visibility']}",
         f"- Coordination: {team['architecture_pattern']['coordination']}",
         "",
+        *diagnose_module.render_harness_contract_lines(payload["harness_contract"], heading_level=2),
+        "",
         "## Repo Evidence",
         f"- Summary: {evidence.get('summary', 'No concrete evidence summary available.')}",
     ]
@@ -646,6 +650,8 @@ def build_agent_team_doc(payload: dict[str, Any]) -> str:
         "",
         "## Team Goal",
         payload["factory_goal"],
+        "",
+        *diagnose_module.render_harness_contract_lines(payload["harness_contract"], heading_level=2),
         "",
         "## Repo Evidence",
         f"- Summary: {evidence.get('summary', 'No concrete evidence summary available.')}",
@@ -721,6 +727,12 @@ def build_skill_doc(payload: dict[str, Any], skill: dict[str, Any]) -> str:
         "",
         "## Related Roles",
         related_roles,
+        "",
+        "## Harness Contract",
+        "- Scope: stay inside this skill's trigger, domain, and current user request.",
+        "- Access & Actions: inspect repo evidence and produce bounded findings; do not expand tools, installs, CI, or release gates without approval.",
+        "- Definition of Done: provide concise findings, relevant file references, validation evidence or skipped-check reason, and remaining risk.",
+        "- Human Approval Points: escalate product direction, release, dependency, secret, privacy-sensitive, destructive, or external-send decisions.",
         "",
         "## Repo Evidence",
     ]
@@ -813,6 +825,12 @@ def build_codex_skill_md(payload: dict[str, Any], skill: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            "## Harness Contract",
+            "- Scope: stay inside this skill's trigger, domain, and current user request.",
+            "- Access & Actions: inspect repo evidence and produce bounded findings; do not expand tools, installs, CI, or release gates without approval.",
+            "- Definition of Done: provide concise findings, relevant file references, validation evidence or skipped-check reason, and remaining risk.",
+            "- Human Approval Points: escalate product direction, release, dependency, secret, privacy-sensitive, destructive, or external-send decisions.",
+            "",
             "## Validation",
         ]
     )
@@ -862,6 +880,8 @@ def build_orchestration_doc(payload: dict[str, Any]) -> str:
         "3. If worker help is useful, assign bounded scopes using `patterns --prompt <pattern-id>` or the role purposes in `Docs/AI/agent-team.md`.",
         "4. Background workers return concise findings only; visible chats are used for decisions the user should inspect.",
         "5. Main thread merges findings, applies approved changes, runs validation, and records history when useful.",
+        "",
+        *diagnose_module.render_harness_contract_lines(payload["harness_contract"], heading_level=2),
         "",
         "## Visibility Policy",
         *[f"- {item}" for item in team["orchestration"]],
@@ -1036,6 +1056,8 @@ def print_factory_plan(payload: dict[str, Any]) -> None:
     print(f"Readiness: {engine['readiness']['score']}/{engine['readiness']['max_score']}")
     print(f"Human involvement: {engine['human_involvement']}/5")
     print(f"Repo evidence: {evidence.get('summary', 'No concrete evidence summary available.')}")
+    if payload.get("harness_contract"):
+        print("Harness contract: Scope, Access & Actions, Definition of Done, Human Approval Points")
     print(
         "Factory quality: "
         f"evidence_refs={quality.get('evidence_ref_count', 0)}, "

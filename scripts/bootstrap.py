@@ -59,6 +59,9 @@ def generate_files(
     worker = design["worker_architecture"]
     involvement = diagnosis["human_involvement"]
     scripts = package_scripts_text(repo_scan)
+    contract = diagnosis["harness_contract"]
+    contract_lines = diagnose_module.render_harness_contract_lines(contract, heading_level=2)
+    nested_contract_lines = diagnose_module.render_harness_contract_lines(contract, heading_level=3, include_heading=False)
     history_feedback = diagnosis.get("history_feedback", {})
     history_lines: list[str] = []
     if history_feedback.get("signals"):
@@ -80,6 +83,8 @@ def generate_files(
             "- Read `README.md` when present, then `Docs/AI/harness-profile.md`, `Docs/AI/validation.md`, and `Docs/AI/ambiguity-profile.md`.",
             "- Keep changes scoped to the request and existing project patterns.",
             "- Prefer the smallest reversible edit that improves correctness, reviewability, or evidence.",
+            "",
+            *contract_lines,
             "",
             "## Human Involvement",
             f"- Default human involvement: {involvement}/5.",
@@ -117,6 +122,9 @@ def generate_files(
             "- `Docs/AI/harness-profile.md`: cycle sizing, worker pattern, and review cadence.",
             "- `Docs/AI/validation.md`: focused and broad validation guidance.",
             "- `Docs/AI/ambiguity-profile.md`: human-involvement and ask-before-edit rules.",
+            "",
+            "## Harness Contract",
+            *nested_contract_lines,
             "",
             "## Worker Pattern",
             f"- Selected pattern: {worker.get('label', worker['pattern'])} (`{worker['pattern']}`).",

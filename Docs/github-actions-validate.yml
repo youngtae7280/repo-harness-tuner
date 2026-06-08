@@ -31,6 +31,7 @@ jobs:
           python scripts/scan_repo_harness.py --json | grep '"project_type": "codex-plugin"'
           python scripts/console.py fixture-test --json
           python scripts/console.py next --repo "$tmp" --domain "technical documentation" --phase new-project --json
+          python scripts/console.py next --repo "$tmp" --domain "technical documentation" --phase new-project --json | grep '"harness_contract"'
           python scripts/console.py doctor --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py run-loop --repo "$tmp" --domain "technical documentation" --phase new-project --json
           python scripts/console.py loop --repo "$tmp" --domain "technical documentation" --phase new-project --json

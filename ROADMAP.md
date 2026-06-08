@@ -118,6 +118,7 @@ Scope:
 Done when:
 
 - A user can start with one request or one `next` command and receive a clear follow-up path for diagnosis, tuning, validation, and history recording.
+- Generated and tuned harness docs include a clear contract for Scope, Access & Actions, Definition of Done, and Human Approval Points.
 - Repeated closed-loop signals produce a structured recommendation such as "shorten review interval" or "raise human involvement for release flow".
 - Applying cadence or human-involvement changes remains explicit, reviewable, and documented in repo-local harness files.
 - Fixture tests cover closed-loop adaptive cadence and human-involvement recommendations.
@@ -213,4 +214,5 @@ Implemented documentation anchors for this pass:
 - `Docs/versioning.md`: `#20` versioning, breaking-change classification, deprecation, changelog, and release checklist policy.
 - `README.md` / `README_KO.md`: slim one-request onboarding, safety model, adaptive-loop explanation, and links to detailed docs.
 - `next` / `doctor` / `run-loop`: v1.1 structured `adaptive` recommendations for cadence and human-involvement policy suggestions.
+- `harness_contract`: standard Scope, Access & Actions, Definition of Done, and Human Approval Points sections for generated/tuned harness docs.
 - `recommend-skills` / `catalog`: v1.2-v1.5 minimal skill recommendation, ECC seed adapter, approved install flow, and continuous curator scope.

@@ -42,6 +42,7 @@ Each fixture checks:
 - stale or conflicting factory artifact signals,
 - history/eval closed-loop signal handling,
 - minimal skill recommendation source/capability and curator behavior,
+- harness contract sections: Scope, Access & Actions, Definition of Done, and Human Approval Points,
 - high-risk write guard behavior,
 - read-only commands do not modify fixture files.
 

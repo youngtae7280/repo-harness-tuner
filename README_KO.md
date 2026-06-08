@@ -53,6 +53,17 @@ Analyze -> Diagnose -> Design -> Factory -> Recommend Skills -> Tune -> Evaluate
 
 처음부터 모든 명령을 고를 필요는 없습니다. `next`로 시작하고, 출력된 승인 경계를 검토한 뒤 진행하면 됩니다.
 
+## 하네스 계약
+
+생성되거나 튜닝되는 하네스는 네 가지 경계를 명확히 남깁니다.
+
+- **Scope**: Codex에게 어디까지 맡길지, 어디부터 맡기지 않을지
+- **Access & Actions**: Codex가 무엇을 볼 수 있고, 무엇을 할 수 있고, 무엇은 금지되며, 무엇은 승인 후 가능한지
+- **Definition of Done**: 검증, 변경 파일 요약, 스킵 사유, 남은 위험, closeout 증거
+- **Human Approval Points**: 릴리즈, 배포, dependency, CI, secret, 고객/사용자 발송, 파괴적 변경, 정책 변경, 높은 human-involvement 영역
+
+`next`, `doctor`, `run-loop`는 이 내용을 `harness_contract`로 출력하고, `bootstrap`, `tune`, `factory`는 생성 문서에 이 섹션을 씁니다.
+
 ## 안전 모델
 
 기본은 read-first입니다.

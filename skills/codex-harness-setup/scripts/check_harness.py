@@ -35,6 +35,12 @@ UNKNOWN_VALIDATION_RE = re.compile(
     r"\b(validation|test|command)s?\b.{0,40}\b(unknown|not available|manual only)\b|\b(unknown|not available|manual only)\b.{0,40}\b(validation|test|command)s?\b",
     re.IGNORECASE,
 )
+HARNESS_CONTRACT_SECTIONS = [
+    "scope",
+    "access & actions",
+    "definition of done",
+    "human approval points",
+]
 
 
 def harness_files(root: Path) -> list[Path]:
@@ -110,6 +116,16 @@ def check_overbroad_rules(path: Path, text: str) -> list[str]:
     return issues
 
 
+def check_harness_contract(path: Path, text: str) -> list[str]:
+    normalized = text.lower()
+    if "harness contract" not in normalized:
+        return []
+    missing = [section for section in HARNESS_CONTRACT_SECTIONS if section not in normalized]
+    if missing:
+        return [f"{path}:1: incomplete Harness Contract section; missing {', '.join(missing)}"]
+    return []
+
+
 def check_agents_length(root: Path) -> list[str]:
     agents = root / "AGENTS.md"
     if not agents.exists():
@@ -157,6 +173,7 @@ def main() -> int:
         issues.extend(check_placeholders(path, text))
         issues.extend(check_duplicate_headings(path, text))
         issues.extend(check_overbroad_rules(path, text))
+        issues.extend(check_harness_contract(path, text))
 
     if issues:
         print("Harness check found issues:")

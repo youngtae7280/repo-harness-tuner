@@ -13,6 +13,17 @@ A harness is repository scaffolding for agent work: `AGENTS.md`, `docs/ai/*`, va
 
 This skill is not a general coding, debugging, code-review, or security-review skill. Use it only when the task is about designing, auditing, or tuning agent scaffolding or repository-local harnesses.
 
+## Harness Contract
+
+Every new or tuned harness should answer four questions:
+
+- **Scope**: what Codex may own, and what it must not take over.
+- **Access & Actions**: what Codex can see, what it can do, what it must not do, and what requires approval.
+- **Definition of Done**: what validation, changed-file summary, skipped-check reason, remaining-risk note, or closeout evidence proves the task is complete.
+- **Human Approval Points**: where Codex must stop for release, deployment, dependency, CI, secret, customer/user-facing, destructive, policy, or high human-involvement decisions.
+
+Keep this contract explicit in `AGENTS.md`, `docs/ai/harness-profile.md`, or the nearest repo-local source of truth. Do not turn it into permission for broad automation.
+
 ## Input Contract
 
 Before editing, identify:

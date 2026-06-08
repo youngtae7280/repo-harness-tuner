@@ -602,6 +602,163 @@ def human_involvement_matrix(phase: str, modules: list[str] | None = None, human
     return rows
 
 
+def build_harness_contract(
+    repo_scan: dict[str, Any],
+    phase: str,
+    human_involvement: int,
+    design: dict[str, Any],
+    involvement_matrix: list[dict[str, str | int]],
+) -> dict[str, Any]:
+    project_label = str(design.get("project_label") or design.get("project_type") or "project")
+    worker = design.get("worker_architecture", {})
+    evaluation_steps = design.get("evaluation_steps", [])
+    project_scripts = repo_scan.get("package_scripts", {})
+    detected_scripts = [f"npm run {name}" for name in project_scripts] if isinstance(project_scripts, dict) else []
+    can_see = [
+        "repo-local source files and project documentation relevant to the current request",
+        "`AGENTS.md` and `Docs/AI/*` harness files",
+        "native validation commands, CI hints, recent reports, harness history, and eval score records when present",
+    ]
+    if detected_scripts:
+        can_see.append("detected package scripts: " + ", ".join(detected_scripts[:6]))
+    return {
+        "schema": "repo-harness-tuner.harness-contract.v1",
+        "phase": phase,
+        "project_type": design.get("project_type", "unknown"),
+        "project_label": project_label,
+        "scope": {
+            "agent_may": [
+                f"analyze the {project_label} repo and diagnose Codex workflow or harness gaps",
+                "propose the next smallest safe action for planning, implementation support, review, validation, or harness tuning",
+                "edit repo files only when the user requested the work and the command path has an explicit write flag",
+                "recommend minimal skill/worker support when repo evidence justifies it",
+            ],
+            "agent_must_not": [
+                "treat 'do everything automatically' as permission to bypass approval boundaries",
+                "deploy, release, publish, send external messages, process payments, or mutate production data",
+                "silently change human-involvement policy, cadence policy, dependencies, CI, secrets, credentials, marketplace entries, or install state",
+            ],
+        },
+        "access_actions": {
+            "can_see": can_see,
+            "can_do": [
+                "read files and summarize evidence",
+                "create reviewable plans, dry-run diffs, and repo-local harness docs under `AGENTS.md` or `Docs/AI/*`",
+                "run or recommend the nearest focused validation command and record skipped-check reasons",
+                "record concise harness history or eval scores only through explicit write flags",
+            ],
+            "must_not_do": [
+                "delete data or files outside the documented bounded write path",
+                "enable external hooks, MCP servers, slash commands, native agents, or marketplace changes through recommendation commands",
+                "broaden validation, reporting, or worker process for every small task without evidence",
+            ],
+            "approval_required": [
+                "dependency, release, CI, secret, credential, migration, marketplace, install/uninstall, privacy-sensitive, or destructive changes",
+                "customer/user-facing sends, production data changes, deployment, publishing, payments, or policy changes",
+                "overwriting unmanaged files or applying generated artifacts outside the reviewed target files",
+            ],
+        },
+        "definition_of_done": {
+            "required_evidence": [
+                "changed files or proposed files are named",
+                "the reason for each meaningful change is summarized",
+                "focused validation was run, or an unavailable/not-relevant check is explicitly skipped with a reason",
+                "remaining risks, approval needs, and next review trigger are stated",
+            ],
+            "validation": [
+                f"{step['when']}: {step['command']}"
+                for step in evaluation_steps
+                if isinstance(step, dict) and step.get("when") and step.get("command")
+            ],
+            "closeout": [
+                "summarize what changed and why",
+                "report validation evidence and skipped checks",
+                "call out unresolved risks or follow-up recommendations",
+                "record harness history when the result should influence future tuning",
+            ],
+        },
+        "human_approval_points": {
+            "default_human_involvement": human_involvement,
+            "policy": involvement_text(human_involvement),
+            "worker_pattern": worker.get("pattern", "single-agent"),
+            "worker_visibility": worker.get("default_visibility", "single-agent"),
+            "always_ask_before": [
+                "destructive filesystem or data operations",
+                "release, deployment, dependency, CI, secret, credential, migration, marketplace, install/uninstall, or privacy-sensitive changes",
+                "product, roadmap, UX, narrative, customer-facing, or scope decisions not answered by a repo source of truth",
+                "file edits at human involvement 5 unless the exact edit was already approved",
+            ],
+            "matrix": involvement_matrix,
+        },
+    }
+
+
+def render_harness_contract_lines(
+    contract: dict[str, Any],
+    heading_level: int = 2,
+    include_heading: bool = True,
+) -> list[str]:
+    prefix = "#" * max(1, heading_level)
+    section_level = heading_level + 1 if include_heading else heading_level
+    sub = "#" * max(1, section_level)
+    lines: list[str] = []
+    if include_heading:
+        lines.extend([f"{prefix} Harness Contract", ""])
+    scope = contract.get("scope", {})
+    lines.extend([f"{sub} Scope", ""])
+    lines.append("Agent may:")
+    lines.extend(f"- {item}" for item in scope.get("agent_may", []))
+    lines.extend(["", "Agent must not:"])
+    lines.extend(f"- {item}" for item in scope.get("agent_must_not", []))
+
+    access = contract.get("access_actions", {})
+    lines.extend(["", f"{sub} Access & Actions", ""])
+    for label, key in [
+        ("Can see", "can_see"),
+        ("Can do", "can_do"),
+        ("Must not do", "must_not_do"),
+        ("Approval required", "approval_required"),
+    ]:
+        lines.append(f"{label}:")
+        lines.extend(f"- {item}" for item in access.get(key, []))
+        lines.append("")
+    if lines and lines[-1] == "":
+        lines.pop()
+
+    done = contract.get("definition_of_done", {})
+    lines.extend(["", f"{sub} Definition of Done", ""])
+    lines.append("Required evidence:")
+    lines.extend(f"- {item}" for item in done.get("required_evidence", []))
+    if done.get("validation"):
+        lines.extend(["", "Validation hints:"])
+        lines.extend(f"- {item}" for item in done.get("validation", []))
+    if done.get("closeout"):
+        lines.extend(["", "Closeout should include:"])
+        lines.extend(f"- {item}" for item in done.get("closeout", []))
+
+    approval = contract.get("human_approval_points", {})
+    lines.extend(["", f"{sub} Human Approval Points", ""])
+    lines.append(
+        f"- Default human involvement: {approval.get('default_human_involvement', '?')}/5 "
+        f"({approval.get('policy', 'no policy text')})"
+    )
+    lines.append(
+        f"- Worker pattern: {approval.get('worker_pattern', 'single-agent')} "
+        f"with {approval.get('worker_visibility', 'single-agent')} visibility"
+    )
+    lines.append("- Always ask before:")
+    lines.extend(f"  - {item}" for item in approval.get("always_ask_before", []))
+    matrix = approval.get("matrix", [])
+    if matrix:
+        lines.extend(["", "Area matrix:"])
+        for row in matrix:
+            lines.append(
+                f"- {row.get('area')}: human involvement {row.get('human_involvement')}/5, "
+                f"{row.get('visibility')}, validation: {row.get('validation')}"
+            )
+    return lines
+
+
 def quote_path(path: Path) -> str:
     return f'"{path}"'
 
@@ -1127,6 +1284,14 @@ def diagnose(
         overhead,
         history_feedback,
     )
+    harness_contract = build_harness_contract(
+        repo_scan,
+        phase,
+        resolved_human_involvement,
+        design,
+        public_matrix,
+    )
+    design["harness_contract"] = harness_contract
     return {
         "phase": phase,
         "cadence": phase_info["cadence"],
@@ -1138,6 +1303,7 @@ def diagnose(
         "human_involvement_enforcement": involvement_enforcement,
         "history_feedback": history_feedback,
         "human_involvement_matrix": public_matrix,
+        "harness_contract": harness_contract,
         "harness_design": design,
         "adaptive": adaptive,
         "internal": {
@@ -1230,6 +1396,15 @@ def build_tuning_prompt(payload: dict[str, Any], repo_type: str, modules: list[s
                 for reason in worker["selection_reasons"]:
                     lines.append(f"  - Reason: {reason}")
         lines.append(f"- Next review trigger: {design.get('next_review_trigger', 'after meaningful project change')}")
+
+    if payload.get("harness_contract"):
+        lines.append("")
+        lines.append("Harness contract to preserve:")
+        lines.append("- Scope")
+        lines.append("- Access & Actions")
+        lines.append("- Definition of Done")
+        lines.append("- Human Approval Points")
+        lines.append("- Generated harness docs should keep these four boundaries explicit.")
 
     lines.append("")
     lines.append("Human involvement and worker visibility matrix:")
@@ -1352,6 +1527,8 @@ def write_status(root: Path, payload: dict[str, Any]) -> Path:
             lines.append(f"- {signal['type']}: {signal['detail']}")
     else:
         lines.append("- No history pressure detected.")
+    if payload.get("harness_contract"):
+        lines.extend(["", *render_harness_contract_lines(payload["harness_contract"], heading_level=2)])
     lines.append("")
     lines.append("## Harness Design")
     for item in payload["harness_design"]["target_files"]:
@@ -1399,6 +1576,8 @@ def write_design_plan(root: Path, payload: dict[str, Any]) -> Path:
     ]
     for item in design["primary_risks"]:
         lines.append(f"- {item}")
+    if payload.get("harness_contract"):
+        lines.extend(["", *render_harness_contract_lines(payload["harness_contract"], heading_level=2)])
     lines.append("")
     lines.append("## Target Files")
     for item in design["target_files"]:
@@ -1464,6 +1643,8 @@ def print_harness_design(design: dict[str, Any]) -> None:
     print("- Evaluation:")
     for step in design["evaluation_steps"]:
         print(f"  - {step['when']}: {step['command']}")
+    if design.get("harness_contract"):
+        print("- Harness contract: Scope, Access & Actions, Definition of Done, Human Approval Points")
     print(f"- Next review: {design['next_review_trigger']}")
 
 
@@ -1534,6 +1715,13 @@ def print_diagnosis(payload: dict[str, Any]) -> None:
         )
         if involvement.get("approval_required"):
             print("- Approval required before changing human-involvement policy.")
+    if payload.get("harness_contract"):
+        print("")
+        print("Harness contract:")
+        print("- Scope")
+        print("- Access & Actions")
+        print("- Definition of Done")
+        print("- Human Approval Points")
     print("")
     print_harness_design(payload["harness_design"])
     print("")

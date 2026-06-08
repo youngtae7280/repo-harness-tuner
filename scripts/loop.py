@@ -413,11 +413,13 @@ def build_loop_plan(
             "evidence_note": closed_loop_evidence_note(history_feedback, next_action),
         },
         "adaptive": adaptive,
+        "harness_contract": diagnosis.get("harness_contract", {}),
         "design": {
             "target_files": design.get("target_files", []),
             "worker_architecture": design.get("worker_architecture", {}),
             "next_review_trigger": design.get("next_review_trigger", ""),
             "evaluation_steps": design.get("evaluation_steps", []),
+            "harness_contract": diagnosis.get("harness_contract", {}),
         },
         "factory": {
             "label": factory_payload["team_factory"]["label"],
@@ -505,6 +507,8 @@ def write_loop_plan(root: Path, payload: dict[str, Any]) -> Path:
     )
     for line in approval_lines(payload, next_action):
         lines.append(f"- {line}")
+    if payload.get("harness_contract"):
+        lines.extend(["", *diagnose_module.render_harness_contract_lines(payload["harness_contract"], heading_level=2)])
     lines.extend(
         [
             "",
@@ -719,6 +723,13 @@ def print_doctor(payload: dict[str, Any]) -> None:
     print("Needs approval:")
     for line in approval_lines(payload, next_action):
         print(f"- {line}")
+    if payload.get("harness_contract"):
+        print("")
+        print("Harness Contract:")
+        print("- Scope")
+        print("- Access & Actions")
+        print("- Definition of Done")
+        print("- Human Approval Points")
     print("")
     print("Validation to run:")
     for line in validation_lines(payload):
