@@ -219,6 +219,13 @@ def build_next_action(
 def closed_loop_evidence_note(history_feedback: dict[str, Any], next_action: dict[str, Any]) -> str:
     signals = history_feedback.get("signals", [])
     if not signals:
+        history_records = int(history_feedback.get("count", 0) or 0)
+        eval_score_records = int(history_feedback.get("eval_score_records", 0) or 0)
+        if history_records or eval_score_records:
+            return (
+                f"Stored history/eval exists ({history_records} history, {eval_score_records} eval), "
+                "but no signal changed the next action."
+            )
         return "No stored history or eval evidence changed the next action."
     if next_action.get("id") in {"tune", "eval-review"}:
         return "Stored history or eval evidence influenced the next action."
@@ -445,7 +452,12 @@ def build_loop_plan(
         tune_payload,
         history_summary,
     )
-    if next_action.get("id") == "observe" and skill_payload["summary"].get("recommendation_count", 0):
+    skill_recommendation_plan_exists = (root / "Docs" / "AI" / "skill-recommendations.md").exists()
+    if (
+        next_action.get("id") == "observe"
+        and skill_payload["summary"].get("recommendation_count", 0)
+        and not skill_recommendation_plan_exists
+    ):
         apply_extra = ["--write-plan", *confirm_write_extra("recommend-skills", phase, human_involvement)]
         next_action = build_next_action(
             "skill-recommendations",
@@ -730,14 +742,16 @@ def apply_recommended(payload: dict[str, Any], root: Path, force: bool = False) 
             return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
         return {"action": action, "results": factory_module.write_factory_artifacts(root, factory_payload, force), "auto_apply_guard": guard}
     if kind == "skill-recommendations-plan":
-        planned = [{"path": "Docs/AI/skill-recommendations.md", "action": "create"}]
+        plan_path = root / "Docs" / "AI" / "skill-recommendations.md"
+        planned_action = "update" if plan_path.exists() else "create"
+        planned = [{"path": "Docs/AI/skill-recommendations.md", "action": planned_action}]
         guard = auto_apply_guard(action, planned)
         if not guard["allowed"]:
             return {"action": action, "results": [], "auto_apply_guard": guard, "blocked": True}
         path = skill_recommender.write_recommendation_plan(root, payload["skill_recommendations"])
         return {
             "action": action,
-            "results": [{"status": "create", "path": str(path.relative_to(root))}],
+            "results": [{"status": planned_action, "path": str(path.relative_to(root))}],
             "auto_apply_guard": guard,
         }
     if kind == "history":

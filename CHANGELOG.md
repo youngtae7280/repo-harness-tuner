@@ -4,6 +4,18 @@
 
 No changes yet.
 
+## 1.5.5 - 2026-06-08
+
+Skill recommendation plan wording and repo-local artifact clarity.
+
+### Changed
+
+- `recommend-skills` now labels factory-generated `Docs/AI/skills/*.md` candidates as repo-local planning artifacts instead of Codex skill drafts, and separates preview/write/install command flow in the written plan.
+- Wrote the Harness Tuner skill recommendation plan to `Docs/AI/skill-recommendations.md` without installing any skills.
+- Skill curator messaging now recognizes existing history/eval records even when no repair or reduction signal exists.
+- `next` now reports existing history/eval records separately from whether they changed the selected next action.
+- `next` no longer repeats the skill-recommendations write action after `Docs/AI/skill-recommendations.md` already exists.
+
 ## 1.5.4 - 2026-06-08
 
 Self-orchestration artifacts for Harness Tuner productization.

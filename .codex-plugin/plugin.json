@@ -1,6 +1,6 @@
 {
   "name": "repo-harness-tuner",
-  "version": "1.5.4+codex.20260608150005",
+  "version": "1.5.5+codex.20260608153438",
   "description": "Harness Tuner helps Codex choose the next safe repo step, draft project roadmaps, tune repo harnesses, and recommend minimal adapter skills with approval gates.",
   "author": {
     "name": "youngtae7280"

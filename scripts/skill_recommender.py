@@ -343,6 +343,9 @@ def build_curator(history_feedback: dict[str, Any], capability_rank: list[dict[s
         if isinstance(signal, dict) and signal.get("type")
     ]
     signal_set = set(signals)
+    history_records = int(history_feedback.get("count", 0) or 0)
+    eval_score_records = int(history_feedback.get("eval_score_records", 0) or 0)
+    has_stored_evidence = history_records > 0 or eval_score_records > 0
     action = "baseline"
     reason = "No stored history/eval record exists yet; install only the smallest useful skill set."
     if {"eval-regression", "eval-unchanged-fail", "readiness-regression", "recent-failure-note"} & signal_set:
@@ -357,6 +360,12 @@ def build_curator(history_feedback: dict[str, Any], capability_rank: list[dict[s
     elif signals:
         action = "watch"
         reason = "Stored signals exist, but they do not justify a broad skill install."
+    elif has_stored_evidence:
+        action = "watch"
+        reason = (
+            f"Stored history/eval exists ({history_records} history, {eval_score_records} eval), "
+            "but no pressure signal justifies a broad skill install."
+        )
 
     return {
         "schema": "repo-harness-tuner.skill-curator.v1",
@@ -364,6 +373,8 @@ def build_curator(history_feedback: dict[str, Any], capability_rank: list[dict[s
         "action": action,
         "reason": reason,
         "evidence_signals": sorted(signal_set),
+        "history_records": history_records,
+        "eval_score_records": eval_score_records,
         "top_capabilities": [item["id"] for item in capability_rank[:MAX_RECOMMENDATIONS]],
         "approval_required_for_install": True,
         "silent_apply": False,
@@ -483,8 +494,8 @@ def build_recommendation_plan(
                 "source": "factory",
                 "source_kind": "repo-local-generated",
                 "name": factory_skill["id"],
-                "surface": "Codex skill draft",
-                "native_invocation": f"factory generated skill {factory_skill['id']}",
+                "surface": "repo-local planning artifact",
+                "native_invocation": f"repo-local planning artifact {factory_skill['id']}",
                 "target_file": factory_skill.get("target_file"),
                 "install_strategy": "codex-adapter-skill",
                 "installable": True,
@@ -715,8 +726,21 @@ def write_recommendation_plan(root: Path, payload: dict[str, Any]) -> Path:
                 f"  - Install strategy: `{item['install_strategy']}`",
             ]
         )
-    lines.extend(["", "## Commands"])
-    lines.extend(f"- `{command}`" for command in payload.get("commands", []))
+    lines.extend(
+        [
+            "",
+            "## Command Flow",
+            "- Run preview first, write this plan only after review, and install adapter skills only after explicit approval.",
+        ]
+    )
+    for command in payload.get("commands", []):
+        if "--install --confirm-install" in command:
+            label = "Confirmed install after approval"
+        elif "--write-plan" in command:
+            label = "Write this plan"
+        else:
+            label = "Preview candidates"
+        lines.append(f"- {label}: `{command}`")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path
 
