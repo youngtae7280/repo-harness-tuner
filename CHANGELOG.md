@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No changes yet.
+### Changed
+
+- Added a Cycle Budget Policy to the repo harness and Harness Tuner skill guidance so ordinary work defaults to up to 3 cycles, high-blast-radius work can use up to 5 cycles, and release/CI/install/marketplace/destructive work stops after one read/preview cycle for approval.
 
 ## 1.5.5 - 2026-06-08
 

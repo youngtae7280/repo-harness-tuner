@@ -153,6 +153,23 @@ If there is no repository context, ask for the repo or provide a copyable starti
 - `maintenance`: stable work. Tune monthly, after repeated mistakes, or before high-risk changes.
 - `high-risk`: migration, destructive, release, data, secrets, or difficult rollback. Tune before planning, before implementation, and after validation.
 
+## Cycle Budget Policy
+
+When the user asks Harness Tuner or Codex to "do the work" without a cycle budget, treat the budget as a maximum, not a required number of loops. Stop earlier when the work is complete or when an approval boundary appears.
+
+- Small docs, copy, or single-file fixes: 1-2 cycles.
+- Normal implementation, harness, or multi-file improvements: up to 3 cycles.
+- Shared contracts, CLI behavior, plugin metadata, validation-flow, factory/engine changes, or other high-blast-radius repo work: up to 5 cycles.
+- Release, CI, install, marketplace, dependency, destructive, privacy-sensitive, or hard-to-reverse changes: one read/preview cycle, then ask before apply.
+
+Each cycle should preserve the preview/apply boundary:
+
+```text
+inspect or diagnose -> preview or apply the approved step -> validate or record a skipped-check reason -> report progress and next options
+```
+
+At the budget limit, report what changed or was proposed, validation evidence or skipped checks, remaining risk, approval needs, and the next safe options. For longer work, recommend splitting into a new milestone instead of silently extending the budget.
+
 ## Human Involvement
 
 The user-facing control is human involvement, from 1 to 5:

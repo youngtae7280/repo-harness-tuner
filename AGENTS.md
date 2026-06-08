@@ -10,6 +10,12 @@
 - Any `Ask before` rule in `Docs/AI/ambiguity-profile.md` is a stop condition before file edits.
 - Ask before destructive operations, dependency/release changes, secrets, migrations, or hard-to-reverse user-facing direction changes.
 
+## Cycle Budget
+- Default work command budget: up to 3 cycles, stopping earlier when the task is complete.
+- Use 1-2 cycles for small docs, copy, or single-file fixes; use up to 5 cycles for shared contracts, CLI behavior, plugin metadata, or validation-flow changes.
+- For release, CI, install, marketplace, dependency, destructive, or hard-to-reverse changes, do one read/preview cycle and ask before applying.
+- At the budget limit, report progress, validation evidence or skipped checks, remaining risk, and the next safe options.
+
 ## Worker Visibility
 - Default worker pattern: Supervisor Cycle (`supervisor-cycle`).
 - Default visibility: main visible coordinator plus optional background workers.

@@ -18,6 +18,14 @@ Next review trigger: after the next harness change or repeated agent miss
 - `Docs/AI/validation.md`: focused and broad validation guidance.
 - `Docs/AI/ambiguity-profile.md`: human-involvement and ask-before-edit rules.
 
+## Cycle Budget Policy
+- Default work command budget: up to 3 cycles, stopping earlier when done.
+- Small docs, copy, or single-file fixes: 1-2 cycles.
+- Normal feature, harness, or multi-file improvements: up to 3 cycles.
+- Shared contracts, CLI behavior, plugin metadata, validation-flow, or factory/engine changes: up to 5 cycles.
+- Release, CI, install, marketplace, dependency, destructive, or hard-to-reverse changes: one read/preview cycle, then ask before apply.
+- At the budget limit, close out with changed/proposed files, validation evidence or skipped-check reason, remaining risks, and next safe options.
+
 ## Worker Pattern
 - Selected pattern: Single Agent (`single-agent`).
 - Visibility: single visible thread by default.
@@ -77,6 +85,7 @@ Required evidence:
 - changed files or proposed files are named
 - the reason for each meaningful change is summarized
 - focused validation was run, or an unavailable/not-relevant check is explicitly skipped with a reason
+- cycle budget used or remaining is stated for multi-cycle work
 - remaining risks, approval needs, and next review trigger are stated
 
 Validation hints:
@@ -93,12 +102,14 @@ Closeout should include:
 ### Human Approval Points
 
 - Default human involvement: 3/5 (Infer from repo context, but ask before hard-to-reverse or user-visible direction changes.)
+- Default work budget: up to 3 cycles; use up to 5 only for shared contracts, CLI behavior, plugin metadata, validation-flow, or factory/engine changes.
 - Worker pattern: single-agent with single thread visibility
 - Always ask before:
   - destructive filesystem or data operations
   - release, deployment, dependency, CI, secret, credential, migration, marketplace, install/uninstall, or privacy-sensitive changes
   - product, roadmap, UX, narrative, customer-facing, or scope decisions not answered by a repo source of truth
   - file edits at human involvement 5 unless the exact edit was already approved
+  - applying release, CI, install, marketplace, dependency, destructive, or hard-to-reverse changes after the first read/preview cycle
 
 Area matrix:
 - Small docs/copy edits: human involvement 2/5, single-agent, validation: docs review or skipped with reason
