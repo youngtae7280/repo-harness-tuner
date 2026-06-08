@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No changes yet.
+### Changed
+
+- Reworked the Korean default README around natural-language entry, role-based onboarding, a vertical first-run flow, and clearer preview/apply safety boundaries.
 
 ## 1.5.1 - 2026-06-08
 
